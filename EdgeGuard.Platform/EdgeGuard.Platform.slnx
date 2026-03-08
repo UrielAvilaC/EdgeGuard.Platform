@@ -1,1 +1,28 @@
-<Solution />
+<Solution>
+  <Folder Name="/docs/" />
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="Dicom.Edge.Hub,Application/Dicom.Edge.Hub,Application.csproj" />
+    <Project Path="Dicom.Edge.Hub.Api/Dicom.Edge.Hub.Api.csproj" />
+    <Project Path="Dicom.Edge.Hub.Domain/Dicom.Edge.Hub.Domain.csproj" />
+    <Project Path="Dicom.Edge.Hub.Infrastructure/Dicom.Edge.Hub.Infrastructure.csproj" />
+    <Project Path="Dicom.Edge.Persistence/Dicom.Edge.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/edge/">
+    <Project Path="Dicom.Edge.Configuration/Dicom.Edge.Configuration.csproj" />
+    <Project Path="Dicom.Edge.Diagnostics/Dicom.Edge.Diagnostics.csproj" />
+    <Project Path="Dicom.Edge.DicomServer/Dicom.Edge.DicomServer.csproj" />
+    <Project Path="Dicom.Edge.Node/Dicom.Edge.Node.csproj" />
+    <Project Path="Dicom.Edge.Queue/Dicom.Edge.Queue.csproj" />
+    <Project Path="Dicom.Edge.Router/Dicom.Edge.Router.csproj" />
+    <Project Path="Dicom.Edge.Storage/Dicom.Edge.Storage.csproj" />
+    <Project Path="Dicom.Edge.Worklist/Dicom.Edge.Worklist.csproj" />
+  </Folder>
+  <Folder Name="/src/frontend/" />
+  <Folder Name="/src/shared/">
+    <Project Path="Dicom.Edge,Contracts/Dicom.Edge,Contracts.csproj" />
+    <Project Path="Dicom.Edge.Common/Dicom.Edge.Common.csproj" />
+    <Project Path="Dicom.Edge.Events/Dicom.Edge.Events.csproj" />
+  </Folder>
+  <Folder Name="/tools/" />
+</Solution>
