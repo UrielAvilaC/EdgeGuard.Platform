@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Dicom.Edge.Contracts")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+63ad7706b584c4124814fffca16a516647263cdd")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b062ece9a12fb4c5a6beeda03abc8dfc5f1ab837")]
 [assembly: System.Reflection.AssemblyProductAttribute("Dicom.Edge.Contracts")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Dicom.Edge.Contracts")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

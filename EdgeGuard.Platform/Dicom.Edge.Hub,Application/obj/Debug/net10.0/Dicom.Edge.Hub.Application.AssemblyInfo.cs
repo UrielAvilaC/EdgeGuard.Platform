@@ -11,12 +11,12 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("Dicom.Edge.Security")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("Dicom.Edge.Hub.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
 [assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b062ece9a12fb4c5a6beeda03abc8dfc5f1ab837")]
-[assembly: System.Reflection.AssemblyProductAttribute("Dicom.Edge.Security")]
-[assembly: System.Reflection.AssemblyTitleAttribute("Dicom.Edge.Security")]
+[assembly: System.Reflection.AssemblyProductAttribute("Dicom.Edge.Hub.Application")]
+[assembly: System.Reflection.AssemblyTitleAttribute("Dicom.Edge.Hub.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 
 // Generado por la clase WriteCodeFragment de MSBuild.

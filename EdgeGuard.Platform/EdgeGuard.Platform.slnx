@@ -2,7 +2,7 @@
   <Folder Name="/docs/" />
   <Folder Name="/src/" />
   <Folder Name="/src/backend/">
-    <Project Path="Dicom.Edge.Hub,Application/Dicom.Edge.Hub,Application.csproj" />
+    <Project Path="Dicom.Edge.Hub,Application/Dicom.Edge.Hub.Application.csproj" />
     <Project Path="Dicom.Edge.Hub.Api/Dicom.Edge.Hub.Api.csproj" />
     <Project Path="Dicom.Edge.Hub.Domain/Dicom.Edge.Hub.Domain.csproj" />
     <Project Path="Dicom.Edge.Hub.Infrastructure/Dicom.Edge.Hub.Infrastructure.csproj" />

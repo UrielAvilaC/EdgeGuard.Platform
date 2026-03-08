@@ -14,9 +14,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub,Application\\Dicom.Edge.Hub,Application.csproj",
-      "projectName": "Dicom.Edge.Hub,Application",
-      "projectPath": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub,Application\\Dicom.Edge.Hub,Application.csproj",
+      "projectUniqueName": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj",
+      "projectName": "Dicom.Edge.Hub.Application",
+      "projectPath": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj",
       "packagesPath": "C:\\Users\\uriel\\.nuget\\packages\\",
       "outputPath": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub,Application\\obj\\",
       "projectStyle": "PackageReference",
