@@ -36,6 +36,16 @@
             "related": ".pdb;.xml"
           }
         }
+      },
+      "Dicom.Edge.Common/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/Dicom.Edge.Common.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Dicom.Edge.Common.dll": {}
+        }
       }
     }
   },
@@ -75,10 +85,16 @@
         "microsoft.openapi.2.0.0.nupkg.sha512",
         "microsoft.openapi.nuspec"
       ]
+    },
+    "Dicom.Edge.Common/1.0.0": {
+      "type": "project",
+      "path": "../Dicom.Edge.Common/Dicom.Edge.Common.csproj",
+      "msbuildProject": "../Dicom.Edge.Common/Dicom.Edge.Common.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "Dicom.Edge.Common >= 1.0.0",
       "Microsoft.AspNetCore.OpenApi >= 10.0.3"
     ]
   },
@@ -115,7 +131,11 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Common\\Dicom.Edge.Common.csproj": {
+              "projectPath": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Common\\Dicom.Edge.Common.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
