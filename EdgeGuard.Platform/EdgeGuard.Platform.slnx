@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/docs/" />
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="Dicom.Edge.Hub,Application/Dicom.Edge.Hub.Application.csproj" />
+    <Project Path="Dicom.Edge.Hub.Api/Dicom.Edge.Hub.Api.csproj" />
+    <Project Path="Dicom.Edge.Hub.Domain/Dicom.Edge.Hub.Domain.csproj" />
+    <Project Path="Dicom.Edge.Hub.Infrastructure/Dicom.Edge.Hub.Infrastructure.csproj" />
+    <Project Path="Dicom.Edge.Persistence/Dicom.Edge.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/edge/">
+    <Project Path="Dicom.Edge.Configuration/Dicom.Edge.Configuration.csproj" />
+    <Project Path="Dicom.Edge.Diagnostics/Dicom.Edge.Diagnostics.csproj" />
+    <Project Path="Dicom.Edge.DicomServer/Dicom.Edge.DicomServer.csproj" />
+    <Project Path="Dicom.Edge.Node/Dicom.Edge.Node.csproj" />
+    <Project Path="Dicom.Edge.Processing/Dicom.Edge.Processing.csproj" Id="737006c7-a88b-4ad1-9ef5-75c288efe089" />
+    <Project Path="Dicom.Edge.Queue/Dicom.Edge.Queue.csproj" />
+    <Project Path="Dicom.Edge.Router/Dicom.Edge.Router.csproj" />
+    <Project Path="Dicom.Edge.Sender/Dicom.Edge.Sender.csproj" Id="fd7b4e07-71d2-4573-a341-1f788b436b3a" />
+    <Project Path="Dicom.Edge.Storage/Dicom.Edge.Storage.csproj" />
+    <Project Path="Dicom.Edge.Worklist/Dicom.Edge.Worklist.csproj" />
+  </Folder>
+  <Folder Name="/src/frontend/" />
+  <Folder Name="/src/shared/">
+    <Project Path="Dicom.Edge.Abstractions/Dicom.Edge.Abstractions.csproj" Id="544b9893-8e2b-4e0a-b17c-36bfb2f2d2a9" />
+    <Project Path="Dicom.Edge.Common/Dicom.Edge.Common.csproj" Id="03d317bb-0bc9-46c3-bb7c-ba5e097a8143" />
+    <Project Path="Dicom.Edge.Contracts/Dicom.Edge.Contracts.csproj" Id="8483406a-1634-4403-9a47-780390f08197" />
+    <Project Path="Dicom.Edge.Models/Dicom.Edge.Models.csproj" Id="88bc5e98-6ccd-4ff8-b33b-4f29622aadd6" />
+    <Project Path="Dicom.Edge.Security/Dicom.Edge.Security.csproj" Id="fa37bc9a-5da2-42a4-b737-32dbfaad217a" />
+  </Folder>
+  <Folder Name="/tools/" />
+</Solution>
