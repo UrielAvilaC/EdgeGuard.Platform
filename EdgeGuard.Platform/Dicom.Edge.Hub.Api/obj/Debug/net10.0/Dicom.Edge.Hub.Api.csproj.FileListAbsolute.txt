@@ -1,0 +1,9 @@
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.csproj.AssemblyReference.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\rpswa.dswa.cache.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.GeneratedMSBuildEditorConfig.editorconfig
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.AssemblyInfoInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.AssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.csproj.CoreCompileInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.MvcApplicationPartsAssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.MvcApplicationPartsAssemblyInfo.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Hub.Api\obj\Debug\net10.0\Dicom.Edge.Hub.Api.sourcelink.json

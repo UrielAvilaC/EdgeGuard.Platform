@@ -1,0 +1,12 @@
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\bin\Debug\net10.0\Dicom.Edge.Persistence.deps.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\bin\Debug\net10.0\Dicom.Edge.Persistence.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\bin\Debug\net10.0\Dicom.Edge.Persistence.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\Dicom.Edge.Persistence.GeneratedMSBuildEditorConfig.editorconfig
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\Dicom.Edge.Persistence.AssemblyInfoInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\Dicom.Edge.Persistence.AssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\Dicom.Edge.Persistence.csproj.CoreCompileInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\Dicom.Edge.Persistence.sourcelink.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\Dicom.Edge.Persistence.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\refint\Dicom.Edge.Persistence.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\Dicom.Edge.Persistence.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Persistence\obj\Debug\net10.0\ref\Dicom.Edge.Persistence.dll

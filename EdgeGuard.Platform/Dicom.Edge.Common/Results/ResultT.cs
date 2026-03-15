@@ -35,10 +35,10 @@ namespace Dicom.Edge.Common.Results
                 ValidationErrors = errors
             };
 
-        public static Result<T> NotFound(Error error)
-            => new(ResultStatus.NotFound)
-            {
-                Error = error
-            };
+        //public static Result<T> NotFound(Error error)
+        //    => new(ResultStatus.NotFound)
+        //    {
+        //        Error = error
+        //    };
     }
 }

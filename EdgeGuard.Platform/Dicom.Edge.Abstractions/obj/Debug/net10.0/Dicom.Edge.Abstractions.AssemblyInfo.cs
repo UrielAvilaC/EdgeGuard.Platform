@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Dicom.Edge.Abstractions")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dc9c21f7a8f6ebad0cbd96276158a7d2d3d54852")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+46de41551e18dc13442b449c09dec3933d3a1f24")]
 [assembly: System.Reflection.AssemblyProductAttribute("Dicom.Edge.Abstractions")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Dicom.Edge.Abstractions")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

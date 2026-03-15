@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Dicom.Edge.Configuration")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b062ece9a12fb4c5a6beeda03abc8dfc5f1ab837")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+46de41551e18dc13442b449c09dec3933d3a1f24")]
 [assembly: System.Reflection.AssemblyProductAttribute("Dicom.Edge.Configuration")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Dicom.Edge.Configuration")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

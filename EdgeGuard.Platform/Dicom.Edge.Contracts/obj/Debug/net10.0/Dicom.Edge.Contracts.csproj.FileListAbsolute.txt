@@ -1,0 +1,5 @@
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Contracts\obj\Debug\net10.0\Dicom.Edge.Contracts.GeneratedMSBuildEditorConfig.editorconfig
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Contracts\obj\Debug\net10.0\Dicom.Edge.Contracts.AssemblyInfoInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Contracts\obj\Debug\net10.0\Dicom.Edge.Contracts.AssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Contracts\obj\Debug\net10.0\Dicom.Edge.Contracts.csproj.CoreCompileInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Contracts\obj\Debug\net10.0\Dicom.Edge.Contracts.sourcelink.json

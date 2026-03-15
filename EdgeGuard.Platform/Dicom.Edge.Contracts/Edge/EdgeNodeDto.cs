@@ -20,4 +20,3 @@ namespace Dicom.Edge.Contracts.Edge
         public DateTime LastSeen { get; set; }
     }
 }
-}

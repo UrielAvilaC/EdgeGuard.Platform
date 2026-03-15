@@ -3,8 +3,140 @@
   "WorkspaceRootPath": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{9AF9C881-EFD2-DD82-D065-BB1735DA4FEC}|Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.hub,application\\dicom.edge.hub.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{9AF9C881-EFD2-DD82-D065-BB1735DA4FEC}|Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj|solutionrelative:dicom.edge.hub,application\\dicom.edge.hub.application.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+      "AbsoluteMoniker": "D:0:0:{03D317BB-0BC9-46C3-BB7C-BA5E097A8143}|Dicom.Edge.Common\\Dicom.Edge.Common.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.common\\results\\resultt.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{03D317BB-0BC9-46C3-BB7C-BA5E097A8143}|Dicom.Edge.Common\\Dicom.Edge.Common.csproj|solutionrelative:dicom.edge.common\\results\\resultt.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2EC28643-32E7-298B-F2E7-09F656490A08}|Dicom.Edge.Hub.Api\\Dicom.Edge.Hub.Api.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.hub.api\\extensions\\resultextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2EC28643-32E7-298B-F2E7-09F656490A08}|Dicom.Edge.Hub.Api\\Dicom.Edge.Hub.Api.csproj|solutionrelative:dicom.edge.hub.api\\extensions\\resultextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\storage\\istudystorage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\storage\\istudystorage.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\routing\\irouterpolicy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\routing\\irouterpolicy.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\routing\\irouter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\routing\\irouter.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\dicom\\idicomreceiver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\dicom\\idicomreceiver.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\dicom\\idicomassociationhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\dicom\\idicomassociationhandler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\context\\associationrequestcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\context\\associationrequestcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8483406A-1634-4403-9A47-780390F08197}|Dicom.Edge.Contracts\\Dicom.Edge.Contracts.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.contracts\\edge\\edgenodedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8483406A-1634-4403-9A47-780390F08197}|Dicom.Edge.Contracts\\Dicom.Edge.Contracts.csproj|solutionrelative:dicom.edge.contracts\\edge\\edgenodedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\context\\sendtopacscontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\context\\sendtopacscontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\context\\studycontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\context\\studycontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\context\\dicomreceivecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\context\\dicomreceivecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\security\\iauthprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\security\\iauthprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\queue\\iqueueworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\queue\\iqueueworker.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\worklist\\iworklistprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\worklist\\iworklistprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\queue\\iedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\queue\\iedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\storage\\istorageprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\storage\\istorageprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\routing\\routedecision.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\routing\\routedecision.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\routing\\routedestination.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\routing\\routedestination.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\engine\\iedgemodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\engine\\iedgemodule.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\authentication\\itokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\authentication\\itokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.abstractions\\engine\\iedgeengine.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:dicom.edge.abstractions\\engine\\iedgeengine.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\audit\\auditevent.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\audit\\auditevent.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\certificates\\certificateloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\certificates\\certificateloader.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\dicom.edge.security.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\dicom.edge.security.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\cryptography\\ipasswordhasher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\cryptography\\ipasswordhasher.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\cryptography\\hashservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\cryptography\\hashservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\cryptography\\ihashservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\cryptography\\ihashservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\authorization\\authorizationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\authorization\\authorizationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\authorization\\iauthorizationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\authorization\\iauthorizationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\authorization\\permission.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\authorization\\permission.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\authorization\\role.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\authorization\\role.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\authentication\\apikeyvalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\authentication\\apikeyvalidator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\dicom.edge.security\\authentication\\jwttokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FA37BC9A-5DA2-42A4-B737-32DBFAAD217A}|Dicom.Edge.Security\\Dicom.Edge.Security.csproj|solutionrelative:dicom.edge.security\\authentication\\jwttokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -19,14 +151,451 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "Dicom.Edge.Hub.Application",
-              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj",
-              "RelativeDocumentMoniker": "Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj",
-              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj",
-              "RelativeToolTip": "Dicom.Edge.Hub,Application\\Dicom.Edge.Hub.Application.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAiAAAAAAAAAA==",
+              "Title": "ResultT.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Common\\Results\\ResultT.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Common\\Results\\ResultT.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Common\\Results\\ResultT.cs",
+              "RelativeToolTip": "Dicom.Edge.Common\\Results\\ResultT.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:56:51.792Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ResultExtensions.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub.Api\\Extensions\\ResultExtensions.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Hub.Api\\Extensions\\ResultExtensions.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Hub.Api\\Extensions\\ResultExtensions.cs",
+              "RelativeToolTip": "Dicom.Edge.Hub.Api\\Extensions\\ResultExtensions.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAABAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:56:35.34Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "AssociationRequestContext.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\AssociationRequestContext.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Context\\AssociationRequestContext.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\AssociationRequestContext.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Context\\AssociationRequestContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:55:15.831Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "EdgeNodeDto.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Contracts\\Edge\\EdgeNodeDto.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Contracts\\Edge\\EdgeNodeDto.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Contracts\\Edge\\EdgeNodeDto.cs",
+              "RelativeToolTip": "Dicom.Edge.Contracts\\Edge\\EdgeNodeDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:54:10.518Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "IDicomAssociationHandler.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Dicom\\IDicomAssociationHandler.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Dicom\\IDicomAssociationHandler.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Dicom\\IDicomAssociationHandler.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Dicom\\IDicomAssociationHandler.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAoAAABCAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T02:47:13.513Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "SendToPacsContext.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\SendToPacsContext.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Context\\SendToPacsContext.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\SendToPacsContext.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Context\\SendToPacsContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:52:54.328Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "StudyContext.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\StudyContext.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Context\\StudyContext.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\StudyContext.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Context\\StudyContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAxAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:50:28.065Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "DicomReceiveContext.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\DicomReceiveContext.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Context\\DicomReceiveContext.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Context\\DicomReceiveContext.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Context\\DicomReceiveContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAASAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:48:32.306Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "IDicomReceiver.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Dicom\\IDicomReceiver.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Dicom\\IDicomReceiver.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Dicom\\IDicomReceiver.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Dicom\\IDicomReceiver.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAoAAAA+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T02:44:46.559Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "IRouter.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\IRouter.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Routing\\IRouter.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\IRouter.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Routing\\IRouter.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAkAAAAvAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T03:45:39.923Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "IRouterPolicy.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\IRouterPolicy.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Routing\\IRouterPolicy.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\IRouterPolicy.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Routing\\IRouterPolicy.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAkAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T03:47:34.521Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "IStudyStorage.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Storage\\IStudyStorage.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Storage\\IStudyStorage.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Storage\\IStudyStorage.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Storage\\IStudyStorage.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAsAAAA0AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:27:23.952Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "IAuthProvider.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Security\\IAuthProvider.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Security\\IAuthProvider.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Security\\IAuthProvider.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Security\\IAuthProvider.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:47:12.059Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "IQueueWorker.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Queue\\IQueueWorker.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Queue\\IQueueWorker.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Queue\\IQueueWorker.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Queue\\IQueueWorker.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAABOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:35:24.505Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "IWorklistProvider.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Worklist\\IWorklistProvider.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Worklist\\IWorklistProvider.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Worklist\\IWorklistProvider.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Worklist\\IWorklistProvider.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:41:24.251Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "IEdgeQueue.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Queue\\IEdgeQueue.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Queue\\IEdgeQueue.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Queue\\IEdgeQueue.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Queue\\IEdgeQueue.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:32:17.491Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "IStorageProvider.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T04:28:07.325Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "RouteDecision.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\RouteDecision.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Routing\\RouteDecision.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\RouteDecision.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Routing\\RouteDecision.cs",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAUwDEAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T03:46:44.161Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "RouteDestination.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\RouteDestination.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Routing\\RouteDestination.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Routing\\RouteDestination.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Routing\\RouteDestination.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T03:40:28.465Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{c6f34f0d-7ae5-4f3a-be61-fe0c21ae9eb8}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "IEdgeModule.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Engine\\IEdgeModule.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Engine\\IEdgeModule.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Engine\\IEdgeModule.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Engine\\IEdgeModule.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T02:42:28.296Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "ITokenService.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authentication\\ITokenService.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Authentication\\ITokenService.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authentication\\ITokenService.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Authentication\\ITokenService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T20:14:49.362Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "IEdgeEngine.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Engine\\IEdgeEngine.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Abstractions\\Engine\\IEdgeEngine.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Abstractions\\Engine\\IEdgeEngine.cs",
+              "RelativeToolTip": "Dicom.Edge.Abstractions\\Engine\\IEdgeEngine.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAABOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T02:06:36.013Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "AuditEvent.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Audit\\AuditEvent.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Audit\\AuditEvent.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Audit\\AuditEvent.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Audit\\AuditEvent.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T01:23:55.25Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "CertificateLoader.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Certificates\\CertificateLoader.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Certificates\\CertificateLoader.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Certificates\\CertificateLoader.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Certificates\\CertificateLoader.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-15T01:23:54.028Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "Dicom.Edge.Security.csproj",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Dicom.Edge.Security.csproj",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Dicom.Edge.Security.csproj",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Dicom.Edge.Security.csproj",
+              "RelativeToolTip": "Dicom.Edge.Security\\Dicom.Edge.Security.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-08T19:45:24.406Z",
+              "WhenOpened": "2026-03-15T01:23:52.54Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "IPasswordHasher.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Cryptography\\IPasswordHasher.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Cryptography\\IPasswordHasher.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Cryptography\\IPasswordHasher.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Cryptography\\IPasswordHasher.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAABEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T21:40:04.901Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "HashService.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Cryptography\\HashService.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Cryptography\\HashService.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Cryptography\\HashService.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Cryptography\\HashService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAA1AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T21:35:54.71Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "IHashService.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Cryptography\\IHashService.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Cryptography\\IHashService.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Cryptography\\IHashService.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Cryptography\\IHashService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T21:35:21.911Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "AuthorizationService.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\AuthorizationService.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Authorization\\AuthorizationService.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\AuthorizationService.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Authorization\\AuthorizationService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T21:29:15.212Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "IAuthorizationService.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\IAuthorizationService.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Authorization\\IAuthorizationService.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\IAuthorizationService.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Authorization\\IAuthorizationService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAABCAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T21:27:25.583Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "Permission.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\Permission.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Authorization\\Permission.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\Permission.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Authorization\\Permission.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T21:26:25.672Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "Role.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\Role.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Authorization\\Role.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authorization\\Role.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Authorization\\Role.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T21:26:00.504Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "ApiKeyValidator.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authentication\\ApiKeyValidator.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Authentication\\ApiKeyValidator.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authentication\\ApiKeyValidator.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Authentication\\ApiKeyValidator.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T20:51:33.935Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "JwtTokenService.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authentication\\JwtTokenService.cs",
+              "RelativeDocumentMoniker": "Dicom.Edge.Security\\Authentication\\JwtTokenService.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\Dicom.Edge.Security\\Authentication\\JwtTokenService.cs",
+              "RelativeToolTip": "Dicom.Edge.Security\\Authentication\\JwtTokenService.cs",
+              "ViewState": "AgIAAAoAAAAAAAAAAAAQwBkAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-08T20:18:31.718Z",
               "EditorCaption": ""
             }
           ]
