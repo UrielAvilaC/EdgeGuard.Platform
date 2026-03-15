@@ -7,9 +7,6 @@ namespace Dicom.Edge.Security.Certificates
 {
     public class CertificateLoader
     {
-        public X509Certificate2 Load(string path, string password)
-        {
-            return new X509Certificate2(path, password);
-        }
+        public X509Certificate2 Load(string path, string password) => X509CertificateLoader.LoadPkcs12FromFile(path, password);
     }
 }

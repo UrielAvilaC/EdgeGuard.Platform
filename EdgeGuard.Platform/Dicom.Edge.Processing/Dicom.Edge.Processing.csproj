@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Dicom.Edge.Abstractions\Dicom.Edge.Abstractions.csproj" />
+  </ItemGroup>
+
 </Project>
