@@ -1,6 +1,0 @@
-Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.csproj.AssemblyReference.cache
-Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.GeneratedMSBuildEditorConfig.editorconfig
-Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.AssemblyInfoInputs.cache
-Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.AssemblyInfo.cs
-Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.csproj.CoreCompileInputs.cache
-Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.sourcelink.json
