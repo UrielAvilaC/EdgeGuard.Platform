@@ -1,0 +1,16 @@
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\bin\Debug\net10.0\Dicom.Edge.Abstractions.deps.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\bin\Debug\net10.0\Dicom.Edge.Abstractions.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\bin\Debug\net10.0\Dicom.Edge.Abstractions.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\bin\Debug\net10.0\Dicom.Edge.Common.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\bin\Debug\net10.0\Dicom.Edge.Common.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.csproj.AssemblyReference.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.GeneratedMSBuildEditorConfig.editorconfig
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.AssemblyInfoInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.AssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.csproj.CoreCompileInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.sourcelink.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Ed.87D32482.Up2Date
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\refint\Dicom.Edge.Abstractions.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\Dicom.Edge.Abstractions.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\shared\Dicom.Edge.Abstractions\obj\Debug\net10.0\ref\Dicom.Edge.Abstractions.dll

@@ -1,0 +1,15 @@
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\bin\Debug\net10.0\Dicom.Edge.Node.Persistence.deps.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\bin\Debug\net10.0\Dicom.Edge.Node.Persistence.runtimeconfig.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\bin\Debug\net10.0\Dicom.Edge.Node.Persistence.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\bin\Debug\net10.0\Dicom.Edge.Node.Persistence.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.csproj.AssemblyReference.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.GeneratedMSBuildEditorConfig.editorconfig
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.AssemblyInfoInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.AssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.csproj.CoreCompileInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.sourcelink.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\refint\Dicom.Edge.Node.Persistence.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\Dicom.Edge.Node.Persistence.genruntimeconfig.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Persistence\obj\Debug\net10.0\ref\Dicom.Edge.Node.Persistence.dll

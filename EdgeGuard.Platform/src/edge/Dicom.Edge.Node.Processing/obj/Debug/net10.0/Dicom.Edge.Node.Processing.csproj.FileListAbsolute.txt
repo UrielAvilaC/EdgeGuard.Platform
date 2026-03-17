@@ -1,0 +1,12 @@
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\bin\Debug\net10.0\Dicom.Edge.Node.Processing.deps.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\bin\Debug\net10.0\Dicom.Edge.Node.Processing.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\bin\Debug\net10.0\Dicom.Edge.Node.Processing.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\Dicom.Edge.Node.Processing.GeneratedMSBuildEditorConfig.editorconfig
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\Dicom.Edge.Node.Processing.AssemblyInfoInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\Dicom.Edge.Node.Processing.AssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\Dicom.Edge.Node.Processing.csproj.CoreCompileInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\Dicom.Edge.Node.Processing.sourcelink.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\Dicom.Edge.Node.Processing.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\refint\Dicom.Edge.Node.Processing.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\Dicom.Edge.Node.Processing.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Processing\obj\Debug\net10.0\ref\Dicom.Edge.Node.Processing.dll

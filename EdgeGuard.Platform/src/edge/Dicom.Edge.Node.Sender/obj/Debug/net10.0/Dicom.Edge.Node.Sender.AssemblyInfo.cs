@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Dicom.Edge.Node.Sender")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d940088d89926610dd9e06807fdc3aef6ef6936a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0c6a45836caf6afc36261d1dd08272a9d73ad72e")]
 [assembly: System.Reflection.AssemblyProductAttribute("Dicom.Edge.Node.Sender")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Dicom.Edge.Node.Sender")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

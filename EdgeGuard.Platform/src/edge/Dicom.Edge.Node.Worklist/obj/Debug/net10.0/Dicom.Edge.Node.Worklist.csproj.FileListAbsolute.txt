@@ -1,0 +1,12 @@
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\bin\Debug\net10.0\Dicom.Edge.Node.Worklist.deps.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\bin\Debug\net10.0\Dicom.Edge.Node.Worklist.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\bin\Debug\net10.0\Dicom.Edge.Node.Worklist.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\Dicom.Edge.Node.Worklist.GeneratedMSBuildEditorConfig.editorconfig
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\Dicom.Edge.Node.Worklist.AssemblyInfoInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\Dicom.Edge.Node.Worklist.AssemblyInfo.cs
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\Dicom.Edge.Node.Worklist.csproj.CoreCompileInputs.cache
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\Dicom.Edge.Node.Worklist.sourcelink.json
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\Dicom.Edge.Node.Worklist.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\refint\Dicom.Edge.Node.Worklist.dll
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\Dicom.Edge.Node.Worklist.pdb
+Z:\source\repos\EdgeGuard.Platform\EdgeGuard.Platform\src\edge\Dicom.Edge.Node.Worklist\obj\Debug\net10.0\ref\Dicom.Edge.Node.Worklist.dll
