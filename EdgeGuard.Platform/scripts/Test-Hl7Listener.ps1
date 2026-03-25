@@ -17,14 +17,21 @@ try {
     # Crear mensaje HL7 de prueba (ADT^A01 - Patient Admission)
     $timestamp = Get-Date -Format "yyyyMMddHHmmss"
     $messageId = [guid]::NewGuid().ToString("N").Substring(0, 10).ToUpper()
-    
-    $hl7Message = "MSH|^~\&|TestApp|TestFacility|EdgeGuard|EdgeGuard|$timestamp||ADT^A01|$messageId|P|2.5`r"
-    $hl7Message += "EVN||$timestamp|||`r"
-    $hl7Message += "PID|1||12345678||DOE^JOHN^A||19800101|M|||123 MAIN ST^^ANYTOWN^CA^12345||555-1234|||S||999999999|`r"
-    $hl7Message += "PV1||I|ICU^101^1||||1234^SMITH^JOHN^MD|||||||||`r"
-    
+
+    # Mensaje HL7 sin delimitadores de envelope (el listener debe aceptar ambos formatos)
+    $hl7MessageContent = "MSH|^~\&|TestApp|TestFacility|EdgeGuard|EdgeGuard|$timestamp||ADT^A01|$messageId|P|2.5`r"
+    $hl7MessageContent += "EVN||$timestamp|||`r"
+    $hl7MessageContent += "PID|1||12345678||DOE^JOHN^A||19800101|M|||123 MAIN ST^^ANYTOWN^CA^12345||555-1234|||S||999999999|`r"
+    $hl7MessageContent += "PV1||I|ICU^101^1||||1234^SMITH^JOHN^MD|||||||||`r"
+
+    # Envolver con delimitadores HL7 estándar: <VT>mensaje<FS><CR>
+    $VT = [char]0x0B
+    $FS = [char]0x1C
+    $hl7Message = "$VT$hl7MessageContent$FS`r"
+
     Write-Host "Mensaje HL7 a enviar:" -ForegroundColor Green
-    Write-Host $hl7Message.Replace("`r", "`r`n") -ForegroundColor Gray
+    Write-Host $hl7MessageContent.Replace("`r", "`r`n") -ForegroundColor Gray
+    Write-Host "Control ID: $messageId" -ForegroundColor Cyan
     Write-Host ""
     
     # Conectar al servidor
@@ -47,11 +54,49 @@ try {
     Write-Host "Esperando ACK..." -ForegroundColor Yellow
     $buffer = New-Object byte[] 1024
     $bytesRead = $stream.Read($buffer, 0, $buffer.Length)
-    
+
     if ($bytesRead -gt 0) {
         $ack = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $bytesRead)
-        Write-Host "✓ ACK recibido:" -ForegroundColor Green
-        Write-Host $ack.Replace("`r", "`r`n") -ForegroundColor Gray
+        Write-Host "✓ ACK recibido ($bytesRead bytes):" -ForegroundColor Green
+
+        # Mostrar ACK con caracteres de control visibles
+        $displayAck = $ack.Replace("`r", "[CR]`r`n").Replace("`n", "[LF]").Replace([char]0x0B, "[VT]").Replace([char]0x1C, "[FS]")
+        Write-Host $displayAck -ForegroundColor Gray
+
+        # Validar formato HL7
+        Write-Host ""
+        Write-Host "Validación del ACK:" -ForegroundColor Cyan
+
+        if ($ack.StartsWith([char]0x0B)) {
+            Write-Host "  ✓ Inicia con VT (Vertical Tab)" -ForegroundColor Green
+        } else {
+            Write-Host "  ✗ No inicia con VT" -ForegroundColor Red
+        }
+
+        if ($ack.Contains([char]0x1C)) {
+            Write-Host "  ✓ Contiene FS (File Separator)" -ForegroundColor Green
+        } else {
+            Write-Host "  ✗ No contiene FS" -ForegroundColor Red
+        }
+
+        if ($ack.Contains("MSH|")) {
+            Write-Host "  ✓ Contiene segmento MSH" -ForegroundColor Green
+        } else {
+            Write-Host "  ✗ No contiene segmento MSH" -ForegroundColor Red
+        }
+
+        if ($ack.Contains("MSA|")) {
+            Write-Host "  ✓ Contiene segmento MSA" -ForegroundColor Green
+        } else {
+            Write-Host "  ✗ No contiene segmento MSA" -ForegroundColor Red
+        }
+
+        # Verificar que el MSA contiene el Message Control ID original
+        if ($ack.Contains($messageId)) {
+            Write-Host "  ✓ MSA contiene el Message Control ID original ($messageId)" -ForegroundColor Green
+        } else {
+            Write-Host "  ⚠ MSA no contiene el Message Control ID original" -ForegroundColor Yellow
+        }
     }
     else {
         Write-Host "✗ No se recibió ACK" -ForegroundColor Red

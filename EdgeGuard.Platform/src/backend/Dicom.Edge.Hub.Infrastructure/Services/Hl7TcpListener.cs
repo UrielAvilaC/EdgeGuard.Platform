@@ -212,10 +212,44 @@ public class Hl7TcpListener : IHl7Listener
 
     private string BuildHl7Ack(Hl7Message originalMessage)
     {
+        // HL7 requiere un timestamp con zona horaria
         var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
-        var messageControlId = Guid.NewGuid().ToString("N")[..10].ToUpper();
 
-        return $"MSH|^~\\&|EdgeGuardHub|EdgeGuard|{originalMessage.SendingApplication}|{originalMessage.SendingFacility}|{timestamp}||ACK|{messageControlId}|P|2.5\r" +
-               $"MSA|AA|{messageControlId}\r";
+        // ID único para el ACK
+        var ackMessageControlId = Guid.NewGuid().ToString("N")[..10].ToUpper();
+
+        // Extraer el Message Control ID del mensaje original
+        var originalMessageControlId = ExtractMessageControlId(originalMessage.Content) ?? ackMessageControlId;
+
+        // Construir ACK según el estándar HL7 v2.x
+        // Formato: <VT>MSH|...<CR>MSA|...<FS><CR>
+        var ackSegments = 
+            $"MSH|^~\\&|EdgeGuardHub|EdgeGuard|{originalMessage.SendingApplication}|{originalMessage.SendingFacility}|{timestamp}||ACK|{ackMessageControlId}|P|2.5\r" +
+            $"MSA|AA|{originalMessageControlId}\r";
+
+        // Envolver con delimitadores HL7
+        return $"\x0B{ackSegments}\x1C\r";
+    }
+
+    private string? ExtractMessageControlId(string hl7Message)
+    {
+        try
+        {
+            // Limpiar caracteres de control
+            var cleanMessage = hl7Message.Replace("\x0B", "").Replace("\x1C", "").Replace("\r", "").Replace("\n", "");
+
+            // El MSH tiene la estructura: MSH|^~\&|campo3|campo4|...|campo9=MessageControlId
+            var mshSegment = cleanMessage.Split('|');
+            if (mshSegment.Length > 9)
+            {
+                return mshSegment[9]; // Message Control ID está en el campo 10 (índice 9)
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to extract Message Control ID from HL7 message");
+        }
+
+        return null;
     }
 }

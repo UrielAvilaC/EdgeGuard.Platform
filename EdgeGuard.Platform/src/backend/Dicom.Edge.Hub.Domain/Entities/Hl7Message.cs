@@ -67,7 +67,7 @@ public class Hl7Message
         try
         {
             var segments = content.Split('\r');
-            var mshSegment = segments.FirstOrDefault(s => s.StartsWith("MSH"));
+            var mshSegment = segments.FirstOrDefault(s => s.StartsWith("MSH") || s.StartsWith("\vMSH"));
             if (mshSegment == null) return "UNKNOWN";
 
             var fields = mshSegment.Split('|');
