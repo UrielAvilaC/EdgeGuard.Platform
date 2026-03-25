@@ -60,7 +60,7 @@ public sealed class DiagnosticsOptions
     /// <summary>
     /// Health check thresholds.
     /// </summary>
-    public HealthCheckOptions HealthChecks { get; set; } = new();
+    public HealthCheckThresholdOptions HealthChecks { get; set; } = new();
 
     /// <summary>
     /// Correlation ID header name used for request tracing.
@@ -272,8 +272,18 @@ public enum RedactionMode
 /// <summary>
 /// Health check threshold configuration.
 /// </summary>
-public sealed class HealthCheckOptions
+/// <remarks>
+/// Named <c>HealthCheckThresholdOptions</c> to avoid collision with
+/// <c>Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions</c>.
+/// </remarks>
+public sealed class HealthCheckThresholdOptions
 {
+    /// <summary>
+    /// Path to the DICOM study storage directory to monitor.
+    /// If not set, defaults to the application's current directory.
+    /// </summary>
+    public string? StoragePath { get; set; }
+
     /// <summary>
     /// Minimum available storage in MB before reporting unhealthy.
     /// </summary>

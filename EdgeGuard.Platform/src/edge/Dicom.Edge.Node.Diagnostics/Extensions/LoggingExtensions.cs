@@ -38,7 +38,7 @@ public static class LoggingExtensions
         services.Configure<DiagnosticsOptions>(diagnosticsSection);
         services.Configure<PhiRedactionOptions>(diagnosticsSection.GetSection("Redaction"));
         services.Configure<FileLoggingOptions>(diagnosticsSection.GetSection("File"));
-        services.Configure<HealthCheckOptions>(diagnosticsSection.GetSection("HealthChecks"));
+        services.Configure<HealthCheckThresholdOptions>(diagnosticsSection.GetSection("HealthChecks"));
         services.Configure<PacsConnectivityOptions>(
             configuration.GetSection(PacsConnectivityOptions.SectionName));
 
@@ -169,6 +169,10 @@ public static class LoggingExtensions
         DiagnosticsOptions options)
     {
         var fileOptions = options.File;
+
+        // Ensure the log directory exists — critical for first-run on new Edge Nodes
+        var logDirectory = Path.GetFullPath(fileOptions.Path);
+        Directory.CreateDirectory(logDirectory);
 
         // File sink — always enabled as durable offline fallback
         var filePath = Path.Combine(fileOptions.Path, fileOptions.FileNameTemplate);

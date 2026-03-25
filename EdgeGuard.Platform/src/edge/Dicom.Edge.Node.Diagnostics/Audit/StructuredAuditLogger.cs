@@ -1,5 +1,7 @@
 using Dicom.Edge.Abstractions.Audit;
+using Dicom.Edge.Node.Diagnostics.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Dicom.Edge.Node.Diagnostics.Audit;
 
@@ -7,20 +9,17 @@ namespace Dicom.Edge.Node.Diagnostics.Audit;
 /// Structured-logging-backed implementation of <see cref="IAuditLogger"/>.
 /// Writes audit events as structured log entries with a dedicated "Audit" source context,
 /// enabling filtering, routing to separate sinks, and compliance queries.
+/// Every audit event automatically includes CorrelationId and NodeId for traceability.
 /// </summary>
-/// <remarks>
-/// Audit events are always logged at <see cref="LogLevel.Information"/> or higher
-/// to ensure they are never filtered out by minimum level configuration.
-/// The dedicated source context allows routing audit logs to a separate sink
-/// (e.g., tamper-evident file or database) via Serilog filter expressions.
-/// </remarks>
 public sealed class StructuredAuditLogger : IAuditLogger
 {
     private readonly ILogger _logger;
+    private readonly string _nodeId;
 
-    public StructuredAuditLogger(ILoggerFactory loggerFactory)
+    public StructuredAuditLogger(ILoggerFactory loggerFactory, IOptions<DiagnosticsOptions> options)
     {
         _logger = loggerFactory.CreateLogger("Audit");
+        _nodeId = options.Value.NodeId;
     }
 
     /// <inheritdoc/>
@@ -30,6 +29,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
         string? details = null,
         CancellationToken cancellationToken = default)
     {
+        using var scope = BeginAuditScope();
         _logger.LogInformation(
             "AuditEvent {AuditEventType} {AuditAction} {AuditDetails}",
             eventType, action, details);
@@ -45,6 +45,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
         bool isSuccess = true,
         CancellationToken cancellationToken = default)
     {
+        using var scope = BeginAuditScope();
         _logger.LogInformation(
             "AuditStudyAccess {StudyInstanceUID} {AuditUserId} {AuditAction} {AuditSuccess}",
             studyInstanceUid, userId ?? "system", action, isSuccess);
@@ -68,6 +69,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
             _ => LogLevel.Critical
         };
 
+        using var scope = BeginAuditScope();
         _logger.Log(logLevel,
             "AuditSecurity {AuditEventType} {AuditUserId} {AuditDetails} {AuditSeverity}",
             eventType, userId ?? "system", details, severity);
@@ -83,6 +85,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
         string? details = null,
         CancellationToken cancellationToken = default)
     {
+        using var scope = BeginAuditScope();
         _logger.LogInformation(
             "AuditAssociation {CallingAeTitle} {CalledAeTitle} {AuditAction} {AuditDetails}",
             callingAeTitle, calledAeTitle, action, details);
@@ -97,10 +100,21 @@ public sealed class StructuredAuditLogger : IAuditLogger
         string changes,
         CancellationToken cancellationToken = default)
     {
+        using var scope = BeginAuditScope();
         _logger.LogWarning(
             "AuditConfigChange {AuditUserId} {AuditConfigType} {AuditChanges}",
             userId, configType, changes);
 
         return Task.CompletedTask;
+    }
+
+    private IDisposable? BeginAuditScope()
+    {
+        return _logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["AuditCategory"] = "Audit",
+            [LoggingConstants.NodeId] = _nodeId,
+            [LoggingConstants.CorrelationId] = CorrelationScope.CurrentCorrelationId
+        });
     }
 }
