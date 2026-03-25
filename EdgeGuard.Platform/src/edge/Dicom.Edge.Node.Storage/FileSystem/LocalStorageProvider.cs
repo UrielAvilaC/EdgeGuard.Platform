@@ -38,7 +38,10 @@ public sealed class LocalStorageProvider(
         {
             var cfg = await settings.GetStorageConfigAsync(cancellationToken);
             var path = StoragePaths.StudyDirectory(cfg.RootPath, studyInstanceUid);
-            return Result<string>.Success(Path.GetFullPath(path));
+            var fullPath = Path.GetFullPath(path);
+            logger.LogDebug("Resolved study path for {StudyUid}: {Path} (root={Root})",
+                studyInstanceUid, fullPath, cfg.RootPath);
+            return Result<string>.Success(fullPath);
         }
         catch (Exception ex)
         {
@@ -62,14 +65,23 @@ public sealed class LocalStorageProvider(
 
             var fileName = StoragePaths.InstanceFile("", "", "", sopInstanceUid);
             var baseName = Path.GetFileName(fileName);
+            logger.LogDebug("Searching for instance {SopUid} (file={FileName}) under {Root}",
+                sopInstanceUid, baseName, cfg.RootPath);
 
             var match = root.EnumerateFiles(baseName, SearchOption.AllDirectories)
                 .FirstOrDefault();
 
-            return match is not null
-                ? Result<string>.Success(match.FullName)
-                : Result<string>.Failure(new Error("INSTANCE_NOT_FOUND",
-                    $"Instance {sopInstanceUid} not found in storage"));
+            if (match is not null)
+            {
+                logger.LogDebug("Instance {SopUid} found at {Path} ({Bytes} bytes)",
+                    sopInstanceUid, match.FullName, match.Length);
+                return Result<string>.Success(match.FullName);
+            }
+
+            logger.LogDebug("Instance {SopUid} not found in storage root {Root}",
+                sopInstanceUid, cfg.RootPath);
+            return Result<string>.Failure(new Error("INSTANCE_NOT_FOUND",
+                $"Instance {sopInstanceUid} not found in storage"));
         }
         catch (Exception ex)
         {
@@ -94,6 +106,12 @@ public sealed class LocalStorageProvider(
             metrics.RecordStorageUsage(available / (1024 * 1024), driveInfo.TotalSize / (1024 * 1024));
             activity?.SetTag("storage.available.bytes", available);
 
+            logger.LogDebug(
+                "Storage space check: {AvailableGB:F1} GB available / {TotalGB:F1} GB total on {Drive} (root={Root})",
+                available / (1024.0 * 1024.0 * 1024.0),
+                driveInfo.TotalSize / (1024.0 * 1024.0 * 1024.0),
+                driveInfo.Name, cfg.RootPath);
+
             return Result<long>.Success(available);
         }
         catch (Exception ex)
@@ -110,6 +128,8 @@ public sealed class LocalStorageProvider(
             var cfg = await settings.GetStorageConfigAsync(cancellationToken);
             Directory.CreateDirectory(cfg.RootPath);
             var driveInfo = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(cfg.RootPath))!);
+            logger.LogDebug("Total storage capacity: {TotalGB:F1} GB on {Drive}",
+                driveInfo.TotalSize / (1024.0 * 1024.0 * 1024.0), driveInfo.Name);
             return Result<long>.Success(driveInfo.TotalSize);
         }
         catch (Exception ex)
@@ -128,11 +148,20 @@ public sealed class LocalStorageProvider(
             var studyDir = new DirectoryInfo(StoragePaths.StudyDirectory(cfg.RootPath, studyInstanceUid));
 
             if (!studyDir.Exists)
+            {
+                logger.LogDebug("Study {StudyUid} directory not found at {Path} — returning 0 bytes",
+                    studyInstanceUid, studyDir.FullName);
                 return Result<long>.Success(0L);
+            }
 
-            var totalBytes = studyDir
+            var files = studyDir
                 .EnumerateFiles("*" + StoragePaths.DicomExtension, SearchOption.AllDirectories)
-                .Sum(f => f.Length);
+                .ToList();
+            var totalBytes = files.Sum(f => f.Length);
+
+            logger.LogDebug(
+                "Study {StudyUid} size: {Files} files, {MB:F2} MB at {Path}",
+                studyInstanceUid, files.Count, totalBytes / (1024.0 * 1024.0), studyDir.FullName);
 
             return Result<long>.Success(totalBytes);
         }
@@ -152,7 +181,10 @@ public sealed class LocalStorageProvider(
             var root = new DirectoryInfo(cfg.RootPath);
 
             if (!root.Exists)
+            {
+                logger.LogDebug("Storage root {Root} does not exist — returning empty study list", cfg.RootPath);
                 return Result<IEnumerable<string>>.Success([]);
+            }
 
             // Each top-level directory is a study UID
             var studies = root
@@ -160,6 +192,7 @@ public sealed class LocalStorageProvider(
                 .Select(d => d.Name)
                 .ToList();
 
+            logger.LogDebug("Listed {Count} studies in storage root {Root}", studies.Count, cfg.RootPath);
             return Result<IEnumerable<string>>.Success(studies);
         }
         catch (Exception ex)
@@ -249,8 +282,13 @@ public sealed class LocalStorageProvider(
                 var destFile = Path.Combine(destDir, relativePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
                 File.Copy(file, destFile, overwrite: true);
-                totalBytes += new FileInfo(file).Length;
+                var fileSize = new FileInfo(file).Length;
+                totalBytes += fileSize;
                 fileCount++;
+
+                logger.LogDebug(
+                    "Archive [{StudyUid}] copied {Relative} ({KB:F1} KB) → {Dest}",
+                    studyInstanceUid, relativePath, fileSize / 1024.0, destFile);
             }
 
             activity?.SetTag("storage.archive.files", fileCount);
@@ -308,7 +346,10 @@ public sealed class LocalStorageProvider(
                 // Verify file is readable and compute checksum
                 try
                 {
-                    await ChecksumCalculator.ComputeSha256Async(file, cancellationToken);
+                    var checksum = await ChecksumCalculator.ComputeSha256Async(file, cancellationToken);
+                    logger.LogDebug(
+                        "Integrity [{StudyUid}] {File}: {Bytes} bytes, SHA256={Hash}",
+                        studyInstanceUid, Path.GetFileName(file), fileInfo.Length, checksum);
                 }
                 catch (Exception ex)
                 {
@@ -354,6 +395,8 @@ public sealed class LocalStorageProvider(
             var studyDir = StoragePaths.StudyDirectory(cfg.RootPath, studyInstanceUid);
             var exists = Directory.Exists(studyDir)
                 && Directory.EnumerateFiles(studyDir, "*" + StoragePaths.DicomExtension, SearchOption.AllDirectories).Any();
+            logger.LogDebug("Study {StudyUid} exists={Exists} (dir={Path})",
+                studyInstanceUid, exists, studyDir);
             return Result<bool>.Success(exists);
         }
         catch (Exception ex)
@@ -368,8 +411,13 @@ public sealed class LocalStorageProvider(
     {
         var pathResult = await GetInstancePathAsync(sopInstanceUid, cancellationToken);
         if (pathResult.IsFailure)
+        {
+            logger.LogDebug("Instance {SopUid} does not exist (path resolution failed)", sopInstanceUid);
             return Result<bool>.Success(false);
+        }
 
-        return Result<bool>.Success(File.Exists(pathResult.Value));
+        var exists = File.Exists(pathResult.Value);
+        logger.LogDebug("Instance {SopUid} exists={Exists} at {Path}", sopInstanceUid, exists, pathResult.Value);
+        return Result<bool>.Success(exists);
     }
 }

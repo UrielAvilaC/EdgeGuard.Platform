@@ -21,20 +21,35 @@ public sealed class NodeSettingsService(
     public async Task<T> GetAsync<T>(string key, CancellationToken ct = default)
     {
         if (_cache.TryGetValue(key, out var raw))
+        {
+            logger.LogDebug("Setting {Key} cache HIT (raw={Value})", key, raw);
             return Parse<T>(raw);
+        }
 
+        logger.LogDebug("Setting {Key} cache MISS — falling back to DB", key);
         await using var ctx = await factory.CreateDbContextAsync(ct);
         var entity = await ctx.NodeSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Key == key, ct);
 
-        return entity is not null ? Parse<T>(entity.Value) : default!;
+        if (entity is not null)
+        {
+            logger.LogDebug("Setting {Key} found in DB (raw={Value})", key, entity.Value);
+            return Parse<T>(entity.Value);
+        }
+
+        logger.LogDebug("Setting {Key} not found in DB — returning default", key);
+        return default!;
     }
 
     public async Task<T> GetAsync<T>(string key, T defaultValue, CancellationToken ct = default)
     {
         if (_cache.TryGetValue(key, out var raw))
+        {
+            logger.LogDebug("Setting {Key} cache HIT (raw={Value})", key, raw);
             return Parse<T>(raw);
+        }
 
+        logger.LogDebug("Setting {Key} cache MISS — falling back to DB (default={Default})", key, defaultValue);
         await using var ctx = await factory.CreateDbContextAsync(ct);
         var entity = await ctx.NodeSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Key == key, ct);
@@ -60,12 +75,13 @@ public sealed class NodeSettingsService(
             return;
         }
 
+        var previousValue = entity.Value;
         entity.Value = Serialize(value);
         entity.UpdatedAt = DateTime.UtcNow;
         await ctx.SaveChangesAsync(ct);
 
         _cache[key] = entity.Value;
-        logger.LogDebug("Setting {Key} updated to {Value}", key, entity.Value);
+        logger.LogDebug("Setting {Key} updated: {Previous} → {New}", key, previousValue, entity.Value);
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetCategoryAsync(
@@ -76,13 +92,20 @@ public sealed class NodeSettingsService(
             .Where(kv => kv.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
 
-        if (fromCache.Count > 0) return fromCache;
+        if (fromCache.Count > 0)
+        {
+            logger.LogDebug("Category {Category} cache HIT: {Count} entries", category, fromCache.Count);
+            return fromCache;
+        }
 
         // Cache miss — fall back to DB (occurs before first ReloadAsync)
+        logger.LogDebug("Category {Category} cache MISS — querying DB", category);
         await using var ctx = await factory.CreateDbContextAsync(ct);
-        return await ctx.NodeSettings.AsNoTracking()
+        var result = await ctx.NodeSettings.AsNoTracking()
             .Where(s => s.Category == category)
             .ToDictionaryAsync(s => s.Key, s => s.Value, StringComparer.OrdinalIgnoreCase, ct);
+        logger.LogDebug("Category {Category} loaded {Count} entries from DB", category, result.Count);
+        return result;
     }
 
     public async Task ApplyBatchAsync(

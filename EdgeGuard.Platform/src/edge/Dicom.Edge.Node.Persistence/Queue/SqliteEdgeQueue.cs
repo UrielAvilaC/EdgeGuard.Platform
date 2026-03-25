@@ -156,6 +156,11 @@ public sealed class SqliteEdgeQueue(
                 .ThenBy(q => q.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
+            logger.LogDebug("Queue peek: {Result}",
+                item is not null
+                    ? $"study={item.StudyInstanceUid}, priority={item.Priority}, age={item.Age}"
+                    : "empty");
+
             return Result<EdgeQueueItem?>.Success(item);
         }
         catch (Exception ex)
@@ -171,6 +176,7 @@ public sealed class SqliteEdgeQueue(
         {
             await using var ctx = await factory.CreateDbContextAsync(cancellationToken);
             var count = await GetCountInternal(ctx, cancellationToken);
+            logger.LogDebug("Queue pending count: {Count}", count);
             return Result<int>.Success(count);
         }
         catch (Exception ex)
@@ -193,6 +199,9 @@ public sealed class SqliteEdgeQueue(
                 .Take(count)
                 .ToListAsync(cancellationToken);
 
+            logger.LogDebug("Queue GetPending: returned {Returned}/{Requested} items",
+                items.Count, count);
+
             return Result<IEnumerable<EdgeQueueItem>>.Success(items);
         }
         catch (Exception ex)
@@ -210,6 +219,7 @@ public sealed class SqliteEdgeQueue(
             await using var ctx = await factory.CreateDbContextAsync(cancellationToken);
             var any = await ctx.QueueItems
                 .AnyAsync(q => q.Status == TransferStatus.Pending, cancellationToken);
+            logger.LogDebug("Queue empty check: isEmpty={IsEmpty}", !any);
             return Result<bool>.Success(!any);
         }
         catch (Exception ex)

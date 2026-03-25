@@ -325,6 +325,13 @@
     {
       "AbsoluteMoniker": "D:0:0:{7D52D52F-DE37-44CD-B733-6EEA6B15C484}|src\\edge\\Dicom.Edge.Node.Storage\\Dicom.Edge.Node.Storage.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\src\\edge\\dicom.edge.node.storage\\extensions\\storageextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{7D52D52F-DE37-44CD-B733-6EEA6B15C484}|src\\edge\\Dicom.Edge.Node.Storage\\Dicom.Edge.Node.Storage.csproj|solutionrelative:src\\edge\\dicom.edge.node.storage\\extensions\\storageextensions.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|src\\shared\\Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\src\\shared\\dicom.edge.abstractions\\storage\\istorageprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|src\\shared\\Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:src\\shared\\dicom.edge.abstractions\\storage\\istorageprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\uriel\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\1342943523\\Class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -334,8 +341,19 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 9,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 82,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Users\\uriel\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\1342943523\\Class1.cs",
+              "ToolTip": "C:\\Users\\uriel\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\1342943523\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-25T04:15:11.376Z",
+              "EditorCaption": ""
+            },
             {
               "$type": "Document",
               "DocumentIndex": 80,
@@ -451,6 +469,19 @@
               "ViewState": "AgIAADgAAAAAAAAAAAAQwEAAAAAtAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-03-17T07:33:19.06Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 81,
+              "Title": "IStorageProvider.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "RelativeToolTip": "src\\shared\\Dicom.Edge.Abstractions\\Storage\\IStorageProvider.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-25T04:14:35.791Z",
               "EditorCaption": ""
             },
             {

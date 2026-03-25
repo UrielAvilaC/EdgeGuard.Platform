@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{832B6A7E-D652-4703-9FAD-F59E450CA02B}|src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\src\\edge\\dicom.edge.node.persistence\\queue\\sqliteedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{832B6A7E-D652-4703-9FAD-F59E450CA02B}|src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj|solutionrelative:src\\edge\\dicom.edge.node.persistence\\queue\\sqliteedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{832B6A7E-D652-4703-9FAD-F59E450CA02B}|src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\src\\edge\\dicom.edge.node.persistence\\diagnostics\\persistenceactivitysource.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{832B6A7E-D652-4703-9FAD-F59E450CA02B}|src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj|solutionrelative:src\\edge\\dicom.edge.node.persistence\\diagnostics\\persistenceactivitysource.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -291,10 +295,6 @@
       "RelativeMoniker": "D:0:0:{03D317BB-0BC9-46C3-BB7C-BA5E097A8143}|src\\shared\\Dicom.Edge.Common\\Dicom.Edge.Common.csproj|solutionrelative:src\\shared\\dicom.edge.common\\pagination\\paginationrequest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{832B6A7E-D652-4703-9FAD-F59E450CA02B}|src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\src\\edge\\dicom.edge.node.persistence\\queue\\sqliteedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{832B6A7E-D652-4703-9FAD-F59E450CA02B}|src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj|solutionrelative:src\\edge\\dicom.edge.node.persistence\\queue\\sqliteedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|src\\shared\\Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\src\\shared\\dicom.edge.abstractions\\queue\\iedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|src\\shared\\Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:src\\shared\\dicom.edge.abstractions\\queue\\iedgequeue.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -329,9 +329,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|src\\shared\\Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|z:\\source\\repos\\edgeguard.platform\\edgeguard.platform\\src\\shared\\dicom.edge.abstractions\\storage\\istorageprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{544B9893-8E2B-4E0A-B17C-36BFB2F2D2A9}|src\\shared\\Dicom.Edge.Abstractions\\Dicom.Edge.Abstractions.csproj|solutionrelative:src\\shared\\dicom.edge.abstractions\\storage\\istorageprovider.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\uriel\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\1342943523\\Class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -341,32 +338,8 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 9,
+          "SelectedChildIndex": 8,
           "Children": [
-            {
-              "$type": "Document",
-              "DocumentIndex": 82,
-              "Title": "Class1.cs",
-              "DocumentMoniker": "C:\\Users\\uriel\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\1342943523\\Class1.cs",
-              "ToolTip": "C:\\Users\\uriel\\AppData\\Local\\Temp\\CopilotBaseline\\Deleted\\1342943523\\Class1.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-25T04:15:11.376Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 80,
-              "Title": "StorageExtensions.cs",
-              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
-              "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
-              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
-              "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-25T04:13:07.491Z",
-              "EditorCaption": ""
-            },
             {
               "$type": "Document",
               "DocumentIndex": 79,
@@ -375,7 +348,7 @@
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Storage\\FileSystem\\LocalStorageProvider.cs",
               "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Storage\\FileSystem\\LocalStorageProvider.cs",
               "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Storage\\FileSystem\\LocalStorageProvider.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHcBAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABwBAAAAAAAAAIBJwKcBAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-03-25T04:12:51.253Z",
               "EditorCaption": ""
@@ -388,7 +361,7 @@
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Storage\\FileSystem\\DicomFileWriter.cs",
               "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Storage\\FileSystem\\DicomFileWriter.cs",
               "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Storage\\FileSystem\\DicomFileWriter.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHwAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAB4AAAAAAAAAAIBJwJwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-03-25T04:11:53.64Z",
               "EditorCaption": ""
@@ -447,7 +420,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "Dicom.Edge.Node.Persistence.csproj",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Dicom.Edge.Node.Persistence.csproj",
@@ -460,15 +433,41 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "PersistenceActivitySource.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Diagnostics\\PersistenceActivitySource.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Diagnostics\\PersistenceActivitySource.cs",
               "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Diagnostics\\PersistenceActivitySource.cs",
               "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Persistence\\Diagnostics\\PersistenceActivitySource.cs",
-              "ViewState": "AgIAADgAAAAAAAAAAAAQwEAAAAAtAAAAAAAAAA==",
+              "ViewState": "AgIAADUAAAAAAAAAAAAQwF4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-03-17T07:33:19.06Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "SqliteEdgeQueue.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
+              "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
+              "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
+              "ViewState": "AgIAAIgAAAAAAAAAAAApwF4BAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-25T03:56:07.052Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 80,
+              "Title": "StorageExtensions.cs",
+              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
+              "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
+              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
+              "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Storage\\Extensions\\StorageExtensions.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-25T04:13:07.491Z",
               "EditorCaption": ""
             },
             {
@@ -486,7 +485,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "GlobalUsings.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\GlobalUsings.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\GlobalUsings.cs",
@@ -499,7 +498,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "NodeRegistrationEntity.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Entities\\NodeRegistrationEntity.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Entities\\NodeRegistrationEntity.cs",
@@ -512,7 +511,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "NodeSettingEntity.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Entities\\NodeSettingEntity.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Entities\\NodeSettingEntity.cs",
@@ -525,7 +524,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "ITimestampedEntity.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Entities\\ITimestampedEntity.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Entities\\ITimestampedEntity.cs",
@@ -538,7 +537,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "PersistenceExtensions.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Extensions\\PersistenceExtensions.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Extensions\\PersistenceExtensions.cs",
@@ -551,7 +550,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "IndexNames.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Constants\\IndexNames.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Constants\\IndexNames.cs",
@@ -560,19 +559,6 @@
               "ViewState": "AgIAABoAAAAAAAAAAAAQwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-03-25T04:01:41.198Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 72,
-              "Title": "SqliteEdgeQueue.cs",
-              "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
-              "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
-              "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
-              "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Persistence\\Queue\\SqliteEdgeQueue.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFQBAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-25T03:56:07.052Z",
               "EditorCaption": ""
             },
             {
@@ -590,7 +576,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 13,
               "Title": "appsettings.diagnostics.example.json",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\appsettings.diagnostics.example.json",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\appsettings.diagnostics.example.json",
@@ -602,7 +588,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 14,
               "Title": "SqlitePragmaInterceptor.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Interceptors\\SqlitePragmaInterceptor.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Interceptors\\SqlitePragmaInterceptor.cs",
@@ -614,7 +600,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 16,
               "Title": "NodeSettingsSeed.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Seed\\NodeSettingsSeed.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Seed\\NodeSettingsSeed.cs",
@@ -626,7 +612,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "StudyCleanupService.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Services\\StudyCleanupService.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Services\\StudyCleanupService.cs",
@@ -638,7 +624,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 69,
+              "DocumentIndex": 70,
               "Title": "IRepository.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Abstractions\\Persistence\\IRepository.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Abstractions\\Persistence\\IRepository.cs",
@@ -650,7 +636,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 70,
+              "DocumentIndex": 71,
               "Title": "PagedResult.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Common\\Pagination\\PagedResult.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Common\\Pagination\\PagedResult.cs",
@@ -662,7 +648,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 12,
               "Title": "Program.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node\\Program.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node\\Program.cs",
@@ -675,19 +661,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 10,
               "Title": "EfRepository.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Repositories\\EfRepository.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Repositories\\EfRepository.cs",
               "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Repositories\\EfRepository.cs",
               "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Persistence\\Repositories\\EfRepository.cs",
-              "ViewState": "AgIAAAcAAAAAAAAAAAAtwGsAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAoAAAAAAAAAAIBJwJ0AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-17T07:03:27.27Z"
+              "WhenOpened": "2026-03-17T07:03:27.27Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 9,
               "Title": "EdgeNodeDbContext.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Context\\EdgeNodeDbContext.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Context\\EdgeNodeDbContext.cs",
@@ -700,7 +687,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 71,
+              "DocumentIndex": 72,
               "Title": "PaginationRequest.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Common\\Pagination\\PaginationRequest.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Common\\Pagination\\PaginationRequest.cs",
@@ -712,7 +699,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 68,
+              "DocumentIndex": 69,
               "Title": "IMetricsCollector.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Abstractions\\Metrics\\IMetricsCollector.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Abstractions\\Metrics\\IMetricsCollector.cs",
@@ -724,7 +711,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 15,
               "Title": "StudyCompletionWatcherService.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Services\\StudyCompletionWatcherService.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Services\\StudyCompletionWatcherService.cs",
@@ -736,7 +723,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 65,
+              "DocumentIndex": 66,
               "Title": "NodeConfigurationDto.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Contracts\\Configuration\\NodeConfigurationDto.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Contracts\\Configuration\\NodeConfigurationDto.cs",
@@ -748,7 +735,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 66,
+              "DocumentIndex": 67,
               "Title": "NodeRegistrationDto.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Contracts\\Configuration\\NodeRegistrationDto.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Contracts\\Configuration\\NodeRegistrationDto.cs",
@@ -760,7 +747,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 67,
+              "DocumentIndex": 68,
               "Title": "HubApiRoutes.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Contracts\\Edge\\HubApiRoutes.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Contracts\\Edge\\HubApiRoutes.cs",
@@ -772,19 +759,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 17,
               "Title": "NodeSettingsService.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Services\\NodeSettingsService.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Services\\NodeSettingsService.cs",
               "ToolTip": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Services\\NodeSettingsService.cs",
               "RelativeToolTip": "src\\edge\\Dicom.Edge.Node.Persistence\\Services\\NodeSettingsService.cs",
-              "ViewState": "AgIAABIBAAAAAAAAAIBJwB8AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABcAAAAAAAAAAIBJwCoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-17T07:08:40.835Z"
+              "WhenOpened": "2026-03-17T07:08:40.835Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 48,
+              "DocumentIndex": 49,
               "Title": "TimestampInterceptor.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Interceptors\\TimestampInterceptor.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Interceptors\\TimestampInterceptor.cs",
@@ -796,7 +784,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 18,
               "Title": "EfUnitOfWork.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\UnitOfWork\\EfUnitOfWork.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\UnitOfWork\\EfUnitOfWork.cs",
@@ -808,7 +796,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 49,
+              "DocumentIndex": 50,
               "Title": "NodeSettingConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\NodeSettingConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\NodeSettingConfiguration.cs",
@@ -820,7 +808,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 47,
+              "DocumentIndex": 48,
               "Title": "INodeSettingsService.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Abstractions\\Persistence\\INodeSettingsService.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Abstractions\\Persistence\\INodeSettingsService.cs",
@@ -832,7 +820,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 64,
+              "DocumentIndex": 65,
               "Title": "WorklistItemConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\WorklistItemConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\WorklistItemConfiguration.cs",
@@ -844,7 +832,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 63,
+              "DocumentIndex": 64,
               "Title": "RoutingRuleConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\RoutingRuleConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\RoutingRuleConfiguration.cs",
@@ -856,7 +844,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 62,
+              "DocumentIndex": 63,
               "Title": "StudyMetricsConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\StudyMetricsConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\StudyMetricsConfiguration.cs",
@@ -868,7 +856,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 61,
+              "DocumentIndex": 62,
               "Title": "StudyArchiveConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\StudyArchiveConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\StudyArchiveConfiguration.cs",
@@ -880,7 +868,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 60,
+              "DocumentIndex": 61,
               "Title": "DicomAssociationConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomAssociationConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomAssociationConfiguration.cs",
@@ -892,7 +880,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 59,
+              "DocumentIndex": 60,
               "Title": "AuditLogConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\AuditLogConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\AuditLogConfiguration.cs",
@@ -904,7 +892,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 58,
+              "DocumentIndex": 59,
               "Title": "TransferErrorConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\TransferErrorConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\TransferErrorConfiguration.cs",
@@ -916,7 +904,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 57,
+              "DocumentIndex": 58,
               "Title": "StudyTransferConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\StudyTransferConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\StudyTransferConfiguration.cs",
@@ -928,7 +916,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 56,
+              "DocumentIndex": 57,
               "Title": "EdgeQueueItemConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\EdgeQueueItemConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\EdgeQueueItemConfiguration.cs",
@@ -940,7 +928,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 55,
+              "DocumentIndex": 56,
               "Title": "DicomInstanceConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomInstanceConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomInstanceConfiguration.cs",
@@ -952,7 +940,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 54,
+              "DocumentIndex": 55,
               "Title": "DicomSeriesConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomSeriesConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomSeriesConfiguration.cs",
@@ -964,7 +952,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 53,
+              "DocumentIndex": 54,
               "Title": "DicomStudyConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomStudyConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomStudyConfiguration.cs",
@@ -976,7 +964,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 52,
+              "DocumentIndex": 53,
               "Title": "DicomPatientConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomPatientConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\DicomPatientConfiguration.cs",
@@ -988,7 +976,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 51,
+              "DocumentIndex": 52,
               "Title": "ModalityConfigurationConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\ModalityConfigurationConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\ModalityConfigurationConfiguration.cs",
@@ -1000,7 +988,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 50,
+              "DocumentIndex": 51,
               "Title": "NodeRegistrationConfiguration.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\NodeRegistrationConfiguration.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\EntityConfigurations\\NodeRegistrationConfiguration.cs",
@@ -1012,7 +1000,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 46,
+              "DocumentIndex": 47,
               "Title": "NodeSettingCategories.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Persistence\\Constants\\NodeSettingCategories.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Persistence\\Constants\\NodeSettingCategories.cs",
@@ -1024,7 +1012,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 19,
               "Title": "DicomStudy.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\shared\\Dicom.Edge.Models\\Core\\DicomStudy.cs",
               "RelativeDocumentMoniker": "src\\shared\\Dicom.Edge.Models\\Core\\DicomStudy.cs",
@@ -1036,7 +1024,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 20,
               "Title": "StructuredAuditLogger.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Audit\\StructuredAuditLogger.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Audit\\StructuredAuditLogger.cs",
@@ -1048,7 +1036,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 44,
+              "DocumentIndex": 45,
               "Title": "BootstrapLogger.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Extensions\\BootstrapLogger.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Extensions\\BootstrapLogger.cs",
@@ -1060,7 +1048,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 43,
+              "DocumentIndex": 44,
               "Title": "EdgeActivitySource.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Observability\\EdgeActivitySource.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Observability\\EdgeActivitySource.cs",
@@ -1072,7 +1060,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 42,
+              "DocumentIndex": 43,
               "Title": "ExceptionHandlingMiddleware.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Middleware\\ExceptionHandlingMiddleware.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Middleware\\ExceptionHandlingMiddleware.cs",
@@ -1084,7 +1072,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 41,
+              "DocumentIndex": 42,
               "Title": "DiagnosticsOptionsValidator.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Configuration\\DiagnosticsOptionsValidator.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Configuration\\DiagnosticsOptionsValidator.cs",
@@ -1096,7 +1084,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 21,
+              "DocumentIndex": 22,
               "Title": "Dicom.Edge.Node.csproj",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node\\Dicom.Edge.Node.csproj",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node\\Dicom.Edge.Node.csproj",
@@ -1109,7 +1097,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 24,
+              "DocumentIndex": 25,
               "Title": "CorrelationScope.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\CorrelationScope.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\CorrelationScope.cs",
@@ -1121,7 +1109,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 23,
+              "DocumentIndex": 24,
               "Title": "PhiRedactionEnricher.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Enrichers\\PhiRedactionEnricher.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Enrichers\\PhiRedactionEnricher.cs",
@@ -1133,7 +1121,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 20,
+              "DocumentIndex": 21,
               "Title": "LoggingExtensions.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Extensions\\LoggingExtensions.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Extensions\\LoggingExtensions.cs",
@@ -1145,7 +1133,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 22,
+              "DocumentIndex": 23,
               "Title": "NodeEnricher.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Enrichers\\NodeEnricher.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Enrichers\\NodeEnricher.cs",
@@ -1157,7 +1145,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 45,
+              "DocumentIndex": 46,
               "Title": "DicomLogScope.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\DicomLogScope.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\DicomLogScope.cs",
@@ -1169,7 +1157,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 30,
+              "DocumentIndex": 31,
               "Title": "DiagnosticsOptions.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Configuration\\DiagnosticsOptions.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Configuration\\DiagnosticsOptions.cs",
@@ -1181,7 +1169,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 31,
+              "DocumentIndex": 32,
               "Title": "LoggingConstants.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\LoggingConstants.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\LoggingConstants.cs",
@@ -1193,7 +1181,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 32,
+              "DocumentIndex": 33,
               "Title": "IPhiProtector.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Redaction\\IPhiProtector.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Redaction\\IPhiProtector.cs",
@@ -1205,7 +1193,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 33,
+              "DocumentIndex": 34,
               "Title": "RegexPhiProtector.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Redaction\\RegexPhiProtector.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Redaction\\RegexPhiProtector.cs",
@@ -1217,7 +1205,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 34,
+              "DocumentIndex": 35,
               "Title": "CorrelationIdEnricher.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Enrichers\\CorrelationIdEnricher.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Enrichers\\CorrelationIdEnricher.cs",
@@ -1229,7 +1217,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 35,
+              "DocumentIndex": 36,
               "Title": "CorrelationIdMiddleware.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Middleware\\CorrelationIdMiddleware.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Middleware\\CorrelationIdMiddleware.cs",
@@ -1241,7 +1229,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 25,
+              "DocumentIndex": 26,
               "Title": "Dicom.Edge.Node.Diagnostics.csproj",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Dicom.Edge.Node.Diagnostics.csproj",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Dicom.Edge.Node.Diagnostics.csproj",
@@ -1253,7 +1241,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 40,
+              "DocumentIndex": 41,
               "Title": "ApplicationBuilderExtensions.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Extensions\\ApplicationBuilderExtensions.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Extensions\\ApplicationBuilderExtensions.cs",
@@ -1265,7 +1253,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 39,
+              "DocumentIndex": 40,
               "Title": "OpenTelemetrySetup.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Observability\\OpenTelemetrySetup.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Observability\\OpenTelemetrySetup.cs",
@@ -1278,7 +1266,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 38,
+              "DocumentIndex": 39,
               "Title": "OpenTelemetryMetricsCollector.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\Observability\\OpenTelemetryMetricsCollector.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\Observability\\OpenTelemetryMetricsCollector.cs",
@@ -1290,7 +1278,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 37,
+              "DocumentIndex": 38,
               "Title": "PacsConnectivityHealthCheck.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\HealthChecks\\PacsConnectivityHealthCheck.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\HealthChecks\\PacsConnectivityHealthCheck.cs",
@@ -1302,7 +1290,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 36,
+              "DocumentIndex": 37,
               "Title": "StorageHealthCheck.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\src\\edge\\Dicom.Edge.Node.Diagnostics\\HealthChecks\\StorageHealthCheck.cs",
               "RelativeDocumentMoniker": "src\\edge\\Dicom.Edge.Node.Diagnostics\\HealthChecks\\StorageHealthCheck.cs",
@@ -1314,7 +1302,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 26,
+              "DocumentIndex": 27,
               "Title": "Class1.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\backend\\Dicom.Edge.Hub.Infrastructure\\Class1.cs",
               "RelativeDocumentMoniker": "backend\\Dicom.Edge.Hub.Infrastructure\\Class1.cs",
@@ -1325,7 +1313,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 27,
+              "DocumentIndex": 28,
               "Title": "Class1.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\backend\\Dicom.Edge.Hub.Domain\\Class1.cs",
               "RelativeDocumentMoniker": "backend\\Dicom.Edge.Hub.Domain\\Class1.cs",
@@ -1336,7 +1324,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 28,
+              "DocumentIndex": 29,
               "Title": "Class1.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\backend\\Dicom.Edge.Hub.Application\\Class1.cs",
               "RelativeDocumentMoniker": "backend\\Dicom.Edge.Hub.Application\\Class1.cs",
@@ -1347,7 +1335,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 29,
+              "DocumentIndex": 30,
               "Title": "Class1.cs",
               "DocumentMoniker": "Z:\\source\\repos\\EdgeGuard.Platform\\EdgeGuard.Platform\\edge\\Dicom.Edge.Node.Api\\Class1.cs",
               "RelativeDocumentMoniker": "edge\\Dicom.Edge.Node.Api\\Class1.cs",

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Dicom.Edge.Node.Persistence")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4f6d9b5a7025f615f8ca869cdcb05e58872673a7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fa46efe7f5a1876c265b0284c09dcb6c84776f5d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Dicom.Edge.Node.Persistence")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Dicom.Edge.Node.Persistence")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
