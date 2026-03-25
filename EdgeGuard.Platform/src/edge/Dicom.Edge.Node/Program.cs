@@ -1,6 +1,7 @@
 using Dicom.Edge.Node;
 using Dicom.Edge.Node.Diagnostics.Extensions;
 using Dicom.Edge.Node.Persistence.Extensions;
+using Dicom.Edge.Node.Storage.Extensions;
 
 BootstrapLogger.Initialize();
 
@@ -13,6 +14,7 @@ try
     builder.UseEdgeLogging(builder.Configuration);
     builder.Services.AddEdgeDiagnostics(builder.Configuration);
     builder.Services.AddEdgePersistence(builder.Configuration);
+    builder.Services.AddEdgeStorage();
 
     builder.Services.AddHostedService<Worker>();
 
