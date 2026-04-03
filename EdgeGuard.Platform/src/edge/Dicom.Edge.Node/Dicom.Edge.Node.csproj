@@ -10,4 +10,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.4" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dicom.Edge.Node.Diagnostics\Dicom.Edge.Node.Diagnostics.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Persistence\Dicom.Edge.Node.Persistence.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Storage\Dicom.Edge.Node.Storage.csproj" />
+  </ItemGroup>
 </Project>

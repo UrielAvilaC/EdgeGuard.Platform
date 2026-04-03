@@ -77,3 +77,8 @@
 /EdgeGuard.Platform/Dicom.Edge.Processing/obj/Dicom.Edge.Processing.csproj.nuget.g.targets
 /EdgeGuard.Platform/Dicom.Edge.Processing/obj/project.assets.json
 /EdgeGuard.Platform/Dicom.Edge.Processing/obj/project.nuget.cache
+/EdgeGuard.Platform/.vs/CopilotSnapshots/58C46A8BFF423741B3FA873D3C58A38F
+/EdgeGuard.Platform/src/backend/Dicom.Edge.Hub.Domain/bin/Debug/net10.0/Dicom.Edge.Hub.Domain.dll
+/EdgeGuard.Platform/src/backend/Dicom.Edge.Hub.Domain/bin/Debug/net10.0/Dicom.Edge.Hub.Domain.pdb
+/EdgeGuard.Platform/src/backend/Dicom.Edge.Hub.Application/obj/Debug/net10.0/ref/Dicom.Edge.Hub.Application.dll
+/EdgeGuard.Platform/src/backend/Dicom.Edge.Hub.Application/obj/Debug/net10.0/refint/Dicom.Edge.Hub.Application.dll

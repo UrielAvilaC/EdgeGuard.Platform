@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Dicom.Edge.Common.Pagination;
 
 namespace Dicom.Edge.Abstractions.Persistence
 {
@@ -139,6 +140,38 @@ namespace Dicom.Edge.Abstractions.Persistence
         /// <returns>True if any entity matches; otherwise, false.</returns>
         Task<bool> AnyAsync(
             Expression<Func<TEntity, bool>> predicate,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Retrieves a paged subset of entities, optionally filtered and ordered.
+        /// </summary>
+        /// <param name="pagination">Page number and page size.</param>
+        /// <param name="predicate">Optional filter expression.</param>
+        /// <param name="orderBy">
+        /// Optional ordering function applied to the queryable before paging.
+        /// If null, no explicit ordering is applied (database-default order).
+        /// </param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A <see cref="PagedResult{T}"/> containing the page of items and total count.</returns>
+        /// <remarks>
+        /// <para>
+        /// Always prefer this over <see cref="GetAllAsync"/> for tables that may grow large
+        /// (studies, instances, audit logs, queue items).
+        /// </para>
+        /// <para>
+        /// <strong>Usage Example:</strong>
+        /// <code>
+        /// var page = await repo.GetPagedAsync(
+        ///     new PaginationRequest { Page = 1, PageSize = 50 },
+        ///     predicate: s => s.Status == StudyStatus.Completed,
+        ///     orderBy: q => q.OrderByDescending(s => s.ReceivedAt));
+        /// </code>
+        /// </para>
+        /// </remarks>
+        Task<PagedResult<TEntity>> GetPagedAsync(
+            PaginationRequest pagination,
+            Expression<Func<TEntity, bool>>? predicate = null,
+            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
             CancellationToken cancellationToken = default);
     }
 }
