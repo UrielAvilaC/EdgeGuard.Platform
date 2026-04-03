@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Dicom.Edge.Hub.Domain\Dicom.Edge.Hub.Domain.csproj" />
     <ProjectReference Include="..\Dicom.Edge.Hub.Application\Dicom.Edge.Hub.Application.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Abstractions\Dicom.Edge.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
