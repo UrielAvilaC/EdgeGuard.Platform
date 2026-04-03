@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\EdgeGuard.Edge.Domain\EdgeGuard.Edge.Domain.csproj" />
+    <ProjectReference Include="..\EdgeGuard.Edge.Application\EdgeGuard.Edge.Application.csproj" />
+    <ProjectReference Include="..\..\Shared\EdgeGuard.Persistence.Common\EdgeGuard.Persistence.Common.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

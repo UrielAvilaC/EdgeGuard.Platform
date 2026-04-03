@@ -1,0 +1,6 @@
+@EdgeGuard.Hub.Api_HostAddress = http://localhost:5239
+
+GET {{EdgeGuard.Hub.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

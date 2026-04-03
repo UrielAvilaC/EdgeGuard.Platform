@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Edge/">
+    <Project Path="src/Edge/EdgeGuard.Edge.Api/EdgeGuard.Edge.Api.csproj" />
+    <Project Path="src/Edge/EdgeGuard.Edge.Application/EdgeGuard.Edge.Application.csproj" />
+    <Project Path="src/Edge/EdgeGuard.Edge.Domain/EdgeGuard.Edge.Domain.csproj" />
+    <Project Path="src/Edge/EdgeGuard.Edge.Infrastructure/EdgeGuard.Edge.Infrastructure.csproj" />
+    <Project Path="src/Edge/EdgeGuard.Edge.Worker/EdgeGuard.Edge.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Hub/">
+    <Project Path="src/Hub/EdgeGuard.Hub.Api/EdgeGuard.Hub.Api.csproj" />
+    <Project Path="src/Hub/EdgeGuard.Hub.Application/EdgeGuard.Hub.Application.csproj" />
+    <Project Path="src/Hub/EdgeGuard.Hub.Domain/EdgeGuard.Hub.Domain.csproj" />
+    <Project Path="src/Hub/EdgeGuard.Hub.Infrastructure/EdgeGuard.Hub.Infrastructure.csproj" />
+    <Project Path="src/Hub/EdgeGuard.Hub.Worker/EdgeGuard.Hub.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/EdgeGuard.Contracts/EdgeGuard.Contracts.csproj" />
+    <Project Path="src/Shared/EdgeGuard.HL7/EdgeGuard.HL7.csproj" />
+    <Project Path="src/Shared/EdgeGuard.Messaging/EdgeGuard.Messaging.csproj" />
+    <Project Path="src/Shared/EdgeGuard.Persistence.Common/EdgeGuard.Persistence.Common.csproj" />
+    <Project Path="src/Shared/EdgeGuard.SharedKernel/EdgeGuard.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/EdgeGuard.Edge.Domain.Tests/EdgeGuard.Edge.Domain.Tests.csproj" />
+    <Project Path="tests/EdgeGuard.HL7.Tests/EdgeGuard.HL7.Tests.csproj" />
+    <Project Path="tests/EdgeGuard.Hub.Application.Tests/EdgeGuard.Hub.Application.Tests.csproj" />
+    <Project Path="tests/EdgeGuard.Hub.Domain.Tests/EdgeGuard.Hub.Domain.Tests.csproj" />
+    <Project Path="tests/EdgeGuard.Hub.Infrastructure.Tests/EdgeGuard.Hub.Infrastructure.Tests.csproj" />
+    <Project Path="tests/EdgeGuard.Messaging.Tests/EdgeGuard.Messaging.Tests.csproj" />
+  </Folder>
+</Solution>
