@@ -5,20 +5,23 @@ using Microsoft.Extensions.Options;
 namespace Dicom.Edge.Node.Diagnostics.HealthChecks;
 
 /// <summary>
-/// Checks local storage availability and free space against configured thresholds.
+/// Checks local DICOM storage availability and free space against configured thresholds.
 /// Reports degraded when storage is below the minimum threshold.
+/// Uses <see cref="HealthCheckOptions.StoragePath"/> for the study storage directory;
+/// falls back to the current directory if not configured.
 /// </summary>
 public sealed class StorageHealthCheck : IHealthCheck
 {
     private readonly long _minAvailableBytes;
     private readonly string _storagePath;
 
-    public StorageHealthCheck(
-        IOptions<HealthCheckOptions> healthOptions,
-        IOptions<FileLoggingOptions> fileOptions)
+    public StorageHealthCheck(IOptions<HealthCheckThresholdOptions> healthOptions)
     {
-        _minAvailableBytes = healthOptions.Value.StorageMinAvailableMb * 1024 * 1024;
-        _storagePath = fileOptions.Value.Path;
+        var opts = healthOptions.Value;
+        _minAvailableBytes = opts.StorageMinAvailableMb * 1024 * 1024;
+        _storagePath = string.IsNullOrWhiteSpace(opts.StoragePath)
+            ? global::System.Environment.CurrentDirectory
+            : opts.StoragePath;
     }
 
     public Task<HealthCheckResult> CheckHealthAsync(
@@ -33,7 +36,8 @@ public sealed class StorageHealthCheck : IHealthCheck
             if (string.IsNullOrEmpty(root))
             {
                 return Task.FromResult(HealthCheckResult.Unhealthy(
-                    "Cannot determine storage root path."));
+                    "Cannot determine storage root path.",
+                    data: new Dictionary<string, object> { ["ConfiguredPath"] = _storagePath }));
             }
 
             var driveInfo = new DriveInfo(root);
@@ -53,7 +57,8 @@ public sealed class StorageHealthCheck : IHealthCheck
                 ["AvailableMB"] = availableBytes / (1024 * 1024),
                 ["TotalMB"] = totalBytes / (1024 * 1024),
                 ["UsedPercent"] = Math.Round(usedPercent, 2),
-                ["Path"] = fullPath
+                ["Path"] = fullPath,
+                ["ThresholdMB"] = _minAvailableBytes / (1024 * 1024)
             };
 
             if (availableBytes < _minAvailableBytes)

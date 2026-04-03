@@ -14,6 +14,7 @@ public sealed class RegexPhiProtector : IPhiProtector
     private readonly List<Regex> _compiledPatterns;
     private readonly string _replacementToken;
     private readonly bool _enabled;
+    private readonly RedactionMode _mode;
 
     public RegexPhiProtector(IOptions<PhiRedactionOptions> options)
     {
@@ -21,6 +22,7 @@ public sealed class RegexPhiProtector : IPhiProtector
 
         _enabled = config.Enabled;
         _replacementToken = config.ReplacementToken;
+        _mode = config.Mode;
 
         _redactedProperties = new HashSet<string>(
             config.RedactedProperties,
@@ -37,6 +39,10 @@ public sealed class RegexPhiProtector : IPhiProtector
         if (!_enabled || string.IsNullOrEmpty(value))
             return value ?? string.Empty;
 
+        // Relaxed mode skips regex pattern scanning — only explicit property names are redacted
+        if (_mode == RedactionMode.Relaxed)
+            return value;
+
         var result = value;
 
         foreach (var pattern in _compiledPatterns)
@@ -47,7 +53,6 @@ public sealed class RegexPhiProtector : IPhiProtector
             }
             catch (RegexMatchTimeoutException)
             {
-                // Fail-safe: if regex times out, redact the entire value
                 return _replacementToken;
             }
         }

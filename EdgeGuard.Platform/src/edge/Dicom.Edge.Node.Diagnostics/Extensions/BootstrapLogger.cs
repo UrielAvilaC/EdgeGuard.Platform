@@ -38,6 +38,11 @@ public static class BootstrapLogger
     /// <param name="logFilePath">Path for the bootstrap log file.</param>
     public static void Initialize(string logFilePath = "logs/bootstrap-.log")
     {
+        // Ensure log directory exists before creating file sink
+        var directory = Path.GetDirectoryName(Path.GetFullPath(logFilePath));
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)

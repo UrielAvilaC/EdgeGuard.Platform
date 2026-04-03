@@ -277,6 +277,14 @@ namespace Dicom.Edge.Models.Core
         /// </remarks>
         public int RetryCount { get; set; }
 
+        // ==================== Soft Delete ====================
+
+        /// <summary>Soft-delete flag. True once the study is purged from active storage.</summary>
+        public bool IsDeleted { get; set; }
+
+        /// <summary>UTC timestamp when this study was soft-deleted by the cleanup service.</summary>
+        public DateTime? DeletedAt { get; set; }
+
         // ==================== Relationships ====================
 
         /// <summary>

@@ -19,7 +19,7 @@ public sealed class PacsConnectivityHealthCheck : IHealthCheck
 
     public PacsConnectivityHealthCheck(
         IOptions<PacsConnectivityOptions> pacsOptions,
-        IOptions<HealthCheckOptions> healthOptions,
+        IOptions<HealthCheckThresholdOptions> healthOptions,
         ILogger<PacsConnectivityHealthCheck> logger)
     {
         _host = pacsOptions.Value.Host;

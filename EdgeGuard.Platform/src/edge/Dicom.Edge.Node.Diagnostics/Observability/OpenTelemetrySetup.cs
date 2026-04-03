@@ -20,22 +20,21 @@ internal static class OpenTelemetrySetup
         if (!otelOptions.Enabled)
             return services;
 
-        var resourceBuilder = ResourceBuilder.CreateDefault()
-            .AddService(
-                serviceName: otelOptions.ServiceName,
-                serviceVersion: otelOptions.ServiceVersion ?? "1.0.0")
-            .AddAttributes(new Dictionary<string, object>
-            {
-                [LoggingConstants.NodeId] = options.NodeId,
-                [LoggingConstants.Environment] = options.Environment
-            });
-
         services.AddOpenTelemetry()
-            .ConfigureResource(r => r.AddService(otelOptions.ServiceName))
+            .ConfigureResource(r =>
+            {
+                r.AddService(
+                    serviceName: otelOptions.ServiceName,
+                    serviceVersion: otelOptions.ServiceVersion ?? "1.0.0");
+                r.AddAttributes(new Dictionary<string, object>
+                {
+                    [LoggingConstants.NodeId] = options.NodeId,
+                    [LoggingConstants.Environment] = options.Environment
+                });
+            })
             .WithTracing(tracing =>
             {
                 tracing
-                    .SetResourceBuilder(resourceBuilder)
                     .AddSource(LoggingConstants.ActivitySourceName)
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation();
@@ -48,10 +47,10 @@ internal static class OpenTelemetrySetup
             .WithMetrics(metrics =>
             {
                 metrics
-                    .SetResourceBuilder(resourceBuilder)
                     .AddMeter(LoggingConstants.MeterName)
                     .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation();
 
                 if (!string.IsNullOrWhiteSpace(otelOptions.OtlpEndpoint))
                 {
