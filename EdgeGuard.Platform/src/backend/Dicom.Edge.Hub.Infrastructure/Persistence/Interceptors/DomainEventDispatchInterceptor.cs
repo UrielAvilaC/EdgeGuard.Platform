@@ -6,7 +6,8 @@ using Microsoft.Extensions.Logging;
 namespace Dicom.Edge.Hub.Infrastructure.Persistence.Interceptors;
 
 /// <summary>
-/// Dispatches domain events from aggregates after SaveChanges completes.
+/// Clears domain events from aggregates after SaveChanges completes.
+/// Currently logs dispatched events. Wire to MediatR or IEventBus for actual dispatch.
 /// </summary>
 public class DomainEventDispatchInterceptor : SaveChangesInterceptor
 {
