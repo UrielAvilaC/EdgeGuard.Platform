@@ -9,10 +9,14 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class QueueMonitoringController : ControllerBase
 {
     private readonly IHl7MessageRepository _messageRepository;
+    private readonly ILogger<QueueMonitoringController> _logger;
 
-    public QueueMonitoringController(IHl7MessageRepository messageRepository)
+    public QueueMonitoringController(
+        IHl7MessageRepository messageRepository,
+        ILogger<QueueMonitoringController> logger)
     {
         _messageRepository = messageRepository;
+        _logger = logger;
     }
 
     [HttpGet("summary")]

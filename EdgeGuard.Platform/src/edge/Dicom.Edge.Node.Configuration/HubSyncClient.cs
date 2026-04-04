@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Dicom.Edge.Contracts.Edge;
+using Dicom.Edge.Contracts.Hub;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -14,18 +15,32 @@ public sealed class HubSyncClient(
     ILogger<HubSyncClient> logger) : IHubSyncClient
 {
     private readonly HubConnectionOptions _opts = options.Value;
+    private string? _registeredNodeId;
 
     public async Task<bool> RegisterAsync(CancellationToken ct = default)
     {
         try
         {
-            var payload = new { MachineName = Environment.MachineName, Timestamp = DateTime.UtcNow };
+            var payload = new NodeRegistrationRequest
+            {
+                Name = _opts.NodeName,
+                AeTitle = _opts.AeTitle,
+                IpAddress = _opts.IpAddress,
+                Port = _opts.Port,
+                ApiEndpoint = _opts.ApiEndpoint,
+                Location = _opts.Location,
+                FacilityName = _opts.FacilityName,
+                Version = _opts.Version
+            };
+
             var response = await httpClient.PostAsJsonAsync(
                 HubApiRoutes.Register, payload, ct);
 
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation("Registered with Hub successfully");
+                var body = await response.Content.ReadFromJsonAsync<NodeRegistrationResponse>(ct);
+                _registeredNodeId = body?.NodeId;
+                logger.LogInformation("Registered with Hub successfully (NodeId={NodeId})", _registeredNodeId);
                 return true;
             }
 
@@ -43,7 +58,17 @@ public sealed class HubSyncClient(
     {
         try
         {
-            var payload = new { Timestamp = DateTime.UtcNow, MachineName = Environment.MachineName };
+            if (string.IsNullOrEmpty(_registeredNodeId))
+            {
+                logger.LogDebug("Skipping heartbeat — node not yet registered");
+                return false;
+            }
+
+            var payload = new NodeHeartbeatRequest
+            {
+                NodeId = _registeredNodeId
+            };
+
             var response = await httpClient.PostAsJsonAsync(
                 HubApiRoutes.Heartbeat, payload, ct);
 
@@ -60,7 +85,14 @@ public sealed class HubSyncClient(
     {
         try
         {
-            var response = await httpClient.GetAsync(HubApiRoutes.ConfigurationPull, ct);
+            if (string.IsNullOrEmpty(_registeredNodeId))
+            {
+                logger.LogDebug("Skipping config pull — node not yet registered");
+                return null;
+            }
+
+            var url = $"{HubApiRoutes.ConfigurationPull}?nodeId={Uri.EscapeDataString(_registeredNodeId)}";
+            var response = await httpClient.GetAsync(url, ct);
             if (!response.IsSuccessStatusCode) return null;
 
             var config = await response.Content

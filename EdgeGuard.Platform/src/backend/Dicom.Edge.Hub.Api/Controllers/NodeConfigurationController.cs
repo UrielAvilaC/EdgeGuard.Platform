@@ -1,3 +1,4 @@
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -89,12 +90,4 @@ public class NodeConfigurationController : ControllerBase
         var version = await _configService.ComputeConfigVersionAsync(nodeId, ct);
         return Ok(new { configVersion = version });
     }
-}
-
-/// <summary>
-/// Request body for updating a single node configuration setting.
-/// </summary>
-public sealed class UpdateNodeSettingRequest
-{
-    public required string Value { get; init; }
 }

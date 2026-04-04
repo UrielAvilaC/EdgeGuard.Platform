@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Persistence;
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.Routing;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,11 +11,16 @@ public class RoutingRulesController : ControllerBase
 {
     private readonly IHl7RoutingRuleRepository _ruleRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<RoutingRulesController> _logger;
 
-    public RoutingRulesController(IHl7RoutingRuleRepository ruleRepository, IUnitOfWork unitOfWork)
+    public RoutingRulesController(
+        IHl7RoutingRuleRepository ruleRepository,
+        IUnitOfWork unitOfWork,
+        ILogger<RoutingRulesController> logger)
     {
         _ruleRepository = ruleRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -120,20 +126,4 @@ public class RoutingRulesController : ControllerBase
         r.CreatedAt,
         r.UpdatedAt
     };
-}
-
-public sealed class CreateRoutingRuleRequest
-{
-    public required string Name { get; init; }
-    public required string TargetNodeId { get; init; }
-    public int Priority { get; init; } = 100;
-    public string? MatchMessageType { get; init; }
-    public string? MatchTriggerEvent { get; init; }
-    public string? MatchSendingFacility { get; init; }
-    public string? MatchSendingApplication { get; init; }
-}
-
-public sealed class UpdatePriorityRequest
-{
-    public required int Priority { get; init; }
 }

@@ -1,3 +1,4 @@
+using Dicom.Edge.Node.Persistence.Constants;
 using Dicom.Edge.Node.Persistence.Diagnostics;
 
 namespace Dicom.Edge.Node.Persistence.Services;
@@ -120,9 +121,20 @@ public sealed class NodeSettingsService(
             .ToListAsync(ct);
 
         var updated = 0;
+        var skipped = 0;
         foreach (var entity in entities)
         {
             if (!values.TryGetValue(entity.Key, out var newValue)) continue;
+
+            if (!IsValidForType(newValue, entity.ValueType))
+            {
+                logger.LogWarning(
+                    "Batch skip: value '{Value}' is not valid for setting {Key} (expected type={Type})",
+                    newValue, entity.Key, entity.ValueType);
+                skipped++;
+                continue;
+            }
+
             entity.Value = newValue;
             entity.UpdatedAt = DateTime.UtcNow;
             _cache[entity.Key] = newValue;
@@ -133,8 +145,8 @@ public sealed class NodeSettingsService(
             await ctx.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Batch applied {Applied}/{Requested} settings from Hub push",
-            updated, values.Count);
+            "Batch applied {Applied}/{Requested} settings from Hub push (skipped={Skipped} validation failures)",
+            updated, values.Count, skipped);
     }
 
     public async Task ReloadAsync(CancellationToken ct = default)

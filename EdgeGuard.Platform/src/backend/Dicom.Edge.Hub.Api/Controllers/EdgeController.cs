@@ -1,5 +1,7 @@
 using Dicom.Edge.Abstractions.Persistence;
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Constants;
+using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
@@ -20,6 +22,7 @@ public class EdgeController : ControllerBase
     private readonly INodeRepository _nodeRepository;
     private readonly IStudyRepository _studyRepository;
     private readonly IHealthCheckRepository _healthCheckRepository;
+    private readonly INodeConfigurationService _configService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<EdgeController> _logger;
 
@@ -27,12 +30,14 @@ public class EdgeController : ControllerBase
         INodeRepository nodeRepository,
         IStudyRepository studyRepository,
         IHealthCheckRepository healthCheckRepository,
+        INodeConfigurationService configService,
         IUnitOfWork unitOfWork,
         ILogger<EdgeController> logger)
     {
         _nodeRepository = nodeRepository;
         _studyRepository = studyRepository;
         _healthCheckRepository = healthCheckRepository;
+        _configService = configService;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -178,6 +183,24 @@ public class EdgeController : ControllerBase
         return Ok(new { acknowledged = true });
     }
 
+    /// <summary>GET /edge/configuration — Node pulls its config as key-value pairs.</summary>
+    [HttpGet("/edge/configuration")]
+    public async Task<IActionResult> PullConfiguration([FromQuery] string nodeId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(nodeId))
+            return BadRequest(new { error = "nodeId query parameter is required." });
+
+        var node = await _nodeRepository.GetByIdAsync(nodeId, ct);
+        if (node is null)
+            return NotFound(new { error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, nodeId) });
+
+        var config = await _configService.GetNodeConfigAsync(nodeId, ct);
+        var dict = config.ToDictionary(c => c.SettingKey, c => c.Value);
+
+        _logger.LogInformation("Config pull by node {NodeId}: {Count} entries", nodeId, dict.Count);
+        return Ok(dict);
+    }
+
     /// <summary>GET /info — Hub version and capability info.</summary>
     [HttpGet("/info")]
     public IActionResult GetInfo()
@@ -190,54 +213,4 @@ public class EdgeController : ControllerBase
             capabilities = HubApiConstants.Capabilities
         });
     }
-}
-
-// ── Request/Response models ──────────────────────────────────────────────────
-
-public sealed class NodeRegistrationRequest
-{
-    public required string Name { get; init; }
-    public required string AeTitle { get; init; }
-    public required string IpAddress { get; init; }
-    public required int Port { get; init; }
-    public string? ApiEndpoint { get; init; }
-    public string? Location { get; init; }
-    public string? FacilityName { get; init; }
-    public string? Version { get; init; }
-}
-
-public sealed class NodeRegistrationResponse
-{
-    public required string NodeId { get; init; }
-    public required bool Accepted { get; init; }
-    public string? Message { get; init; }
-}
-
-public sealed class NodeHeartbeatRequest
-{
-    public required string NodeId { get; init; }
-    public long? AvailableStorageMb { get; init; }
-    public int? TotalStudiesReceived { get; init; }
-    public int? TotalStudiesSent { get; init; }
-    public int? ErrorsLast24Hours { get; init; }
-}
-
-public sealed class StudyNotifyRequest
-{
-    public required string NodeId { get; init; }
-    public required string StudyInstanceUid { get; init; }
-    public string? PatientId { get; init; }
-    public string? PatientName { get; init; }
-    public string? AccessionNumber { get; init; }
-    public int InstanceCount { get; init; }
-    public long TotalSizeBytes { get; init; }
-}
-
-public sealed class NodeHealthReportRequest
-{
-    public required string NodeId { get; init; }
-    public long? AvailableStorageMb { get; init; }
-    public double? CpuPercent { get; init; }
-    public double? MemoryPercent { get; init; }
-    public int? QueueDepth { get; init; }
 }

@@ -10,10 +10,14 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class StudiesController : ControllerBase
 {
     private readonly IStudyRepository _studyRepository;
+    private readonly ILogger<StudiesController> _logger;
 
-    public StudiesController(IStudyRepository studyRepository)
+    public StudiesController(
+        IStudyRepository studyRepository,
+        ILogger<StudiesController> logger)
     {
         _studyRepository = studyRepository;
+        _logger = logger;
     }
 
     [HttpGet]

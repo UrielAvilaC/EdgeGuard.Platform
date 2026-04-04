@@ -1,5 +1,6 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Common.Pagination;
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +13,16 @@ public class NodesController : ControllerBase
 {
     private readonly INodeRepository _nodeRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<NodesController> _logger;
 
-    public NodesController(INodeRepository nodeRepository, IUnitOfWork unitOfWork)
+    public NodesController(
+        INodeRepository nodeRepository,
+        IUnitOfWork unitOfWork,
+        ILogger<NodesController> logger)
     {
         _nodeRepository = nodeRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     [HttpGet("paged")]
@@ -130,16 +136,4 @@ public class NodesController : ControllerBase
         n.UpdatedAt,
         PacsAssignments = n.PacsAssignments.Select(a => new { a.PacsId, a.IsActive, a.InheritedFromHub })
     };
-}
-
-public sealed class CreateNodeRequest
-{
-    public required string Name { get; init; }
-    public required string AeTitle { get; init; }
-    public required string IpAddress { get; init; }
-    public required int Port { get; init; }
-    public string? ApiEndpoint { get; init; }
-    public string? Location { get; init; }
-    public string? FacilityName { get; init; }
-    public int HealthCheckIntervalSeconds { get; init; } = 60;
 }

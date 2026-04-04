@@ -1,4 +1,6 @@
+using Dicom.Edge.Hub.Domain.Common;
 using Dicom.Edge.Hub.Domain.Services;
+using Dicom.Edge.Hub.Infrastructure.EventHandlers;
 using Dicom.Edge.Hub.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +22,9 @@ public static class HubDomainServiceCollectionExtensions
         services.AddScoped<IStudyCleanupService, StudyCleanupService>();
         services.AddScoped<INodeHealthEvaluator, NodeHealthEvaluator>();
         services.AddScoped<IHubDataRetentionService, HubDataRetentionService>();
+
+        // Domain event handlers (dispatched by DomainEventDispatchInterceptor)
+        services.AddScoped<IDomainEventHandler, AuditDomainEventHandler>();
 
         return services;
     }

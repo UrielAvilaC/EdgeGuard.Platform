@@ -1,3 +1,4 @@
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Constants;
 using Dicom.Edge.Hub.Application.Configuration;
 using Microsoft.AspNetCore.Mvc;
@@ -9,10 +10,14 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class SystemSettingsController : ControllerBase
 {
     private readonly ISystemSettingsService _settingsService;
+    private readonly ILogger<SystemSettingsController> _logger;
 
-    public SystemSettingsController(ISystemSettingsService settingsService)
+    public SystemSettingsController(
+        ISystemSettingsService settingsService,
+        ILogger<SystemSettingsController> logger)
     {
         _settingsService = settingsService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -52,9 +57,4 @@ public class SystemSettingsController : ControllerBase
         await _settingsService.SeedDefaultsAsync(ct);
         return Ok(new { message = HubApiConstants.DefaultsSeededMessage });
     }
-}
-
-public sealed class UpdateSettingRequest
-{
-    public required string Value { get; init; }
 }

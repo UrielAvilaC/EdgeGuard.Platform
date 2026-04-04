@@ -10,10 +10,14 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class PatientsController : ControllerBase
 {
     private readonly IPatientRepository _patientRepository;
+    private readonly ILogger<PatientsController> _logger;
 
-    public PatientsController(IPatientRepository patientRepository)
+    public PatientsController(
+        IPatientRepository patientRepository,
+        ILogger<PatientsController> logger)
     {
         _patientRepository = patientRepository;
+        _logger = logger;
     }
 
     [HttpGet]

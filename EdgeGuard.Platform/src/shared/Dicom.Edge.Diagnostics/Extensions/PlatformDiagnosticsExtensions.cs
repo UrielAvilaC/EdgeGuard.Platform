@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Audit;
+using Dicom.Edge.Abstractions.Caching;
 using Dicom.Edge.Diagnostics.Audit;
 using Dicom.Edge.Diagnostics.Configuration;
 using Dicom.Edge.Diagnostics.Constants;
@@ -45,6 +46,10 @@ public static class PlatformDiagnosticsExtensions
 
         // Audit logging (HIPAA/GDPR compliance)
         services.AddSingleton<IAuditLogger, StructuredAuditLogger>();
+
+        // In-memory cache (ICacheService)
+        services.AddMemoryCache();
+        services.AddSingleton<ICacheService, MemoryCacheService>();
 
         // Activity source for distributed tracing
         var options = diagnosticsSection.Get<DiagnosticsOptions>() ?? new DiagnosticsOptions();

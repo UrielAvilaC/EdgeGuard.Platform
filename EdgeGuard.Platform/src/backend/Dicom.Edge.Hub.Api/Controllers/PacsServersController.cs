@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Persistence;
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,16 @@ public class PacsServersController : ControllerBase
 {
     private readonly IPacsServerRepository _pacsRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<PacsServersController> _logger;
 
-    public PacsServersController(IPacsServerRepository pacsRepository, IUnitOfWork unitOfWork)
+    public PacsServersController(
+        IPacsServerRepository pacsRepository,
+        IUnitOfWork unitOfWork,
+        ILogger<PacsServersController> logger)
     {
         _pacsRepository = pacsRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -118,16 +124,4 @@ public class PacsServersController : ControllerBase
         p.CreatedAt,
         p.UpdatedAt
     };
-}
-
-public sealed class CreatePacsServerRequest
-{
-    public required string Name { get; init; }
-    public required string AeTitle { get; init; }
-    public required string HostName { get; init; }
-    public required int Port { get; init; }
-    public string? Description { get; init; }
-    public bool IsGlobal { get; init; }
-    public int MaxConcurrentAssociations { get; init; } = 10;
-    public int TimeoutSeconds { get; init; } = 30;
 }

@@ -78,6 +78,11 @@ try
 
     var app = builder.Build();
 
+    // ── Diagnostics middleware pipeline (order matters) ───────────────────
+    app.UseCorrelationId();
+    app.UsePlatformExceptionHandling();
+    app.MapDiagnosticsEndpoints();
+
     // ── Map Node API endpoints ───────────────────────────────────────────
     app.MapNodeApi();
 
