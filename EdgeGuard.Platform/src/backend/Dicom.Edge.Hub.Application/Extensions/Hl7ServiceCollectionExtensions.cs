@@ -1,8 +1,12 @@
 using Dicom.Edge.Hub.Application.Configuration;
+using Dicom.Edge.Hub.Application.Edge;
 using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Application.Hl7.Pipeline;
+using Dicom.Edge.Hub.Application.Nodes;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Hub.Application.PacsServers;
 using Dicom.Edge.Hub.Application.Queue;
+using Dicom.Edge.Hub.Application.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -31,9 +35,17 @@ public static class HubApplicationServiceCollectionExtensions
         services.AddScoped<IHl7ValidationService, Hl7ValidationService>();
         services.AddScoped<IHl7RoutingEngine, Hl7RoutingEngine>();
 
-        // Configuration service
+        // Configuration services
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<INodeConfigurationService, NodeConfigurationService>();
+
+        // CRUD application services (write operations)
+        services.AddScoped<INodeService, NodeService>();
+        services.AddScoped<IPacsServerService, PacsServerService>();
+        services.AddScoped<IRoutingRuleService, RoutingRuleService>();
+
+        // Edge node-facing orchestration service
+        services.AddScoped<IEdgeNodeService, EdgeNodeService>();
 
         return services;
     }

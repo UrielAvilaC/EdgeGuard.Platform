@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Dicom.Edge.Diagnostics.Bootstrap;
 using Dicom.Edge.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Api.Constants;

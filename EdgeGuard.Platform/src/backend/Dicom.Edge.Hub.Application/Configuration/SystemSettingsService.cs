@@ -1,3 +1,4 @@
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Microsoft.Extensions.Logging;
 

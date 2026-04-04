@@ -55,6 +55,6 @@ public class SystemSettingsController : ControllerBase
     public async Task<IActionResult> SeedDefaults(CancellationToken ct)
     {
         await _settingsService.SeedDefaultsAsync(ct);
-        return Ok(new { message = HubApiConstants.DefaultsSeededMessage });
+        return Ok(new MessageDto { Message = HubApiConstants.DefaultsSeededMessage });
     }
 }

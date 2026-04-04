@@ -1,5 +1,5 @@
 using Dicom.Edge.Contracts.Configuration;
-using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
+using Dicom.Edge.Contracts.Hub;
 
 namespace Dicom.Edge.Hub.Application.NodeConfiguration;
 
@@ -10,11 +10,11 @@ namespace Dicom.Edge.Hub.Application.NodeConfiguration;
 public interface INodeConfigurationService
 {
     /// <summary>Returns all configuration entries for a node. Initializes defaults if none exist.</summary>
-    Task<IReadOnlyList<NodeConfigurationProfile>> GetNodeConfigAsync(
+    Task<IReadOnlyList<NodeConfigurationProfileDto>> GetNodeConfigAsync(
         string nodeId, CancellationToken ct = default);
 
     /// <summary>Returns configuration entries for a node filtered by category.</summary>
-    Task<IReadOnlyList<NodeConfigurationProfile>> GetNodeConfigByCategoryAsync(
+    Task<IReadOnlyList<NodeConfigurationProfileDto>> GetNodeConfigByCategoryAsync(
         string nodeId, string category, CancellationToken ct = default);
 
     /// <summary>Updates a single setting value for a node.</summary>

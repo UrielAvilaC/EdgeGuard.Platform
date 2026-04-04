@@ -1,7 +1,7 @@
-using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Hub.Api.Mapping;
+using Dicom.Edge.Hub.Application.PacsServers;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
-using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -11,16 +11,16 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class PacsServersController : ControllerBase
 {
     private readonly IPacsServerRepository _pacsRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IPacsServerService _pacsService;
     private readonly ILogger<PacsServersController> _logger;
 
     public PacsServersController(
         IPacsServerRepository pacsRepository,
-        IUnitOfWork unitOfWork,
+        IPacsServerService pacsService,
         ILogger<PacsServersController> logger)
     {
         _pacsRepository = pacsRepository;
-        _unitOfWork = unitOfWork;
+        _pacsService = pacsService;
         _logger = logger;
     }
 
@@ -28,100 +28,55 @@ public class PacsServersController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var servers = await _pacsRepository.GetAllAsync(ct);
-        return Ok(servers.Select(MapToDto));
+        return Ok(servers.Select(p => p.ToDto()));
     }
 
     [HttpGet("enabled")]
     public async Task<IActionResult> GetEnabled(CancellationToken ct)
     {
         var servers = await _pacsRepository.GetEnabledAsync(ct);
-        return Ok(servers.Select(MapToDto));
+        return Ok(servers.Select(p => p.ToDto()));
     }
 
     [HttpGet("global")]
     public async Task<IActionResult> GetGlobal(CancellationToken ct)
     {
         var servers = await _pacsRepository.GetGlobalAsync(ct);
-        return Ok(servers.Select(MapToDto));
+        return Ok(servers.Select(p => p.ToDto()));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id, CancellationToken ct)
     {
         var pacs = await _pacsRepository.GetByIdAsync(id, ct);
-        return pacs is null ? NotFound() : Ok(MapToDto(pacs));
+        return pacs is null ? NotFound() : Ok(pacs.ToDto());
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePacsServerRequest request, CancellationToken ct)
     {
-        var pacs = PacsServer.Create(
-            request.Name,
-            AeTitle.Create(request.AeTitle),
-            request.HostName,
-            request.Port,
-            request.Description,
-            request.IsGlobal,
-            request.MaxConcurrentAssociations,
-            request.TimeoutSeconds);
-
-        await _pacsRepository.AddAsync(pacs, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return CreatedAtAction(nameof(GetById), new { id = pacs.Id }, MapToDto(pacs));
+        var pacs = await _pacsService.CreateAsync(request, ct);
+        return CreatedAtAction(nameof(GetById), new { id = pacs.Id }, pacs.ToDto());
     }
 
     [HttpPut("{id}/enable")]
     public async Task<IActionResult> Enable(string id, CancellationToken ct)
     {
-        var pacs = await _pacsRepository.GetByIdAsync(id, ct);
-        if (pacs is null) return NotFound();
-
-        pacs.Enable();
-        await _pacsRepository.UpdateAsync(pacs, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return NoContent();
+        var found = await _pacsService.EnableAsync(id, ct);
+        return found ? NoContent() : NotFound();
     }
 
     [HttpPut("{id}/disable")]
     public async Task<IActionResult> Disable(string id, CancellationToken ct)
     {
-        var pacs = await _pacsRepository.GetByIdAsync(id, ct);
-        if (pacs is null) return NotFound();
-
-        pacs.Disable();
-        await _pacsRepository.UpdateAsync(pacs, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return NoContent();
+        var found = await _pacsService.DisableAsync(id, ct);
+        return found ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id, CancellationToken ct)
     {
-        await _pacsRepository.DeleteAsync(id, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return NoContent();
+        var found = await _pacsService.DeleteAsync(id, ct);
+        return found ? NoContent() : NotFound();
     }
-
-    private static object MapToDto(PacsServer p) => new
-    {
-        p.Id,
-        p.Name,
-        AeTitle = p.AeTitle.Value,
-        p.HostName,
-        p.Port,
-        p.Description,
-        p.IsEnabled,
-        p.IsGlobal,
-        p.MaxConcurrentAssociations,
-        p.TimeoutSeconds,
-        p.LastCEchoAt,
-        p.LastCEchoSuccess,
-        p.IsReachable,
-        p.CreatedAt,
-        p.UpdatedAt
-    };
 }

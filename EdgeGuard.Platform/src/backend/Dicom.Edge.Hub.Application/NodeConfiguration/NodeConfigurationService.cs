@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Configuration;
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Microsoft.Extensions.Logging;
 
@@ -17,18 +18,20 @@ public sealed class NodeConfigurationService(
     IUnitOfWork unitOfWork,
     ILogger<NodeConfigurationService> logger) : INodeConfigurationService
 {
-    public async Task<IReadOnlyList<NodeConfigurationProfile>> GetNodeConfigAsync(
+    public async Task<IReadOnlyList<NodeConfigurationProfileDto>> GetNodeConfigAsync(
         string nodeId, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(nodeId, ct);
-        return await repository.GetByNodeIdAsync(nodeId, ct);
+        var profiles = await repository.GetByNodeIdAsync(nodeId, ct);
+        return profiles.Select(MapToDto).ToList();
     }
 
-    public async Task<IReadOnlyList<NodeConfigurationProfile>> GetNodeConfigByCategoryAsync(
+    public async Task<IReadOnlyList<NodeConfigurationProfileDto>> GetNodeConfigByCategoryAsync(
         string nodeId, string category, CancellationToken ct = default)
     {
         await EnsureInitializedAsync(nodeId, ct);
-        return await repository.GetByNodeAndCategoryAsync(nodeId, category, ct);
+        var profiles = await repository.GetByNodeAndCategoryAsync(nodeId, category, ct);
+        return profiles.Select(MapToDto).ToList();
     }
 
     public async Task<bool> UpdateSettingAsync(
@@ -142,4 +145,17 @@ public sealed class NodeConfigurationService(
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexStringLower(hash);
     }
+
+    private static NodeConfigurationProfileDto MapToDto(NodeConfigurationProfile entity) => new()
+    {
+        NodeId = entity.NodeId,
+        SettingKey = entity.SettingKey,
+        Value = entity.Value,
+        Category = entity.Category,
+        DisplayName = entity.DisplayName,
+        ValueType = entity.ValueType,
+        IsOverridden = entity.IsOverridden,
+        CreatedAt = entity.CreatedAt,
+        UpdatedAt = entity.UpdatedAt
+    };
 }

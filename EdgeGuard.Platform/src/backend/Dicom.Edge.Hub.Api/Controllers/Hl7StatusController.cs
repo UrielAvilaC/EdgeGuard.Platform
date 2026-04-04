@@ -1,3 +1,4 @@
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.Hl7;
 using Microsoft.AspNetCore.Mvc;
 

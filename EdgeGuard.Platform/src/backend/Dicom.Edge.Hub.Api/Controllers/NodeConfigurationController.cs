@@ -1,6 +1,5 @@
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
-using Dicom.Edge.Hub.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -72,12 +71,12 @@ public class NodeConfigurationController : ControllerBase
     {
         var result = await _pushService.PushConfigAsync(nodeId, ct);
         if (!result.Success)
-            return BadRequest(new { error = result.Error });
+            return BadRequest(new ErrorDto { Error = result.Error ?? "Push failed" });
 
-        return Ok(new
+        return Ok(new ConfigPushResultDto
         {
-            appliedVersion = result.AppliedVersion,
-            updatedCount = result.UpdatedCount
+            AppliedVersion = result.AppliedVersion,
+            UpdatedCount = result.UpdatedCount
         });
     }
 

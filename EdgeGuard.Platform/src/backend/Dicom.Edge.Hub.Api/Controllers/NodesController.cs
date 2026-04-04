@@ -1,8 +1,8 @@
-using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Hub.Api.Mapping;
+using Dicom.Edge.Hub.Application.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
-using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -12,16 +12,16 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class NodesController : ControllerBase
 {
     private readonly INodeRepository _nodeRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly INodeService _nodeService;
     private readonly ILogger<NodesController> _logger;
 
     public NodesController(
         INodeRepository nodeRepository,
-        IUnitOfWork unitOfWork,
+        INodeService nodeService,
         ILogger<NodesController> logger)
     {
         _nodeRepository = nodeRepository;
-        _unitOfWork = unitOfWork;
+        _nodeService = nodeService;
         _logger = logger;
     }
 
@@ -30,110 +30,55 @@ public class NodesController : ControllerBase
     {
         var pagination = new PaginationRequest { Page = page, PageSize = pageSize };
         var result = await _nodeRepository.GetPagedAsync(pagination, ct);
-        return Ok(new
-        {
-            result.Page,
-            result.PageSize,
-            result.TotalCount,
-            result.TotalPages,
-            Items = result.Items.Select(n => MapToDto(n))
-        });
+        return Ok(result.ToPagedResponse(n => n.ToDto()));
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var nodes = await _nodeRepository.GetAllAsync(ct);
-        return Ok(nodes.Select(n => MapToDto(n)));
+        return Ok(nodes.Select(n => n.ToDto()));
     }
 
     [HttpGet("active")]
     public async Task<IActionResult> GetActive(CancellationToken ct)
     {
         var nodes = await _nodeRepository.GetActiveNodesAsync(ct);
-        return Ok(nodes.Select(n => MapToDto(n)));
+        return Ok(nodes.Select(n => n.ToDto()));
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id, CancellationToken ct)
     {
         var node = await _nodeRepository.GetWithPacsAssignmentsAsync(id, ct);
-        return node is null ? NotFound() : Ok(MapToDto(node));
+        return node is null ? NotFound() : Ok(node.ToDto());
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateNodeRequest request, CancellationToken ct)
     {
-        var node = Node.Create(
-            request.Name,
-            AeTitle.Create(request.AeTitle),
-            request.IpAddress,
-            request.Port,
-            request.ApiEndpoint,
-            request.Location,
-            request.FacilityName,
-            request.HealthCheckIntervalSeconds);
-
-        await _nodeRepository.AddAsync(node, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return CreatedAtAction(nameof(GetById), new { id = node.Id }, MapToDto(node));
+        var node = await _nodeService.CreateAsync(request, ct);
+        return CreatedAtAction(nameof(GetById), new { id = node.Id }, node.ToDto());
     }
 
     [HttpPut("{id}/enable")]
     public async Task<IActionResult> Enable(string id, CancellationToken ct)
     {
-        var node = await _nodeRepository.GetByIdAsync(id, ct);
-        if (node is null) return NotFound();
-
-        node.Enable();
-        await _nodeRepository.UpdateAsync(node, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return NoContent();
+        var found = await _nodeService.EnableAsync(id, ct);
+        return found ? NoContent() : NotFound();
     }
 
     [HttpPut("{id}/disable")]
     public async Task<IActionResult> Disable(string id, CancellationToken ct)
     {
-        var node = await _nodeRepository.GetByIdAsync(id, ct);
-        if (node is null) return NotFound();
-
-        node.Disable();
-        await _nodeRepository.UpdateAsync(node, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return NoContent();
+        var found = await _nodeService.DisableAsync(id, ct);
+        return found ? NoContent() : NotFound();
     }
 
     [HttpGet("count")]
     public async Task<IActionResult> Count(CancellationToken ct)
     {
         var count = await _nodeRepository.CountAsync(ct);
-        return Ok(new { count });
+        return Ok(new CountDto { Count = count });
     }
-
-    private static object MapToDto(Node n) => new
-    {
-        n.Id,
-        n.Name,
-        AeTitle = n.AeTitle.Value,
-        n.IpAddress,
-        n.Port,
-        n.ApiEndpoint,
-        n.Location,
-        n.FacilityName,
-        Status = n.Status.ToString(),
-        n.IsEnabled,
-        n.LastHeartbeatAt,
-        n.HealthCheckIntervalSeconds,
-        n.MaxStorageMb,
-        n.AvailableStorageMb,
-        n.TotalStudiesReceived,
-        n.TotalStudiesSent,
-        n.ErrorsLast24Hours,
-        n.CreatedAt,
-        n.UpdatedAt,
-        PacsAssignments = n.PacsAssignments.Select(a => new { a.PacsId, a.IsActive, a.InheritedFromHub })
-    };
 }

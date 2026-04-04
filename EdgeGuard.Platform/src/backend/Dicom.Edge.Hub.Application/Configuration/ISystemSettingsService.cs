@@ -1,15 +1,6 @@
-using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
+using Dicom.Edge.Contracts.Hub;
 
 namespace Dicom.Edge.Hub.Application.Configuration;
-
-public sealed record SystemSettingDto(
-    string Key,
-    string Value,
-    string Category,
-    string DisplayName,
-    string ValueType,
-    string? Description,
-    bool IsReadOnly);
 
 public interface ISystemSettingsService
 {

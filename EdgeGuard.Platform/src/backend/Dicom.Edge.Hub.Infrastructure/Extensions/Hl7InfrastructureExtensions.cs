@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Application.Dispatch;
+using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Interfaces;
 using Dicom.Edge.Hub.Infrastructure.Constants;
 using Dicom.Edge.Hub.Infrastructure.HostedServices;

@@ -291,6 +291,29 @@ public sealed class NodeSettingsService(
             Port: I(d, NodeSettingKeys.NodeApi.Port, 5050));
     }
 
+    // ── Type validation ─────────────────────────────────────────────────────
+
+    private static bool IsValidForType(string value, string? valueType)
+    {
+        if (string.IsNullOrEmpty(valueType) || valueType == NodeSettingValueTypes.String)
+            return true;
+
+        return valueType switch
+        {
+            NodeSettingValueTypes.Bool     => bool.TryParse(value, out _),
+            NodeSettingValueTypes.Int      => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _),
+            NodeSettingValueTypes.TimeSpan => TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out _),
+            NodeSettingValueTypes.Json     => IsValidJson(value),
+            _                             => true
+        };
+    }
+
+    private static bool IsValidJson(string value)
+    {
+        try { JsonDocument.Parse(value); return true; }
+        catch (JsonException) { return false; }
+    }
+
     // ── Type parsing ──────────────────────────────────────────────────────────
 
     private static T Parse<T>(string raw)

@@ -1,4 +1,4 @@
-using Dicom.Edge.Hub.Api.Constants;
+using Dicom.Edge.Hub.Api.Mapping;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -10,14 +10,6 @@ public class HubController : ControllerBase
     [HttpGet("runtime")]
     public IActionResult GetRuntime()
     {
-        return Ok(new
-        {
-            service = HubApiConstants.ServiceName,
-            utcNow = DateTime.UtcNow,
-            environment = Environment.GetEnvironmentVariable(HubApiConstants.EnvironmentVariableName)
-                          ?? HubApiConstants.DefaultEnvironment,
-            machineName = Environment.MachineName,
-            framework = Environment.Version.ToString()
-        });
+        return Ok(EdgeMappingProfile.ToHubRuntime());
     }
 }
