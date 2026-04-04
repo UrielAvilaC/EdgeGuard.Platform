@@ -4,6 +4,7 @@ using Dicom.Edge.Hub.Api.Constants;
 using Dicom.Edge.Hub.Application.Extensions;
 using Dicom.Edge.Hub.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Infrastructure.Extensions;
+using Dicom.Edge.Hub.Persistence.Extensions;
 
 BootstrapLogger.Initialize(HubApiConstants.BootstrapLogPath);
 

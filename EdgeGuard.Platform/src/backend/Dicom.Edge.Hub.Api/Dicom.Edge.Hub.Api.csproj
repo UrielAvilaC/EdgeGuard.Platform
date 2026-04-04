@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Dicom.Edge.Hub.Domain\Dicom.Edge.Hub.Domain.csproj" />
     <ProjectReference Include="..\Dicom.Edge.Hub.Application\Dicom.Edge.Hub.Application.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Hub.Persistence\Dicom.Edge.Hub.Persistence.csproj" />
     <ProjectReference Include="..\Dicom.Edge.Hub.Infrastructure\Dicom.Edge.Hub.Infrastructure.csproj" />
     <ProjectReference Include="..\Dicom.Edge.Hub.Diagnostics\Dicom.Edge.Hub.Diagnostics.csproj" />
   </ItemGroup>

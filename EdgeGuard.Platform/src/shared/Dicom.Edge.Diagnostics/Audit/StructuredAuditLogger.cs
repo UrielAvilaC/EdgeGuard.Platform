@@ -20,7 +20,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
 
     public StructuredAuditLogger(ILoggerFactory loggerFactory, IOptions<DiagnosticsOptions> options)
     {
-        _logger = loggerFactory.CreateLogger("Audit");
+        _logger = loggerFactory.CreateLogger(AuditConstants.LoggerCategory);
         _instanceId = options.Value.InstanceId;
     }
 
@@ -50,7 +50,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
         using var scope = BeginAuditScope();
         _logger.LogInformation(
             "AuditStudyAccess {StudyInstanceUID} {AuditUserId} {AuditAction} {AuditSuccess}",
-            studyInstanceUid, userId ?? "system", action, isSuccess);
+            studyInstanceUid, userId ?? AuditConstants.SystemUser, action, isSuccess);
 
         return Task.CompletedTask;
     }
@@ -74,7 +74,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
         using var scope = BeginAuditScope();
         _logger.Log(logLevel,
             "AuditSecurity {AuditEventType} {AuditUserId} {AuditDetails} {AuditSeverity}",
-            eventType, userId ?? "system", details, severity);
+            eventType, userId ?? AuditConstants.SystemUser, details, severity);
 
         return Task.CompletedTask;
     }
@@ -114,7 +114,7 @@ public sealed class StructuredAuditLogger : IAuditLogger
     {
         return _logger.BeginScope(new Dictionary<string, object?>
         {
-            ["AuditCategory"] = "Audit",
+            [AuditConstants.AuditCategoryKey] = AuditConstants.LoggerCategory,
             [DiagnosticsConstants.InstanceId] = _instanceId,
             [DiagnosticsConstants.CorrelationId] = CorrelationScope.CurrentCorrelationId
         });

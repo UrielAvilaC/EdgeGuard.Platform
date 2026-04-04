@@ -1,4 +1,5 @@
 using Dicom.Edge.Diagnostics.Configuration;
+using Dicom.Edge.Diagnostics.Constants;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -63,7 +64,7 @@ public sealed class PacsConnectivityHealthCheck : IHealthCheck
             _logger.LogWarning("PACS connectivity check timed out for {Host}:{Port}", _host, _port);
 
             data["Connected"] = false;
-            data["Reason"] = "Timeout";
+            data["Reason"] = HealthCheckConstants.TimeoutReason;
 
             return HealthCheckResult.Degraded(
                 $"PACS connection timed out at {_host}:{_port}.", data: data);

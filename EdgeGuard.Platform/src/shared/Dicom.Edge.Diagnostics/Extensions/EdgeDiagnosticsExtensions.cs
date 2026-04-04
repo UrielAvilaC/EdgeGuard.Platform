@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Metrics;
+using Dicom.Edge.Diagnostics.Constants;
 using Dicom.Edge.Diagnostics.HealthChecks;
 using Dicom.Edge.Diagnostics.Observability;
 using Microsoft.Extensions.Configuration;
@@ -33,8 +34,8 @@ public static class EdgeDiagnosticsExtensions
 
         services.AddHealthChecks()
             .AddCheck<PacsConnectivityHealthCheck>(
-                "pacs",
-                tags: ["ready", "pacs"]);
+                HealthCheckConstants.PacsCheckName,
+                tags: [HealthCheckConstants.ReadyTag, HealthCheckConstants.PacsTag]);
 
         return services;
     }

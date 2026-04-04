@@ -1,4 +1,5 @@
 using Dicom.Edge.Diagnostics.Bootstrap;
+using Dicom.Edge.Diagnostics.Constants;
 using Dicom.Edge.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Builder;
@@ -30,8 +31,8 @@ public static class HubDiagnosticsExtensions
 
         services.AddHealthChecks()
             .AddCheck<Hl7ListenerHealthCheck>(
-                "hl7-listener",
-                tags: ["ready", "hl7"]);
+                HealthCheckConstants.Hl7ListenerCheckName,
+                tags: [HealthCheckConstants.ReadyTag, HealthCheckConstants.Hl7Tag]);
 
         return services;
     }

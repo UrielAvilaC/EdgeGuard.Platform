@@ -1,6 +1,7 @@
 using Dicom.Edge.Abstractions.Audit;
 using Dicom.Edge.Diagnostics.Audit;
 using Dicom.Edge.Diagnostics.Configuration;
+using Dicom.Edge.Diagnostics.Constants;
 using Dicom.Edge.Diagnostics.Enrichers;
 using Dicom.Edge.Diagnostics.HealthChecks;
 using Dicom.Edge.Diagnostics.Observability;
@@ -51,7 +52,9 @@ public static class PlatformDiagnosticsExtensions
 
         // Storage health check (generic)
         services.AddHealthChecks()
-            .AddCheck<StorageHealthCheck>("storage", tags: ["ready", "storage"]);
+            .AddCheck<StorageHealthCheck>(
+                HealthCheckConstants.StorageCheckName,
+                tags: [HealthCheckConstants.ReadyTag, HealthCheckConstants.StorageTag]);
 
         // OpenTelemetry (conditional)
         services.AddPlatformOpenTelemetry(options);

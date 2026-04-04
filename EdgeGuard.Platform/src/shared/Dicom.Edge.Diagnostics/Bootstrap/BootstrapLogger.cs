@@ -1,3 +1,4 @@
+using Dicom.Edge.Diagnostics.Constants;
 using Serilog;
 using Serilog.Events;
 
@@ -15,7 +16,7 @@ public static class BootstrapLogger
     /// Initializes the Serilog bootstrap logger with a minimal file + console configuration.
     /// Must be called before any other logging or host setup.
     /// </summary>
-    public static void Initialize(string logFilePath = "logs/bootstrap-.log")
+    public static void Initialize(string logFilePath = BootstrapConstants.DefaultLogFilePath)
     {
         var directory = Path.GetDirectoryName(Path.GetFullPath(logFilePath));
         if (!string.IsNullOrEmpty(directory))
@@ -28,20 +29,20 @@ public static class BootstrapLogger
             .Enrich.WithMachineName()
             .Enrich.WithProcessId()
             .WriteTo.Console(
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [BOOTSTRAP] {Message:lj}{NewLine}{Exception}")
+                outputTemplate: BootstrapConstants.ConsoleOutputTemplate)
             .WriteTo.File(
                 path: logFilePath,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 7,
                 fileSizeLimitBytes: 10 * 1024 * 1024,
-                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] [BOOTSTRAP] {Message:lj}{NewLine}{Exception}")
+                outputTemplate: BootstrapConstants.FileOutputTemplate)
             .CreateBootstrapLogger();
     }
 
     /// <summary>
     /// Logs a fatal error during startup and ensures the event is flushed to disk.
     /// </summary>
-    public static void FatalShutdown(Exception exception, string message = "Application terminated unexpectedly")
+    public static void FatalShutdown(Exception exception, string message = BootstrapConstants.FatalShutdownMessage)
     {
         Log.Fatal(exception, message);
     }

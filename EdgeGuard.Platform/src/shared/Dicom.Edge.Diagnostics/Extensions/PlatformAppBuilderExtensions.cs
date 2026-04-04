@@ -1,3 +1,4 @@
+using Dicom.Edge.Diagnostics.Constants;
 using Dicom.Edge.Diagnostics.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -46,15 +47,15 @@ public static class PlatformAppBuilderExtensions
     /// </summary>
     public static WebApplication MapDiagnosticsEndpoints(this WebApplication app)
     {
-        app.MapHealthChecks("/health/live", new HealthCheckOptions
+        app.MapHealthChecks(HealthCheckConstants.LivenessEndpoint, new HealthCheckOptions
         {
             Predicate = _ => false,
             ResponseWriter = WriteResponse
         });
 
-        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        app.MapHealthChecks(HealthCheckConstants.ReadinessEndpoint, new HealthCheckOptions
         {
-            Predicate = check => check.Tags.Contains("ready"),
+            Predicate = check => check.Tags.Contains(HealthCheckConstants.ReadyTag),
             ResponseWriter = WriteResponse
         });
 
@@ -63,7 +64,7 @@ public static class PlatformAppBuilderExtensions
 
     private static async Task WriteResponse(HttpContext context, HealthReport report)
     {
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = HealthCheckConstants.JsonContentType;
 
         var response = new
         {

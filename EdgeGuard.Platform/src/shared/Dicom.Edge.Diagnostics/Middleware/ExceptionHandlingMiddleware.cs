@@ -1,3 +1,4 @@
+using Dicom.Edge.Diagnostics.Constants;
 using Dicom.Edge.Diagnostics.Correlation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -39,11 +40,11 @@ public sealed class ExceptionHandlingMiddleware
             _logger.LogDebug("Request {Method} {Path} was cancelled by client",
                 context.Request.Method, context.Request.Path);
 
-            context.Response.StatusCode = 499; // Client Closed Request
+            context.Response.StatusCode = MiddlewareConstants.ClientClosedRequestStatusCode;
         }
         catch (Exception ex)
         {
-            var correlationId = CorrelationScope.CurrentCorrelationId ?? "N/A";
+            var correlationId = CorrelationScope.CurrentCorrelationId ?? MiddlewareConstants.UnknownCorrelationId;
 
             _logger.LogError(ex,
                 "Unhandled exception processing {Method} {Path} [CorrelationId: {CorrelationId}]",
@@ -54,11 +55,11 @@ public sealed class ExceptionHandlingMiddleware
             if (!context.Response.HasStarted)
             {
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                context.Response.ContentType = "application/json";
+                context.Response.ContentType = HealthCheckConstants.JsonContentType;
 
                 var response = new
                 {
-                    error = "An internal error occurred.",
+                    error = MiddlewareConstants.InternalErrorMessage,
                     correlationId,
                     timestamp = DateTimeOffset.UtcNow
                 };
