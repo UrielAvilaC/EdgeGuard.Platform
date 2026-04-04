@@ -22,6 +22,7 @@
     <Project Path="src/edge/Dicom.Edge.Node.Worklist/Dicom.Edge.Node.Worklist.csproj" Id="f09440f2-8d8e-43f2-9488-0a7bd38c3a50" />
     <Project Path="src/edge/Dicom.Edge.Node/Dicom.Edge.Node.csproj" Id="f4b82b91-c6c0-46a5-829f-5245928118c4" />
   </Folder>
+  <Folder Name="/src/frontend/" />
   <Folder Name="/src/shared/">
     <Project Path="src/shared/Dicom.Edge.Abstractions/Dicom.Edge.Abstractions.csproj" Id="544b9893-8e2b-4e0a-b17c-36bfb2f2d2a9" />
     <Project Path="src/shared/Dicom.Edge.Common/Dicom.Edge.Common.csproj" Id="03d317bb-0bc9-46c3-bb7c-ba5e097a8143" />
