@@ -10,7 +10,7 @@ public class Hl7ListenerOptions
     /// <summary>
     /// Puerto TCP para el listener HL7.
     /// </summary>
-    public int Port { get; set; } = 2575;
+    public int Port { get; set; } = 8001;
 
     /// <summary>
     /// Número máximo de conexiones concurrentes.

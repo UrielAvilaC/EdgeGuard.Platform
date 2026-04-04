@@ -1,87 +1,128 @@
+using Dicom.Edge.Contracts.Configuration;
+
 namespace Dicom.Edge.Node.Persistence.Constants;
 
 /// <summary>
 /// All keys for the node_settings table, grouped by category using nested static classes.
-/// Every key maps to exactly one row. Always reference these constants instead of raw strings.
+/// Backward-compatible aliases to <see cref="SharedNodeSettingKeys"/>.
 /// </summary>
 public static class NodeSettingKeys
 {
     // ── General ──────────────────────────────────────────────────────────────────
     public static class General
     {
-        public const string NodeName     = "node.name";
-        public const string AeTitle      = "node.ae_title";
-        public const string Description  = "node.description";
-        public const string Location     = "node.location";
-        public const string FacilityName = "node.facility_name";
-        public const string Timezone     = "node.timezone";
-        public const string Version      = "node.version";      // read_only
-        public const string ContactEmail = "node.contact_email";
-        public const string ContactPhone = "node.contact_phone";
+        public const string NodeName     = SharedNodeSettingKeys.General.NodeName;
+        public const string AeTitle      = SharedNodeSettingKeys.General.AeTitle;
+        public const string Description  = SharedNodeSettingKeys.General.Description;
+        public const string Location     = SharedNodeSettingKeys.General.Location;
+        public const string FacilityName = SharedNodeSettingKeys.General.FacilityName;
+        public const string Timezone     = SharedNodeSettingKeys.General.Timezone;
+        public const string Version      = SharedNodeSettingKeys.General.Version;
+        public const string ContactEmail = SharedNodeSettingKeys.General.ContactEmail;
+        public const string ContactPhone = SharedNodeSettingKeys.General.ContactPhone;
     }
 
     // ── Hub ───────────────────────────────────────────────────────────────────────
     public static class Hub
     {
-        public const string Enabled               = "hub.enabled";
-        public const string Protocol              = "hub.protocol";
-        public const string Hostname              = "hub.hostname";
-        public const string Port                  = "hub.port";
-        public const string BasePath              = "hub.base_path";
-        public const string ApiKey                = "hub.api_key";
-        public const string TimeoutSeconds        = "hub.timeout_seconds";
-        public const string HeartbeatIntervalSec  = "hub.heartbeat_interval_sec";
-        public const string RegisterOnStartup     = "hub.register_on_startup";
-        public const string PullConfigOnStartup   = "hub.pull_config_on_startup";
-        public const string PullConfigIntervalMin = "hub.pull_config_interval_min";
-        public const string TlsVerifyCertificate  = "hub.tls_verify_certificate";
-        public const string MaxReconnectAttempts  = "hub.max_reconnect_attempts";
-        public const string ReconnectDelaySeconds = "hub.reconnect_delay_seconds";
+        public const string Enabled               = SharedNodeSettingKeys.Hub.Enabled;
+        public const string Protocol              = SharedNodeSettingKeys.Hub.Protocol;
+        public const string Hostname              = SharedNodeSettingKeys.Hub.Hostname;
+        public const string Port                  = SharedNodeSettingKeys.Hub.Port;
+        public const string BasePath              = SharedNodeSettingKeys.Hub.BasePath;
+        public const string ApiKey                = SharedNodeSettingKeys.Hub.ApiKey;
+        public const string TimeoutSeconds        = SharedNodeSettingKeys.Hub.TimeoutSeconds;
+        public const string HeartbeatIntervalSec  = SharedNodeSettingKeys.Hub.HeartbeatIntervalSec;
+        public const string RegisterOnStartup     = SharedNodeSettingKeys.Hub.RegisterOnStartup;
+        public const string PullConfigOnStartup   = SharedNodeSettingKeys.Hub.PullConfigOnStartup;
+        public const string PullConfigIntervalMin = SharedNodeSettingKeys.Hub.PullConfigIntervalMin;
+        public const string TlsVerifyCertificate  = SharedNodeSettingKeys.Hub.TlsVerifyCertificate;
+        public const string MaxReconnectAttempts  = SharedNodeSettingKeys.Hub.MaxReconnectAttempts;
+        public const string ReconnectDelaySeconds = SharedNodeSettingKeys.Hub.ReconnectDelaySeconds;
     }
 
     // ── DICOM ─────────────────────────────────────────────────────────────────────
     public static class Dicom
     {
-        public const string ValidateCallingAe         = "dicom.validate_calling_ae";
-        public const string AllowedAeTitles           = "dicom.allowed_ae_titles";             // json array
-        public const string MaxAssociations           = "dicom.max_associations";
-        public const string Port                      = "dicom.port";
-        public const string AeTitle                   = "dicom.ae_title";
-        public const string StudyCompletionTimeoutSec = "dicom.study_completion_timeout_sec";  // inactivity window
+        public const string Enabled                   = SharedNodeSettingKeys.Dicom.Enabled;
+        public const string ValidateCallingAe         = SharedNodeSettingKeys.Dicom.ValidateCallingAe;
+        public const string AllowedAeTitles           = SharedNodeSettingKeys.Dicom.AllowedAeTitles;
+        public const string MaxAssociations           = SharedNodeSettingKeys.Dicom.MaxAssociations;
+        public const string Port                      = SharedNodeSettingKeys.Dicom.Port;
+        public const string AeTitle                   = SharedNodeSettingKeys.Dicom.AeTitle;
+        public const string StudyCompletionTimeoutSec = SharedNodeSettingKeys.Dicom.StudyCompletionTimeoutSec;
+        public const string AssociationTimeoutSec     = SharedNodeSettingKeys.Dicom.AssociationTimeoutSec;
+        public const string DimseTimeoutSec           = SharedNodeSettingKeys.Dicom.DimseTimeoutSec;
+        public const string MaxPduLength              = SharedNodeSettingKeys.Dicom.MaxPduLength;
+        public const string MwlEnabled                = SharedNodeSettingKeys.Dicom.MwlEnabled;
     }
 
     // ── Cleanup ───────────────────────────────────────────────────────────────────
     public static class Cleanup
     {
-        public const string Enabled            = "cleanup.enabled";
-        public const string RetainDays         = "cleanup.retain_days";
-        public const string RetainSentDays     = "cleanup.retain_sent_days";
-        public const string RetainFailedDays   = "cleanup.retain_failed_days";
-        public const string MaxStorageGb       = "cleanup.max_storage_gb";
-        public const string RunIntervalMinutes = "cleanup.run_interval_minutes";
-        public const string DeleteArchived     = "cleanup.delete_archived";
+        public const string Enabled            = SharedNodeSettingKeys.Cleanup.Enabled;
+        public const string RetainDays         = SharedNodeSettingKeys.Cleanup.RetainDays;
+        public const string RetainSentDays     = SharedNodeSettingKeys.Cleanup.RetainSentDays;
+        public const string RetainFailedDays   = SharedNodeSettingKeys.Cleanup.RetainFailedDays;
+        public const string MaxStorageGb       = SharedNodeSettingKeys.Cleanup.MaxStorageGb;
+        public const string RunIntervalMinutes = SharedNodeSettingKeys.Cleanup.RunIntervalMinutes;
+        public const string DeleteArchived     = SharedNodeSettingKeys.Cleanup.DeleteArchived;
     }
 
     // ── Transfer ──────────────────────────────────────────────────────────────────
     public static class Transfer
     {
-        public const string MaxRetries        = "transfer.max_retries";
-        public const string RetryBaseDelaySec = "transfer.retry_base_delay_sec";
-        public const string TimeoutSeconds    = "transfer.timeout_seconds";
-        public const string MaxConcurrent     = "transfer.max_concurrent";
+        public const string MaxRetries        = SharedNodeSettingKeys.Transfer.MaxRetries;
+        public const string RetryBaseDelaySec = SharedNodeSettingKeys.Transfer.RetryBaseDelaySec;
+        public const string TimeoutSeconds    = SharedNodeSettingKeys.Transfer.TimeoutSeconds;
+        public const string MaxConcurrent     = SharedNodeSettingKeys.Transfer.MaxConcurrent;
     }
 
     // ── Security ──────────────────────────────────────────────────────────────────
     public static class Security
     {
-        public const string RequireTls         = "security.require_tls";
-        public const string AuditRetentionDays = "security.audit_retention_days";
+        public const string RequireTls         = SharedNodeSettingKeys.Security.RequireTls;
+        public const string AuditRetentionDays = SharedNodeSettingKeys.Security.AuditRetentionDays;
     }
 
     // ── Storage ───────────────────────────────────────────────────────────────────
     public static class Storage
     {
-        public const string RootPath    = "storage.root_path";
-        public const string ArchivePath = "storage.archive_path";
+        public const string RootPath    = SharedNodeSettingKeys.Storage.RootPath;
+        public const string ArchivePath = SharedNodeSettingKeys.Storage.ArchivePath;
+    }
+
+    // ── PACS Sender ──────────────────────────────────────────────────────────────
+    public static class PacsSender
+    {
+        public const string Enabled                   = SharedNodeSettingKeys.PacsSender.Enabled;
+        public const string LocalAeTitle              = SharedNodeSettingKeys.PacsSender.LocalAeTitle;
+        public const string MaxConcurrentSends        = SharedNodeSettingKeys.PacsSender.MaxConcurrentSends;
+        public const string TimeoutSeconds            = SharedNodeSettingKeys.PacsSender.TimeoutSeconds;
+        public const string MaxRetries                = SharedNodeSettingKeys.PacsSender.MaxRetries;
+        public const string RetryBaseDelaySeconds     = SharedNodeSettingKeys.PacsSender.RetryBaseDelaySeconds;
+        public const string ProcessingIntervalSeconds = SharedNodeSettingKeys.PacsSender.ProcessingIntervalSeconds;
+    }
+
+    // ── PACS C-ECHO ──────────────────────────────────────────────────────────────
+    public static class PacsCEcho
+    {
+        public const string Enabled         = SharedNodeSettingKeys.PacsCEcho.Enabled;
+        public const string IntervalSeconds = SharedNodeSettingKeys.PacsCEcho.IntervalSeconds;
+        public const string Destinations    = SharedNodeSettingKeys.PacsCEcho.Destinations;
+    }
+
+    // ── Node API ─────────────────────────────────────────────────────────────────
+    public static class NodeApi
+    {
+        public const string Port = SharedNodeSettingKeys.NodeApi.Port;
+    }
+
+    // ── System (config sync metadata) ────────────────────────────────────────────
+    public static class System
+    {
+        public const string ConfigVersion        = SharedNodeSettingKeys.System.ConfigVersion;
+        public const string LastConfigAppliedUtc = SharedNodeSettingKeys.System.LastConfigAppliedUtc;
+        public const string LastConfigSource     = SharedNodeSettingKeys.System.LastConfigSource;
     }
 }

@@ -1,28 +1,51 @@
+using Dicom.Edge.Hub.Application.Configuration;
+using Dicom.Edge.Hub.Application.Edge;
 using Dicom.Edge.Hub.Application.Hl7;
+using Dicom.Edge.Hub.Application.Hl7.Pipeline;
+using Dicom.Edge.Hub.Application.Nodes;
+using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Hub.Application.PacsServers;
+using Dicom.Edge.Hub.Application.Queue;
+using Dicom.Edge.Hub.Application.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Dicom.Edge.Hub.Application.Extensions;
 
 /// <summary>
-/// Extension methods para configurar servicios HL7.
+/// DI extension for all Hub application-layer services.
 /// </summary>
-public static class Hl7ServiceCollectionExtensions
+public static class HubApplicationServiceCollectionExtensions
 {
-    /// <summary>
-    /// Agrega servicios de la capa de aplicación para HL7.
-    /// </summary>
-    public static IServiceCollection AddHl7Application(
+    public static IServiceCollection AddHubApplication(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Configurar opciones
+        // HL7 options
         services.Configure<Hl7ListenerOptions>(
             configuration.GetSection(Hl7ListenerOptions.SectionName));
 
-        // Registrar procesador de mensajes
+        // Queue options
+        services.Configure<MessageQueueOptions>(
+            configuration.GetSection(MessageQueueOptions.SectionName));
+
+        // HL7 pipeline services
         services.AddScoped<IHl7MessageProcessor, Hl7MessageProcessor>();
+        services.AddScoped<IHl7MonitoringService, Hl7MonitoringService>();
+        services.AddScoped<IHl7ValidationService, Hl7ValidationService>();
+        services.AddScoped<IHl7RoutingEngine, Hl7RoutingEngine>();
+
+        // Configuration services
+        services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+        services.AddScoped<INodeConfigurationService, NodeConfigurationService>();
+
+        // CRUD application services (write operations)
+        services.AddScoped<INodeService, NodeService>();
+        services.AddScoped<IPacsServerService, PacsServerService>();
+        services.AddScoped<IRoutingRuleService, RoutingRuleService>();
+
+        // Edge node-facing orchestration service
+        services.AddScoped<IEdgeNodeService, EdgeNodeService>();
 
         return services;
     }

@@ -1,3 +1,4 @@
+using Dicom.Edge.Abstractions.Events;
 using Dicom.Edge.Abstractions.Queue;
 using Dicom.Edge.Node.Persistence.Interceptors;
 using Dicom.Edge.Node.Persistence.Diagnostics;
@@ -32,7 +33,10 @@ public static class PersistenceExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var dbPath = configuration["Persistence:DatabasePath"] ?? "edge-node.db";
+        // Environment variable takes precedence over appsettings
+        var dbPath = Environment.GetEnvironmentVariable(NodeDbPathEnvVar)
+            ?? configuration["Persistence:DatabasePath"]
+            ?? "edge-node.db";
 
         ConfigureDbContext(services, dbPath);
         RegisterInfrastructure(services);
@@ -41,6 +45,12 @@ public static class PersistenceExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Environment variable for the Node SQLite database file path.
+    /// Takes precedence over <c>Persistence:DatabasePath</c> in appsettings.
+    /// </summary>
+    public const string NodeDbPathEnvVar = "EDGEGUARD_NODE_DB_PATH";
 
     // ── DbContext ─────────────────────────────────────────────────────────────
 
@@ -79,6 +89,7 @@ public static class PersistenceExtensions
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddSingleton<INodeSettingsService, NodeSettingsService>();
         services.AddSingleton<IEdgeQueue<EdgeQueueItem>, SqliteEdgeQueue>();
+        services.AddSingleton<IEventBus, InMemoryEventBus>();
     }
 
     // ── Background services ───────────────────────────────────────────────────

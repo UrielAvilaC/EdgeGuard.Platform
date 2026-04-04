@@ -26,6 +26,6 @@ internal sealed class DicomPatientConfiguration : IEntityTypeConfiguration<Dicom
 
         b.Property<DateTime>("created_at").HasDefaultValueSql("datetime('now')");
 
-        b.HasIndex("patient_name").HasDatabaseName("ix_patient_name");
+        b.HasIndex(p => p.PatientName).HasDatabaseName("ix_patient_name");
     }
 }

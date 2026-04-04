@@ -4,6 +4,7 @@
   <Folder Name="/src/backend/">
     <Project Path="src/backend/Dicom.Edge.Hub.Api/Dicom.Edge.Hub.Api.csproj" Id="0d4921a1-e01e-4e0b-b928-1a5dc3551e28" />
     <Project Path="src/backend/Dicom.Edge.Hub.Application/Dicom.Edge.Hub.Application.csproj" Id="0fb88cfb-b928-4001-a889-c1e8a14e74d4" />
+    <Project Path="src/backend/Dicom.Edge.Hub.Diagnostics/Dicom.Edge.Hub.Diagnostics.csproj" />
     <Project Path="src/backend/Dicom.Edge.Hub.Domain/Dicom.Edge.Hub.Domain.csproj" Id="25e48f6c-2c0c-4dda-bd85-96ac17e8520e" />
     <Project Path="src/backend/Dicom.Edge.Hub.Infrastructure/Dicom.Edge.Hub.Infrastructure.csproj" Id="af0dd7a4-cf34-42cd-97be-660d14390443" />
     <Project Path="src/backend/Dicom.Edge.Hub.Persistence/Dicom.Edge.Hub.Persistence.csproj" Id="23e6a19e-82c0-4047-a8b9-9f30952a39e7" />
@@ -11,7 +12,6 @@
   <Folder Name="/src/edge/">
     <Project Path="src/edge/Dicom.Edge.Node.Api/Dicom.Edge.Node.Api.csproj" Id="88e35fee-25e5-4765-a45d-883243de9dd6" />
     <Project Path="src/edge/Dicom.Edge.Node.Configuration/Dicom.Edge.Node.Configuration.csproj" Id="2141c589-00e3-4b7b-b2de-f8214fce7589" />
-    <Project Path="src/edge/Dicom.Edge.Node.Diagnostics/Dicom.Edge.Node.Diagnostics.csproj" Id="774d9ac0-8173-4ff6-8beb-616350a811e2" />
     <Project Path="src/edge/Dicom.Edge.Node.DicomServer/Dicom.Edge.Node.DicomServer.csproj" Id="807e13de-ab1b-4d33-893f-af9d8100ba35" />
     <Project Path="src/edge/Dicom.Edge.Node.Persistence/Dicom.Edge.Node.Persistence.csproj" Id="832b6a7e-d652-4703-9fad-f59e450ca02b" />
     <Project Path="src/edge/Dicom.Edge.Node.Processing/Dicom.Edge.Node.Processing.csproj" Id="f1bbb67a-2bc3-48e9-91c1-ed71e5c84864" />
@@ -27,8 +27,8 @@
     <Project Path="src/shared/Dicom.Edge.Abstractions/Dicom.Edge.Abstractions.csproj" Id="544b9893-8e2b-4e0a-b17c-36bfb2f2d2a9" />
     <Project Path="src/shared/Dicom.Edge.Common/Dicom.Edge.Common.csproj" Id="03d317bb-0bc9-46c3-bb7c-ba5e097a8143" />
     <Project Path="src/shared/Dicom.Edge.Contracts/Dicom.Edge.Contracts.csproj" Id="8483406a-1634-4403-9a47-780390f08197" />
+    <Project Path="src/shared/Dicom.Edge.Diagnostics/Dicom.Edge.Diagnostics.csproj" />
     <Project Path="src/shared/Dicom.Edge.Models/Dicom.Edge.Models.csproj" Id="88bc5e98-6ccd-4ff8-b33b-4f29622aadd6" />
     <Project Path="src/shared/Dicom.Edge.Security/Dicom.Edge.Security.csproj" Id="fa37bc9a-5da2-42a4-b737-32dbfaad217a" />
   </Folder>
-  <Folder Name="/tools/" />
 </Solution>

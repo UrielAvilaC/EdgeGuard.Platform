@@ -1,4 +1,5 @@
-using Dicom.Edge.Hub.Domain.Interfaces;
+using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Hub.Application.Hl7;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -7,79 +8,40 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 [Route("api/[controller]")]
 public class Hl7StatusController : ControllerBase
 {
-    private readonly IHl7Listener _listener;
-    private readonly IHl7MessageRepository _repository;
-    private readonly ILogger<Hl7StatusController> _logger;
+    private readonly IHl7MonitoringService _monitoringService;
 
-    public Hl7StatusController(
-        IHl7Listener listener,
-        IHl7MessageRepository repository,
-        ILogger<Hl7StatusController> logger)
+    public Hl7StatusController(IHl7MonitoringService monitoringService)
     {
-        _listener = listener;
-        _repository = repository;
-        _logger = logger;
+        _monitoringService = monitoringService;
     }
 
     /// <summary>
     /// Obtiene el estado del listener HL7.
     /// </summary>
     [HttpGet("status")]
-    public IActionResult GetStatus()
+    public ActionResult<Hl7ListenerStatusDto> GetStatus()
     {
-        return Ok(new
-        {
-            isRunning = _listener.IsRunning,
-            port = _listener.Port,
-            activeConnections = _listener.ActiveConnections
-        });
+        var status = _monitoringService.GetListenerStatus();
+        return Ok(status);
     }
 
     /// <summary>
     /// Obtiene los mensajes recientes recibidos.
     /// </summary>
     [HttpGet("recent-messages")]
-    public async Task<IActionResult> GetRecentMessages([FromQuery] int count = 10)
+    public async Task<ActionResult<IReadOnlyList<Hl7MessageSummaryDto>>> GetRecentMessages([FromQuery] int count = 10)
     {
-        var messages = await _repository.GetRecentMessagesAsync(count);
-        
-        return Ok(messages.Select(m => new
-        {
-            m.Id,
-            m.MessageType,
-            m.SendingApplication,
-            m.SendingFacility,
-            m.ReceivedAt,
-            m.ClientEndpoint,
-            m.Status,
-            m.ProcessedAt,
-            m.ErrorMessage
-        }));
+        var messages = await _monitoringService.GetRecentMessagesAsync(count, HttpContext.RequestAborted);
+        return Ok(messages);
     }
 
     /// <summary>
     /// Obtiene un mensaje por ID.
     /// </summary>
-    [HttpGet("messages/{id}")]
-    public async Task<IActionResult> GetMessage(Guid id)
+    [HttpGet("messages/{id:guid}")]
+    public async Task<ActionResult<Hl7MessageDetailDto>> GetMessage(Guid id)
     {
-        var message = await _repository.GetByIdAsync(id);
-        
-        if (message == null)
-            return NotFound();
-
-        return Ok(new
-        {
-            message.Id,
-            message.Content,
-            message.MessageType,
-            message.SendingApplication,
-            message.SendingFacility,
-            message.ReceivedAt,
-            message.ClientEndpoint,
-            message.Status,
-            message.ProcessedAt,
-            message.ErrorMessage
-        });
+        var message = await _monitoringService.GetMessageByIdAsync(id, HttpContext.RequestAborted);
+        return message is null ? NotFound() : Ok(message);
     }
 }

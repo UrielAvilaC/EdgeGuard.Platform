@@ -1,3 +1,4 @@
+using Dicom.Edge.Node.Persistence.Constants;
 using Dicom.Edge.Node.Persistence.Diagnostics;
 
 namespace Dicom.Edge.Node.Persistence.Services;
@@ -120,9 +121,20 @@ public sealed class NodeSettingsService(
             .ToListAsync(ct);
 
         var updated = 0;
+        var skipped = 0;
         foreach (var entity in entities)
         {
             if (!values.TryGetValue(entity.Key, out var newValue)) continue;
+
+            if (!IsValidForType(newValue, entity.ValueType))
+            {
+                logger.LogWarning(
+                    "Batch skip: value '{Value}' is not valid for setting {Key} (expected type={Type})",
+                    newValue, entity.Key, entity.ValueType);
+                skipped++;
+                continue;
+            }
+
             entity.Value = newValue;
             entity.UpdatedAt = DateTime.UtcNow;
             _cache[entity.Key] = newValue;
@@ -133,8 +145,8 @@ public sealed class NodeSettingsService(
             await ctx.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Batch applied {Applied}/{Requested} settings from Hub push",
-            updated, values.Count);
+            "Batch applied {Applied}/{Requested} settings from Hub push (skipped={Skipped} validation failures)",
+            updated, values.Count, skipped);
     }
 
     public async Task ReloadAsync(CancellationToken ct = default)
@@ -248,6 +260,58 @@ public sealed class NodeSettingsService(
             Version:      S(d, NodeSettingKeys.General.Version,      "1.0.0"),
             ContactEmail: S(d, NodeSettingKeys.General.ContactEmail, ""),
             ContactPhone: S(d, NodeSettingKeys.General.ContactPhone, ""));
+    }
+
+    public async Task<PacsSenderConfig> GetPacsSenderConfigAsync(CancellationToken ct = default)
+    {
+        var d = await GetCategoryAsync(NodeSettingCategories.PacsSender, ct);
+        return new PacsSenderConfig(
+            Enabled:                   B(d, NodeSettingKeys.PacsSender.Enabled,                   true),
+            LocalAeTitle:              S(d, NodeSettingKeys.PacsSender.LocalAeTitle,              "EDGE_NODE"),
+            MaxConcurrentSends:        I(d, NodeSettingKeys.PacsSender.MaxConcurrentSends,        2),
+            TimeoutSeconds:            I(d, NodeSettingKeys.PacsSender.TimeoutSeconds,            120),
+            MaxRetries:                I(d, NodeSettingKeys.PacsSender.MaxRetries,                3),
+            RetryBaseDelaySeconds:     I(d, NodeSettingKeys.PacsSender.RetryBaseDelaySeconds,     30),
+            ProcessingIntervalSeconds: I(d, NodeSettingKeys.PacsSender.ProcessingIntervalSeconds, 10));
+    }
+
+    public async Task<PacsCEchoConfig> GetPacsCEchoConfigAsync(CancellationToken ct = default)
+    {
+        var d = await GetCategoryAsync(NodeSettingCategories.PacsCEcho, ct);
+        return new PacsCEchoConfig(
+            Enabled:          B(d, NodeSettingKeys.PacsCEcho.Enabled,         true),
+            IntervalSeconds:  I(d, NodeSettingKeys.PacsCEcho.IntervalSeconds, 60),
+            DestinationsJson: S(d, NodeSettingKeys.PacsCEcho.Destinations,    "[]"));
+    }
+
+    public async Task<NodeApiConfig> GetNodeApiConfigAsync(CancellationToken ct = default)
+    {
+        var d = await GetCategoryAsync(NodeSettingCategories.NodeApi, ct);
+        return new NodeApiConfig(
+            Port: I(d, NodeSettingKeys.NodeApi.Port, 5050));
+    }
+
+    // ── Type validation ─────────────────────────────────────────────────────
+
+    private static bool IsValidForType(string value, string? valueType)
+    {
+        if (string.IsNullOrEmpty(valueType) || valueType == NodeSettingValueTypes.String)
+            return true;
+
+        return valueType switch
+        {
+            NodeSettingValueTypes.Bool     => bool.TryParse(value, out _),
+            NodeSettingValueTypes.Int      => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _),
+            NodeSettingValueTypes.TimeSpan => TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out _),
+            NodeSettingValueTypes.Json     => IsValidJson(value),
+            _                             => true
+        };
+    }
+
+    private static bool IsValidJson(string value)
+    {
+        try { JsonDocument.Parse(value); return true; }
+        catch (JsonException) { return false; }
     }
 
     // ── Type parsing ──────────────────────────────────────────────────────────
