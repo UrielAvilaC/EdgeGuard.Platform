@@ -39,4 +39,36 @@ public static class HubSettingKeys
         public const string HubVersion = "general.hub_version";
         public const string Environment = "general.environment";
     }
+
+    public static class WhatsApp
+    {
+        public const string Enabled = "whatsapp.enabled";
+        public const string AutoSendOnOru = "whatsapp.auto_send_on_oru";
+        public const string RequirePacsLink = "whatsapp.require_pacs_link";
+        public const string ApiBaseUrl = "whatsapp.api_base_url";
+        public const string DefaultMessageTemplate = "whatsapp.default_message_template";
+        public const string RetryMaxAttempts = "whatsapp.retry_max_attempts";
+        public const string RetryDelaySeconds = "whatsapp.retry_delay_seconds";
+    }
+
+    public static class BackgroundJobs
+    {
+        public const string EnableNodeHealth = "jobs.enable_node_health";
+        public const string NodeHealthIntervalSec = "jobs.node_health_interval_sec";
+        public const string EnableStudyCleanup = "jobs.enable_study_cleanup";
+        public const string StudyCleanupIntervalSec = "jobs.study_cleanup_interval_sec";
+        public const string EnableDataRetention = "jobs.enable_data_retention";
+        public const string DataRetentionIntervalSec = "jobs.data_retention_interval_sec";
+    }
+
+    public static class DataRetention
+    {
+        public const string AuditLogDays = "retention.audit_log_days";
+        public const string Hl7MessageDays = "retention.hl7_message_days";
+        public const string HealthCheckDays = "retention.health_check_days";
+        public const string WhatsAppNotificationDays = "retention.whatsapp_notification_days";
+        public const string PacsSendAuditDays = "retention.pacs_send_audit_days";
+        public const string StudyStatusAuditDays = "retention.study_status_audit_days";
+        public const string BatchSize = "retention.batch_size";
+    }
 }

@@ -1,4 +1,5 @@
 <Solution>
+  <Folder Name="/docs/" />
   <Folder Name="/src/" />
   <Folder Name="/src/backend/">
     <Project Path="src/backend/Dicom.Edge.Hub.Api/Dicom.Edge.Hub.Api.csproj" Id="0d4921a1-e01e-4e0b-b928-1a5dc3551e28" />

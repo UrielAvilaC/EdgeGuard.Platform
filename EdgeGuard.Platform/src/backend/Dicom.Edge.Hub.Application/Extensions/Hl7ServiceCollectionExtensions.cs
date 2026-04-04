@@ -1,6 +1,7 @@
 using Dicom.Edge.Hub.Application.Configuration;
 using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Application.Hl7.Pipeline;
+using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Application.Queue;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,7 @@ public static class HubApplicationServiceCollectionExtensions
 
         // Configuration service
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
+        services.AddScoped<INodeConfigurationService, NodeConfigurationService>();
 
         return services;
     }

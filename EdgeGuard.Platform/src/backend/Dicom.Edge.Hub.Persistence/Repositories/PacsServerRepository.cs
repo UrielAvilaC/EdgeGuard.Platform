@@ -18,15 +18,17 @@ public class PacsServerRepository : IPacsServerRepository
             .FirstOrDefaultAsync(p => p.AeTitle.Value == aeTitle, ct);
 
     public async Task<IReadOnlyList<PacsServer>> GetAllAsync(CancellationToken ct = default) =>
-        await _context.PacsServers.ToListAsync(ct);
+        await _context.PacsServers.AsNoTracking().ToListAsync(ct);
 
     public async Task<IReadOnlyList<PacsServer>> GetGlobalAsync(CancellationToken ct = default) =>
         await _context.PacsServers
+            .AsNoTracking()
             .Where(p => p.IsGlobal)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<PacsServer>> GetEnabledAsync(CancellationToken ct = default) =>
         await _context.PacsServers
+            .AsNoTracking()
             .Where(p => p.IsEnabled)
             .ToListAsync(ct);
 

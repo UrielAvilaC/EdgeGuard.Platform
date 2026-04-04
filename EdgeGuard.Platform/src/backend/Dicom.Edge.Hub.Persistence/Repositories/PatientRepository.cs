@@ -1,3 +1,4 @@
+using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -19,18 +20,36 @@ public class PatientRepository : IPatientRepository
 
     public async Task<IReadOnlyList<Patient>> FindByNameAsync(string name, CancellationToken ct = default) =>
         await _context.Patients
+            .AsNoTracking()
             .Where(p => p.PatientName.Contains(name))
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<Patient>> GetByNodeAsync(string nodeId, CancellationToken ct = default) =>
         await _context.Patients
+            .AsNoTracking()
             .Where(p => p.CreatedByNodeId == nodeId)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<Patient>> GetActiveAsync(CancellationToken ct = default) =>
         await _context.Patients
+            .AsNoTracking()
             .Where(p => p.IsActive)
             .ToListAsync(ct);
+
+    public async Task<PagedResult<Patient>> GetPagedAsync(PaginationRequest pagination, CancellationToken ct = default)
+    {
+        var query = _context.Patients.AsNoTracking().OrderBy(p => p.PatientName);
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.Skip(pagination.Skip).Take(pagination.PageSize).ToListAsync(ct);
+
+        return new PagedResult<Patient>
+        {
+            Items = items,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
+    }
 
     public async Task<Patient> AddAsync(Patient patient, CancellationToken ct = default)
     {

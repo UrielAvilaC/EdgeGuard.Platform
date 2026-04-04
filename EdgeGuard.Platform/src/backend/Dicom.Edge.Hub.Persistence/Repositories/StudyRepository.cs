@@ -1,3 +1,4 @@
+using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Persistence.Context;
 using Dicom.Edge.Models.Enums;
@@ -25,24 +26,28 @@ public class StudyRepository : IStudyRepository
 
     public async Task<IReadOnlyList<Study>> GetByPatientIdAsync(string patientId, CancellationToken ct = default) =>
         await _context.Studies
+            .AsNoTracking()
             .Where(s => s.PatientId == patientId)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<Study>> GetByNodeAsync(string nodeId, CancellationToken ct = default) =>
         await _context.Studies
+            .AsNoTracking()
             .Where(s => s.SourceNodeId == nodeId)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<Study>> GetByStatusAsync(StudyStatus status, CancellationToken ct = default) =>
         await _context.Studies
+            .AsNoTracking()
             .Where(s => s.Status == status)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<Study>> GetByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct = default) =>
         await _context.Studies
+            .AsNoTracking()
             .Where(s => s.StudyDate >= from && s.StudyDate <= to)
             .OrderByDescending(s => s.StudyDate)
             .ToListAsync(ct);
@@ -59,6 +64,21 @@ public class StudyRepository : IStudyRepository
             .Include(s => s.Series)
             .Where(s => s.Series.Any(ss => ss.Modality == modality) && s.CreatedAt < olderThan)
             .ToListAsync(ct);
+
+    public async Task<PagedResult<Study>> GetPagedAsync(PaginationRequest pagination, CancellationToken ct = default)
+    {
+        var query = _context.Studies.AsNoTracking().OrderByDescending(s => s.CreatedAt);
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.Skip(pagination.Skip).Take(pagination.PageSize).ToListAsync(ct);
+
+        return new PagedResult<Study>
+        {
+            Items = items,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
+    }
 
     public async Task<Study> AddAsync(Study study, CancellationToken ct = default)
     {

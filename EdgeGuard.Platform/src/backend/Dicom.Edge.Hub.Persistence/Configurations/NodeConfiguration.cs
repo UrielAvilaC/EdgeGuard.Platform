@@ -11,6 +11,7 @@ public class NodeConfiguration : IEntityTypeConfiguration<Node>
         builder.ToTable("nodes");
         builder.HasKey(n => n.Id);
         builder.Property(n => n.Id).HasMaxLength(50);
+        builder.Property(n => n.UpdatedAt).IsConcurrencyToken();
         builder.Property(n => n.Name).IsRequired().HasMaxLength(128);
         builder.Property(n => n.IpAddress).IsRequired().HasMaxLength(45);
         builder.Property(n => n.ApiEndpoint).HasMaxLength(512);
@@ -39,6 +40,8 @@ public class NodeConfiguration : IEntityTypeConfiguration<Node>
 
         builder.HasIndex(n => n.Status);
         builder.HasIndex(n => n.IsEnabled);
+        builder.HasIndex(n => n.IsDeleted)
+               .HasDatabaseName("ix_nodes_is_deleted");
 
         builder.Ignore(n => n.DomainEvents);
     }

@@ -8,7 +8,7 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Studies;
 /// <summary>
 /// Study aggregate root. Tracks the full lifecycle of a DICOM study in the Hub.
 /// </summary>
-public sealed class Study : AggregateRoot<string>
+public sealed class Study : AggregateRoot<string>, ISoftDeletable
 {
     private readonly List<StudySeries> _series = [];
     private readonly List<StudyStatusAudit> _statusAudits = [];
@@ -55,6 +55,10 @@ public sealed class Study : AggregateRoot<string>
     public bool IsUrgent { get; private set; }
     public int RetryCount { get; private set; }
     public int MaxRetries { get; private set; }
+
+    // Soft delete
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
 
     public IReadOnlyList<StudySeries> Series => _series.AsReadOnly();
     public IReadOnlyList<StudyStatusAudit> StatusAudits => _statusAudits.AsReadOnly();
@@ -211,5 +215,19 @@ public sealed class Study : AggregateRoot<string>
     private void RecordStatusChange(StudyStatus? previous, StudyStatus next, string? nodeId, string? reason)
     {
         _statusAudits.Add(StudyStatusAudit.Create(Id, previous, next, nodeId, reason));
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

@@ -22,6 +22,8 @@ public sealed class NodePacsAssignment : Entity<string>
     public bool? LastCEchoSuccess { get; private set; }
     public int CEchoIntervalSeconds { get; private set; }
 
+
+
     private NodePacsAssignment() { }
 
     public static NodePacsAssignment Create(

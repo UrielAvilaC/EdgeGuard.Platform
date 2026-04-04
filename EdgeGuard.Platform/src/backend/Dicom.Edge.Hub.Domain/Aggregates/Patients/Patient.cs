@@ -7,7 +7,7 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Patients;
 /// <summary>
 /// Patient aggregate root. Represents a patient registered in the Hub.
 /// </summary>
-public sealed class Patient : AggregateRoot<string>
+public sealed class Patient : AggregateRoot<string>, ISoftDeletable
 {
     public PatientIdentifier PatientDicomId { get; private set; } = default!;
     public string PatientName { get; private set; } = default!;
@@ -19,6 +19,10 @@ public sealed class Patient : AggregateRoot<string>
     public string? CreatedByNodeId { get; private set; }
     public DateTime LastUpdatedAt { get; private set; }
     public bool IsActive { get; private set; }
+
+    // Soft delete
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
 
     private Patient() { }
 
@@ -84,6 +88,21 @@ public sealed class Patient : AggregateRoot<string>
     {
         IsActive = true;
         LastUpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        IsActive = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
         UpdatedAt = DateTime.UtcNow;
     }
 }

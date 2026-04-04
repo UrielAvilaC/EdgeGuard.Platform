@@ -56,6 +56,15 @@ public interface INodeSettingsService
 
     /// <summary>Returns all node identity and contact settings.</summary>
     Task<GeneralConfig> GetGeneralConfigAsync(CancellationToken ct = default);
+
+    /// <summary>Returns all PACS sender settings.</summary>
+    Task<PacsSenderConfig> GetPacsSenderConfigAsync(CancellationToken ct = default);
+
+    /// <summary>Returns all PACS C-ECHO connectivity check settings.</summary>
+    Task<PacsCEchoConfig> GetPacsCEchoConfigAsync(CancellationToken ct = default);
+
+    /// <summary>Returns all Node API settings.</summary>
+    Task<NodeApiConfig> GetNodeApiConfigAsync(CancellationToken ct = default);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -133,3 +142,23 @@ public sealed record GeneralConfig(
     string Version,
     string ContactEmail,
     string ContactPhone);
+
+/// <summary>PACS sender (C-STORE SCU) settings.</summary>
+public sealed record PacsSenderConfig(
+    bool   Enabled,
+    string LocalAeTitle,
+    int    MaxConcurrentSends,
+    int    TimeoutSeconds,
+    int    MaxRetries,
+    int    RetryBaseDelaySeconds,
+    int    ProcessingIntervalSeconds);
+
+/// <summary>PACS C-ECHO connectivity monitoring settings.</summary>
+public sealed record PacsCEchoConfig(
+    bool   Enabled,
+    int    IntervalSeconds,
+    string DestinationsJson);
+
+/// <summary>Node REST API settings.</summary>
+public sealed record NodeApiConfig(
+    int Port);

@@ -1,3 +1,4 @@
+using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Models.Enums;
 
 namespace Dicom.Edge.Hub.Domain.Aggregates.Studies;
@@ -15,6 +16,7 @@ public interface IStudyRepository
     Task<IReadOnlyList<Study>> GetByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct = default);
     Task<IReadOnlyList<Study>> GetPendingForPacsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Study>> GetStudiesForCleanupAsync(string modality, DateTime olderThan, CancellationToken ct = default);
+    Task<PagedResult<Study>> GetPagedAsync(PaginationRequest pagination, CancellationToken ct = default);
     Task<Study> AddAsync(Study study, CancellationToken ct = default);
     Task UpdateAsync(Study study, CancellationToken ct = default);
     Task<int> CountAsync(CancellationToken ct = default);

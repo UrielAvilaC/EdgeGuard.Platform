@@ -20,6 +20,7 @@ public static class HubHostedServicesExtensions
         services.AddHostedService<NodeHealthEvaluationHostedService>();
         services.AddHostedService<StudyCleanupEvaluationHostedService>();
         services.AddHostedService<MessageDispatchHostedService>();
+        services.AddHostedService<DataRetentionHostedService>();
 
         return services;
     }

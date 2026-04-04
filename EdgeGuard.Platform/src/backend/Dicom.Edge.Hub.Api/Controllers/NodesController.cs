@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Persistence;
+using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,21 @@ public class NodesController : ControllerBase
     {
         _nodeRepository = nodeRepository;
         _unitOfWork = unitOfWork;
+    }
+
+    [HttpGet("paged")]
+    public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
+    {
+        var pagination = new PaginationRequest { Page = page, PageSize = pageSize };
+        var result = await _nodeRepository.GetPagedAsync(pagination, ct);
+        return Ok(new
+        {
+            result.Page,
+            result.PageSize,
+            result.TotalCount,
+            result.TotalPages,
+            Items = result.Items.Select(n => MapToDto(n))
+        });
     }
 
     [HttpGet]

@@ -1,7 +1,10 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Api.Constants;
+using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
+using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.ValueObjects;
+using Dicom.Edge.Models.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -15,15 +18,21 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class EdgeController : ControllerBase
 {
     private readonly INodeRepository _nodeRepository;
+    private readonly IStudyRepository _studyRepository;
+    private readonly IHealthCheckRepository _healthCheckRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<EdgeController> _logger;
 
     public EdgeController(
         INodeRepository nodeRepository,
+        IStudyRepository studyRepository,
+        IHealthCheckRepository healthCheckRepository,
         IUnitOfWork unitOfWork,
         ILogger<EdgeController> logger)
     {
         _nodeRepository = nodeRepository;
+        _studyRepository = studyRepository;
+        _healthCheckRepository = healthCheckRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -106,15 +115,41 @@ public class EdgeController : ControllerBase
     [HttpPost("/edge/studies")]
     public async Task<IActionResult> StudyNotify([FromBody] StudyNotifyRequest request, CancellationToken ct)
     {
+        var node = await _nodeRepository.GetByIdAsync(request.NodeId, ct);
+        if (node is null)
+            return NotFound(new { error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        var existing = await _studyRepository.GetByStudyInstanceUidAsync(request.StudyInstanceUid, ct);
+        if (existing is not null)
+        {
+            existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+            await _studyRepository.UpdateAsync(existing, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            _logger.LogInformation(
+                "Study updated from node {NodeId}: StudyUID={StudyUid} Instances={Count}",
+                request.NodeId, request.StudyInstanceUid, request.InstanceCount);
+
+            return Ok(new { acknowledged = true, studyId = existing.Id, receivedAtUtc = DateTime.UtcNow });
+        }
+
+        var study = Study.Create(
+            DicomUid.Create(request.StudyInstanceUid),
+            patientId: request.PatientId,
+            patientName: request.PatientName,
+            sourceNodeId: request.NodeId,
+            accessionNumber: request.AccessionNumber);
+
+        study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+
+        await _studyRepository.AddAsync(study, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
         _logger.LogInformation(
-            "Study notify from node {NodeId}: StudyUID={StudyUid} Patient={Patient}",
+            "Study created from node {NodeId}: StudyUID={StudyUid} Patient={Patient}",
             request.NodeId, request.StudyInstanceUid, request.PatientName);
 
-        return Ok(new
-        {
-            acknowledged = true,
-            receivedAtUtc = DateTime.UtcNow
-        });
+        return Ok(new { acknowledged = true, studyId = study.Id, receivedAtUtc = DateTime.UtcNow });
     }
 
     /// <summary>POST /edge/health — Node reports health metrics.</summary>
@@ -125,8 +160,19 @@ public class EdgeController : ControllerBase
         if (node is null)
             return NotFound(new { error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
 
+        var record = HealthCheckRecord.Create(
+            request.NodeId,
+            NodeStatus.Online,
+            cpuUsagePercent: request.CpuPercent,
+            diskAvailableMb: request.AvailableStorageMb,
+            memoryUsageMb: request.MemoryPercent is not null ? (long)request.MemoryPercent : null,
+            queuedStudies: request.QueueDepth);
+
+        await _healthCheckRepository.AddAsync(record, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
         _logger.LogInformation(
-            "Health report from node {NodeId}: Storage={AvailMb}MB, CPU={Cpu}%, Mem={Mem}%",
+            "Health report persisted from node {NodeId}: Storage={AvailMb}MB, CPU={Cpu}%, Mem={Mem}%",
             request.NodeId, request.AvailableStorageMb, request.CpuPercent, request.MemoryPercent);
 
         return Ok(new { acknowledged = true });

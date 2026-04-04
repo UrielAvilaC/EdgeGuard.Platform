@@ -15,12 +15,14 @@ public sealed class SystemSettingRepository : ISystemSettingRepository
 
     public async Task<IReadOnlyList<SystemSetting>> GetByCategoryAsync(string category, CancellationToken ct = default) =>
         await _context.SystemSettings
+            .AsNoTracking()
             .Where(s => s.Category == category)
             .OrderBy(s => s.Id)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<SystemSetting>> GetAllAsync(CancellationToken ct = default) =>
         await _context.SystemSettings
+            .AsNoTracking()
             .OrderBy(s => s.Category)
             .ThenBy(s => s.Id)
             .ToListAsync(ct);
@@ -31,14 +33,14 @@ public sealed class SystemSettingRepository : ISystemSettingRepository
         return setting;
     }
 
-    public async Task UpdateAsync(SystemSetting setting, CancellationToken ct = default)
+    public Task UpdateAsync(SystemSetting setting, CancellationToken ct = default)
     {
         var entry = _context.Entry(setting);
 
         if (entry.State == EntityState.Detached)
             _context.SystemSettings.Update(setting);
 
-        await _context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 
     public async Task DeleteAsync(string key, CancellationToken ct = default)

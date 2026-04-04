@@ -1,8 +1,11 @@
 using System.Text;
+using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Cleanup;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
+using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
+using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Routing;
@@ -35,11 +38,20 @@ public class HubDbContext : DbContext
     public DbSet<Hl7Message> Hl7Messages => Set<Hl7Message>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<Hl7RoutingRule> Hl7RoutingRules => Set<Hl7RoutingRule>();
+    public DbSet<HubAuditLog> HubAuditLogs => Set<HubAuditLog>();
+    public DbSet<WhatsAppNotification> WhatsAppNotifications => Set<WhatsAppNotification>();
+    public DbSet<PacsSendAudit> PacsSendAudits => Set<PacsSendAudit>();
+    public DbSet<NodeConfigurationProfile> NodeConfigurationProfiles => Set<NodeConfigurationProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(HubDbContext).Assembly);
+
+        // Global query filters: soft-delete
+        modelBuilder.Entity<Study>().HasQueryFilter(s => !s.IsDeleted);
+        modelBuilder.Entity<Node>().HasQueryFilter(n => !n.IsDeleted);
+        modelBuilder.Entity<Patient>().HasQueryFilter(p => !p.IsDeleted);
 
         // PostgreSQL standard: apply snake_case naming convention
         // Table names are set explicitly in each IEntityTypeConfiguration.
@@ -58,17 +70,27 @@ public class HubDbContext : DbContext
             // Column names
             foreach (var property in entity.GetProperties())
             {
+                // Owned types share the owner's table and PK column.
+                // Skip renaming PK properties on owned types to avoid
+                // column name conflicts with the owner's PK.
+                if (entity.IsOwned() && property.IsPrimaryKey())
+                    continue;
+
                 var columnName = property.GetColumnName();
                 if (columnName is not null)
                     property.SetColumnName(ToSnakeCase(columnName));
             }
 
             // Primary / alternate key constraint names
-            foreach (var key in entity.GetKeys())
+            // Skip owned types — they share the owner's table and PK constraint.
+            if (!entity.IsOwned())
             {
-                var name = key.GetName();
-                if (name is not null)
-                    key.SetName(ToSnakeCase(name));
+                foreach (var key in entity.GetKeys())
+                {
+                    var name = key.GetName();
+                    if (name is not null)
+                        key.SetName(ToSnakeCase(name));
+                }
             }
 
             // Foreign key constraint names

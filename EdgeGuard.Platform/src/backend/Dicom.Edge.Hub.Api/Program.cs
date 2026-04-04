@@ -4,6 +4,7 @@ using Dicom.Edge.Hub.Api.Constants;
 using Dicom.Edge.Hub.Application.Extensions;
 using Dicom.Edge.Hub.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Infrastructure.Extensions;
+using Dicom.Edge.Hub.Persistence.Configuration;
 using Dicom.Edge.Hub.Persistence.Extensions;
 
 BootstrapLogger.Initialize(HubApiConstants.BootstrapLogPath);
@@ -19,10 +20,19 @@ try
     builder.Services.AddOpenApi();
     builder.Services.AddProblemDetails();
 
-    // Validate required connection string (fail-fast)
-    _ = builder.Configuration.GetConnectionString(HubApiConstants.ConnectionStringName)
+    // Resolve connection string: environment variable takes precedence, then appsettings
+    var connectionString =
+        Environment.GetEnvironmentVariable(HubApiConstants.ConnectionStringEnvVar)
+        ?? builder.Configuration.GetConnectionString(HubApiConstants.ConnectionStringName)
         ?? throw new InvalidOperationException(
-            HubApiConstants.MissingConnectionStringMessage);
+            $"Set environment variable '{HubApiConstants.ConnectionStringEnvVar}' " +
+            $"or configure ConnectionStrings:{HubApiConstants.ConnectionStringName}.");
+
+    // Inject connection string so downstream code finds it via IConfiguration
+    builder.Configuration[$"ConnectionStrings:{HubApiConstants.ConnectionStringName}"] = connectionString;
+
+    // Load operational settings from the database (overrides appsettings)
+    builder.Configuration.AddHubDatabaseConfiguration(connectionString);
 
     // Enterprise diagnostics (PHI redaction, audit, health checks, OTel)
     builder.Services.AddHubDiagnostics(builder.Configuration);

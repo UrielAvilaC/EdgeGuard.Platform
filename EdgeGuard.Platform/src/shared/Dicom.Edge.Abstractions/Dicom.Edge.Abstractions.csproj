@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Dicom.Edge.Common\Dicom.Edge.Common.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Contracts\Dicom.Edge.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,6 +11,7 @@ public class StudyConfiguration : IEntityTypeConfiguration<Study>
         builder.ToTable("studies");
         builder.HasKey(s => s.Id);
         builder.Property(s => s.Id).HasMaxLength(50);
+        builder.Property(s => s.UpdatedAt).IsConcurrencyToken();
         builder.Property(s => s.AccessionNumber).HasMaxLength(64);
         builder.Property(s => s.StudyDescription).HasMaxLength(512);
         builder.Property(s => s.ReferringPhysician).HasMaxLength(256);
@@ -51,6 +52,8 @@ public class StudyConfiguration : IEntityTypeConfiguration<Study>
         builder.HasIndex(s => s.Status);
         builder.HasIndex(s => s.StudyDate);
         builder.HasIndex(s => s.SourceNodeId);
+        builder.HasIndex(s => new { s.IsDeleted, s.CreatedAt })
+               .HasDatabaseName("ix_studies_is_deleted_created_at");
 
         builder.Ignore(s => s.DomainEvents);
     }

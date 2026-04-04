@@ -78,12 +78,17 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Hub.ReconnectDelaySeconds, "30",      Cat.Hub, "Reconnect Delay (sec)",         VT.Int),
 
         // ── DICOM ────────────────────────────────────────────────────────────
+        Row(NodeSettingKeys.Dicom.Enabled,                   "true",      Cat.Dicom, "DICOM Server Enabled",            VT.Bool),
         Row(NodeSettingKeys.Dicom.ValidateCallingAe,         "false",     Cat.Dicom, "Validate Calling AE Title",       VT.Bool),
         Row(NodeSettingKeys.Dicom.AllowedAeTitles,           "[]",        Cat.Dicom, "Allowed AE Titles (JSON array)",  VT.Json),
         Row(NodeSettingKeys.Dicom.MaxAssociations,           "50",        Cat.Dicom, "Max Concurrent Associations",     VT.Int),
         Row(NodeSettingKeys.Dicom.Port,                      "11112",     Cat.Dicom, "DICOM Listen Port",               VT.Int),
         Row(NodeSettingKeys.Dicom.AeTitle,                   "EDGE_NODE", Cat.Dicom, "DICOM AE Title",                  VT.String),
-        Row(NodeSettingKeys.Dicom.StudyCompletionTimeoutSec, "30",        Cat.Dicom, "Study Completion Timeout (sec)",  VT.Int),
+        Row(NodeSettingKeys.Dicom.StudyCompletionTimeoutSec, "30",        Cat.Dicom, "Study Completion Timeout (sec)",   VT.Int),
+        Row(NodeSettingKeys.Dicom.AssociationTimeoutSec,     "30",        Cat.Dicom, "Association Timeout (sec)",        VT.Int),
+        Row(NodeSettingKeys.Dicom.DimseTimeoutSec,           "600",       Cat.Dicom, "DIMSE Timeout (sec)",              VT.Int),
+        Row(NodeSettingKeys.Dicom.MaxPduLength,              "262144",    Cat.Dicom, "Max PDU Length (bytes)",            VT.Int),
+        Row(NodeSettingKeys.Dicom.MwlEnabled,                "true",      Cat.Dicom, "MWL C-FIND SCP Enabled",           VT.Bool),
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Cleanup.Enabled,            "true",  Cat.Cleanup, "Auto-Cleanup Enabled",          VT.Bool),
@@ -107,6 +112,28 @@ internal static class NodeSettingsSeed
         // ── Storage ──────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Storage.RootPath,    "./data",    Cat.Storage, "DICOM Storage Root Path", VT.String),
         Row(NodeSettingKeys.Storage.ArchivePath, "./archive", Cat.Storage, "Archive Root Path",        VT.String),
+
+        // ── PACS Sender ──────────────────────────────────────────────────────
+        Row(NodeSettingKeys.PacsSender.Enabled,                   "true",      Cat.PacsSender, "PACS Sender Enabled",               VT.Bool),
+        Row(NodeSettingKeys.PacsSender.LocalAeTitle,              "EDGENODE",  Cat.PacsSender, "Local AE Title",                    VT.String),
+        Row(NodeSettingKeys.PacsSender.MaxConcurrentSends,        "4",         Cat.PacsSender, "Max Concurrent Sends",              VT.Int),
+        Row(NodeSettingKeys.PacsSender.TimeoutSeconds,            "120",       Cat.PacsSender, "Send Timeout (sec)",                VT.Int),
+        Row(NodeSettingKeys.PacsSender.MaxRetries,                "3",         Cat.PacsSender, "Max Retries",                       VT.Int),
+        Row(NodeSettingKeys.PacsSender.RetryBaseDelaySeconds,     "10",        Cat.PacsSender, "Retry Base Delay (sec)",            VT.Int),
+        Row(NodeSettingKeys.PacsSender.ProcessingIntervalSeconds, "5",         Cat.PacsSender, "Processing Interval (sec)",         VT.Int),
+
+        // ── PACS C-ECHO ──────────────────────────────────────────────────────
+        Row(NodeSettingKeys.PacsCEcho.Enabled,         "true",  Cat.PacsCEcho, "C-ECHO Monitor Enabled",       VT.Bool),
+        Row(NodeSettingKeys.PacsCEcho.IntervalSeconds,  "120",  Cat.PacsCEcho, "C-ECHO Interval (sec)",        VT.Int),
+        Row(NodeSettingKeys.PacsCEcho.Destinations,     "[]",   Cat.PacsCEcho, "C-ECHO Destinations (JSON)",   VT.Json),
+
+        // ── Node API ─────────────────────────────────────────────────────────
+        Row(NodeSettingKeys.NodeApi.Port, "5120", Cat.NodeApi, "Node API Port", VT.Int),
+
+        // ── System (config sync metadata) ────────────────────────────────────
+        Row(NodeSettingKeys.System.ConfigVersion,        "",      Cat.General, "Config Version Hash",       VT.String, readOnly: true),
+        Row(NodeSettingKeys.System.LastConfigAppliedUtc,  "",      Cat.General, "Last Config Applied (UTC)", VT.String, readOnly: true),
+        Row(NodeSettingKeys.System.LastConfigSource,      "local", Cat.General, "Last Config Source",        VT.String, readOnly: true),
     ];
 
     private static NodeSettingEntity Row(
@@ -130,13 +157,16 @@ internal static class NodeSettingsSeed
     // ── Aliases for cleaner seed table ────────────────────────────────────────
     private static class Cat
     {
-        public const string General  = NodeSettingCategories.General;
-        public const string Hub      = NodeSettingCategories.Hub;
-        public const string Dicom    = NodeSettingCategories.Dicom;
-        public const string Cleanup  = NodeSettingCategories.Cleanup;
-        public const string Transfer = NodeSettingCategories.Transfer;
-        public const string Security = NodeSettingCategories.Security;
-        public const string Storage  = NodeSettingCategories.Storage;
+        public const string General    = NodeSettingCategories.General;
+        public const string Hub        = NodeSettingCategories.Hub;
+        public const string Dicom      = NodeSettingCategories.Dicom;
+        public const string Cleanup    = NodeSettingCategories.Cleanup;
+        public const string Transfer   = NodeSettingCategories.Transfer;
+        public const string Security   = NodeSettingCategories.Security;
+        public const string Storage    = NodeSettingCategories.Storage;
+        public const string PacsSender = NodeSettingCategories.PacsSender;
+        public const string PacsCEcho  = NodeSettingCategories.PacsCEcho;
+        public const string NodeApi    = NodeSettingCategories.NodeApi;
     }
 
     private static class VT

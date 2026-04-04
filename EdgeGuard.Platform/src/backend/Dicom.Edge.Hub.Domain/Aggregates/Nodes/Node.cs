@@ -8,7 +8,7 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 /// <summary>
 /// Edge Node aggregate root. Represents a node registered in the Hub.
 /// </summary>
-public sealed class Node : AggregateRoot<string>
+public sealed class Node : AggregateRoot<string>, ISoftDeletable
 {
     private readonly List<NodePacsAssignment> _pacsAssignments = [];
 
@@ -24,6 +24,10 @@ public sealed class Node : AggregateRoot<string>
     public NodeStatus Status { get; private set; }
     public DateTime? LastHeartbeatAt { get; private set; }
     public bool IsEnabled { get; private set; }
+
+    // Soft delete
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
 
     /// <summary>
     /// Configurable healthcheck interval in seconds.
@@ -171,6 +175,21 @@ public sealed class Node : AggregateRoot<string>
         if (version is not null) Version = version.Trim();
         if (healthCheckIntervalSeconds.HasValue) HealthCheckIntervalSeconds = healthCheckIntervalSeconds.Value;
         if (maxStorageMb.HasValue) MaxStorageMb = maxStorageMb.Value;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SoftDelete()
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        IsEnabled = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+        DeletedAt = null;
         UpdatedAt = DateTime.UtcNow;
     }
 }

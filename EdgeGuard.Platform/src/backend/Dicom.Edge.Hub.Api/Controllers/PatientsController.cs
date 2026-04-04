@@ -1,3 +1,4 @@
+using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Hub.Api.Constants;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +14,21 @@ public class PatientsController : ControllerBase
     public PatientsController(IPatientRepository patientRepository)
     {
         _patientRepository = patientRepository;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
+    {
+        var pagination = new PaginationRequest { Page = page, PageSize = pageSize };
+        var result = await _patientRepository.GetPagedAsync(pagination, ct);
+        return Ok(new
+        {
+            result.Page,
+            result.PageSize,
+            result.TotalCount,
+            result.TotalPages,
+            Items = result.Items.Select(MapToDto)
+        });
     }
 
     [HttpGet("{id}")]

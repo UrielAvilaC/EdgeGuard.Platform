@@ -19,12 +19,14 @@ public class StudyCleanupPolicyRepository : IStudyCleanupPolicyRepository
 
     public async Task<IReadOnlyList<StudyCleanupPolicy>> GetEnabledAsync(CancellationToken ct = default) =>
         await _context.StudyCleanupPolicies
+            .AsNoTracking()
             .Where(p => p.IsEnabled)
             .OrderBy(p => p.Priority)
             .ToListAsync(ct);
 
     public async Task<IReadOnlyList<StudyCleanupPolicy>> GetAllAsync(CancellationToken ct = default) =>
         await _context.StudyCleanupPolicies
+            .AsNoTracking()
             .OrderBy(p => p.Priority)
             .ToListAsync(ct);
 

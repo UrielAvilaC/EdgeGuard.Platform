@@ -25,9 +25,15 @@ public static class HubApiConstants
     /// <summary>Connection string key for the Hub PostgreSQL database.</summary>
     public const string ConnectionStringName = "HubDatabase";
 
+    /// <summary>
+    /// Environment variable for the Hub PostgreSQL connection string.
+    /// Takes precedence over appsettings.json.
+    /// </summary>
+    public const string ConnectionStringEnvVar = "EDGEGUARD_HUB_CONNECTIONSTRING";
+
     /// <summary>Error message when the required database connection string is missing.</summary>
     public const string MissingConnectionStringMessage =
-        "ConnectionStrings:HubDatabase is required. Configure a PostgreSQL connection string.";
+        "Set EDGEGUARD_HUB_CONNECTIONSTRING environment variable or configure ConnectionStrings:HubDatabase.";
 
     /// <summary>Environment variable name for ASP.NET Core hosting environment.</summary>
     public const string EnvironmentVariableName = "ASPNETCORE_ENVIRONMENT";

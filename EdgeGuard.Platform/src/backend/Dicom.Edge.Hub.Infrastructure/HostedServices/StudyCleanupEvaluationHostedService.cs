@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Domain.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,16 +8,16 @@ namespace Dicom.Edge.Hub.Infrastructure.HostedServices;
 
 public sealed class StudyCleanupEvaluationHostedService : BackgroundService
 {
-    private readonly IStudyCleanupService _studyCleanupService;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<StudyCleanupEvaluationHostedService> _logger;
     private readonly HubBackgroundJobsOptions _options;
 
     public StudyCleanupEvaluationHostedService(
-        IStudyCleanupService studyCleanupService,
+        IServiceScopeFactory scopeFactory,
         IOptions<HubBackgroundJobsOptions> options,
         ILogger<StudyCleanupEvaluationHostedService> logger)
     {
-        _studyCleanupService = studyCleanupService;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _options = options.Value;
     }
@@ -39,11 +40,15 @@ public sealed class StudyCleanupEvaluationHostedService : BackgroundService
         {
             try
             {
-                var eligibleStudies = await _studyCleanupService.GetStudiesEligibleForCleanupAsync(stoppingToken);
+                using var scope = _scopeFactory.CreateScope();
+                var cleanupService = scope.ServiceProvider.GetRequiredService<IStudyCleanupService>();
 
-                if (eligibleStudies.Count > 0)
+                var deleted = await cleanupService.ExecuteCleanupAsync(
+                    _options.DataRetention.BatchSize, stoppingToken);
+
+                if (deleted > 0)
                 {
-                    _logger.LogInformation("Study cleanup evaluation found {Count} eligible studies", eligibleStudies.Count);
+                    _logger.LogInformation("Study cleanup cycle completed: {DeletedCount} studies soft-deleted", deleted);
                 }
             }
             catch (OperationCanceledException)

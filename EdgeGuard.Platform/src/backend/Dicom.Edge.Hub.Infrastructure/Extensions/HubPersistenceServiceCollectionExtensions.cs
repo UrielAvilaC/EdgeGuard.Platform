@@ -19,6 +19,7 @@ public static class HubDomainServiceCollectionExtensions
         services.AddScoped<IPacsInheritanceService, PacsInheritanceService>();
         services.AddScoped<IStudyCleanupService, StudyCleanupService>();
         services.AddScoped<INodeHealthEvaluator, NodeHealthEvaluator>();
+        services.AddScoped<IHubDataRetentionService, HubDataRetentionService>();
 
         return services;
     }

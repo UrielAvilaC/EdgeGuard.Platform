@@ -30,6 +30,9 @@ public static class Hl7InfrastructureExtensions
         });
         services.AddScoped<INodeDispatcher, NodeHttpDispatcher>();
 
+        // Node configuration push service
+        services.AddScoped<INodeConfigPushService, NodeConfigPushService>();
+
         return services;
     }
 }
