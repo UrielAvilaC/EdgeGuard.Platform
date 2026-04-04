@@ -28,3 +28,16 @@ public static class HubApiRoutes
     /// <summary>GET — Hub version and capability info.</summary>
     public const string HubInfo = "/info";
 }
+
+/// <summary>
+/// HTTP route constants for Hub → Edge Node push communication.
+/// The Edge Node exposes these endpoints and the Hub dispatches data to them.
+/// </summary>
+public static class NodeApiRoutes
+{
+    /// <summary>POST — Hub pushes an HL7 worklist item to the node.</summary>
+    public const string Hl7WorklistPush = "/api/hl7/worklist";
+
+    /// <summary>GET — Health check endpoint on the node.</summary>
+    public const string HealthCheck = "/api/health";
+}

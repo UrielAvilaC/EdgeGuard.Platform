@@ -8,7 +8,8 @@ clínicos.
 
 La solución sigue una arquitectura **Edge + Hub**, donde nodos locales
 instalados en hospitales reciben estudios desde modalidades médicas y
-los sincronizan con una infraestructura central.
+los envían directamente al PACS destino. El Hub central orquesta la
+configuración, monitoreo y administración de los nodos.
 
 ------------------------------------------------------------------------
 
@@ -17,7 +18,7 @@ los sincronizan con una infraestructura central.
 -   Recibir estudios médicos desde modalidades (CT, MR, CR, US, etc.)
 -   Proveer **Modality Worklist (MWL)** a equipos médicos
 -   Almacenar temporalmente estudios en nodos Edge
--   Enviar estudios de forma segura al Hub central
+-   Enviar estudios directamente al PACS destino de forma segura
 -   Proporcionar herramientas administrativas mediante una interfaz web
 -   Operar correctamente en entornos con conectividad intermitente
 
@@ -121,7 +122,7 @@ Responsabilidades del Edge Node:
 -   Almacenamiento temporal de estudios
 -   Cola de procesamiento
 -   Reintentos automáticos en caso de fallos de red
--   Envío de estudios al Hub central
+-   Envío de estudios directamente al PACS destino
 
 ------------------------------------------------------------------------
 
@@ -157,10 +158,10 @@ Incluye:
     Cola de estudios
           │
           ▼
-    Envío al Hub central
+    Envío al PACS destino
           │
           ▼
-    EdgeGuard API
+    Notificación al Hub central
 
 ------------------------------------------------------------------------
 
@@ -212,7 +213,9 @@ Las primeras funcionalidades se enfocan en:
 1.  Implementación del servidor **C-STORE**
 2.  Implementación de **Modality Worklist**
 3.  Pipeline de ingestión de estudios
-4.  Envío de estudios al Hub central
+4.  Envío de estudios al PACS destino
+5.  Pipeline HL7 (recepción, validación, enrutamiento, despacho)
+6.  Diagnósticos enterprise (Serilog, OpenTelemetry, PHI redaction)
 
 ------------------------------------------------------------------------
 

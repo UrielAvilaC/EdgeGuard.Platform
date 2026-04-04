@@ -1,6 +1,7 @@
+using Dicom.Edge.Hub.Application.Dispatch;
 using Dicom.Edge.Hub.Domain.Interfaces;
+using Dicom.Edge.Hub.Infrastructure.Constants;
 using Dicom.Edge.Hub.Infrastructure.HostedServices;
-using Dicom.Edge.Hub.Infrastructure.Repositories;
 using Dicom.Edge.Hub.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,18 +13,22 @@ namespace Dicom.Edge.Hub.Infrastructure.Extensions;
 public static class Hl7InfrastructureExtensions
 {
     /// <summary>
-    /// Agrega servicios de infraestructura para HL7.
+    /// Registers HL7 infrastructure services: TCP listener, HTTP dispatch client,
+    /// and the node dispatcher. Requires persistence to be registered separately
+    /// via <see cref="HubPersistenceServiceCollectionExtensions.AddHubPersistence"/>.
     /// </summary>
     public static IServiceCollection AddHl7Infrastructure(this IServiceCollection services)
     {
-        // Registrar repositorio (en producción cambiar a persistencia real)
-        services.AddSingleton<IHl7MessageRepository, InMemoryHl7MessageRepository>();
-
-        // Registrar listener TCP
+        // TCP listener
         services.AddSingleton<IHl7Listener, Hl7TcpListener>();
-
-        // Registrar el hosted service que ejecutará el listener
         services.AddHostedService<Hl7ListenerHostedService>();
+
+        // HTTP client for dispatching to nodes
+        services.AddHttpClient(DispatchConstants.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(DispatchConstants.DefaultTimeoutSeconds);
+        });
+        services.AddScoped<INodeDispatcher, NodeHttpDispatcher>();
 
         return services;
     }

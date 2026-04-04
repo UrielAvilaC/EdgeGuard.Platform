@@ -1,3 +1,4 @@
+using Dicom.Edge.Abstractions.Events;
 using Dicom.Edge.Abstractions.Queue;
 using Dicom.Edge.Node.Persistence.Interceptors;
 using Dicom.Edge.Node.Persistence.Diagnostics;
@@ -79,6 +80,7 @@ public static class PersistenceExtensions
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddSingleton<INodeSettingsService, NodeSettingsService>();
         services.AddSingleton<IEdgeQueue<EdgeQueueItem>, SqliteEdgeQueue>();
+        services.AddSingleton<IEventBus, InMemoryEventBus>();
     }
 
     // ── Background services ───────────────────────────────────────────────────

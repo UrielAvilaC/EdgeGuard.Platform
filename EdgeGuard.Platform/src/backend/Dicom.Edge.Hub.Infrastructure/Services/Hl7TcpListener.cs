@@ -5,6 +5,7 @@ using System.Threading.Channels;
 using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Domain.Entities;
 using Dicom.Edge.Hub.Domain.Interfaces;
+using Dicom.Edge.Hub.Infrastructure.Constants;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -131,7 +132,7 @@ public class Hl7TcpListener : IHl7Listener
         {
             using (client)
             {
-                var endpoint = client.Client.RemoteEndPoint?.ToString() ?? "unknown";
+                var endpoint = client.Client.RemoteEndPoint?.ToString() ?? Hl7ProtocolConstants.UnknownEndpoint;
                 _logger.LogInformation(
                     "Client connected: {Endpoint}. Active connections: {ActiveConnections}",
                     endpoint,
@@ -224,11 +225,11 @@ public class Hl7TcpListener : IHl7Listener
         // Construir ACK según el estándar HL7 v2.x
         // Formato: <VT>MSH|...<CR>MSA|...<FS><CR>
         var ackSegments = 
-            $"MSH|^~\\&|EdgeGuardHub|EdgeGuard|{originalMessage.SendingApplication}|{originalMessage.SendingFacility}|{timestamp}||ACK|{ackMessageControlId}|P|2.5\r" +
-            $"MSA|AA|{originalMessageControlId}\r";
+            $"MSH|^~\\&|{Hl7ProtocolConstants.SenderApplication}|{Hl7ProtocolConstants.SenderFacility}|{originalMessage.SendingApplication}|{originalMessage.SendingFacility}|{timestamp}||{Hl7ProtocolConstants.AckMessageType}|{ackMessageControlId}|{Hl7ProtocolConstants.ProcessingId}|{Hl7ProtocolConstants.Hl7Version}{Hl7ProtocolConstants.SegmentTerminator}" +
+            $"MSA|{Hl7ProtocolConstants.AckCode}|{originalMessageControlId}{Hl7ProtocolConstants.SegmentTerminator}";
 
         // Envolver con delimitadores HL7
-        return $"\x0B{ackSegments}\x1C\r";
+        return $"{Hl7ProtocolConstants.StartBlock}{ackSegments}{Hl7ProtocolConstants.EndBlock}{Hl7ProtocolConstants.SegmentTerminator}";
     }
 
     private string? ExtractMessageControlId(string hl7Message)
