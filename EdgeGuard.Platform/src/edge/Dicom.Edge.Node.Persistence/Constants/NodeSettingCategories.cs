@@ -16,6 +16,7 @@ public static class NodeSettingCategories
     public const string Security   = SharedNodeSettingCategories.Security;
     public const string Storage    = SharedNodeSettingCategories.Storage;
     public const string PacsSender = SharedNodeSettingCategories.PacsSender;
-    public const string PacsCEcho  = SharedNodeSettingCategories.PacsCEcho;
-    public const string NodeApi    = SharedNodeSettingCategories.NodeApi;
+    public const string PacsCEcho       = SharedNodeSettingCategories.PacsCEcho;
+    public const string PacsDestination = SharedNodeSettingCategories.PacsDestination;
+    public const string NodeApi         = SharedNodeSettingCategories.NodeApi;
 }

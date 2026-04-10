@@ -19,12 +19,11 @@ namespace Dicom.Edge.Hub.Infrastructure.Services;
 public class Hl7TcpListener : IHl7Listener
 {
     private readonly ILogger<Hl7TcpListener> _logger;
-    private readonly IHl7MessageRepository _repository;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly Hl7ListenerOptions _options;
     private readonly Channel<Hl7Message> _messageChannel;
     private readonly SemaphoreSlim _connectionSemaphore;
-    
+
     private TcpListener? _listener;
     private int _activeConnections;
     private bool _isRunning;
@@ -35,12 +34,10 @@ public class Hl7TcpListener : IHl7Listener
 
     public Hl7TcpListener(
         ILogger<Hl7TcpListener> logger,
-        IHl7MessageRepository repository,
         IServiceScopeFactory serviceScopeFactory,
         IOptions<Hl7ListenerOptions> options)
     {
         _logger = logger;
-        _repository = repository;
         _serviceScopeFactory = serviceScopeFactory;
         _options = options.Value;
 
@@ -144,6 +141,9 @@ public class Hl7TcpListener : IHl7Listener
                 using var cts = new CancellationTokenSource(_options.ConnectionTimeoutMs);
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, cts.Token);
 
+                using var scope = _serviceScopeFactory.CreateScope();
+                var repository = scope.ServiceProvider.GetRequiredService<IHl7MessageRepository>();
+
                 while (!linkedCts.Token.IsCancellationRequested && client.Connected)
                 {
                     var bytesRead = await stream.ReadAsync(buffer, linkedCts.Token);
@@ -154,7 +154,7 @@ public class Hl7TcpListener : IHl7Listener
                     var message = Hl7Message.Create(content, endpoint);
 
                     // Persistir mensaje
-                    await _repository.AddAsync(message, linkedCts.Token);
+                    await repository.AddAsync(message, linkedCts.Token);
 
                     _logger.LogInformation(
                         "Message {MessageId} received from {Endpoint}, Type: {MessageType}",

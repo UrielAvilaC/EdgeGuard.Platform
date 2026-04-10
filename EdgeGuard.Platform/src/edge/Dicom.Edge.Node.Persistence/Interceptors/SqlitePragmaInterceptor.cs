@@ -46,6 +46,10 @@ public sealed class SqlitePragmaInterceptor : DbConnectionInterceptor
         if (connection is not SqliteConnection sqliteConnection)
             return;
 
+        // Skip write-pragmas on read-only connections opened internally by EF Core
+        if (sqliteConnection.ConnectionString.Contains("Mode=ReadOnly", StringComparison.OrdinalIgnoreCase))
+            return;
+
         foreach (var pragma in Pragmas)
         {
             using var cmd = sqliteConnection.CreateCommand();

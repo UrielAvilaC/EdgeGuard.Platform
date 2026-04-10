@@ -84,6 +84,10 @@ try
 
     var app = builder.Build();
 
+    // ── Apply pending migrations & seed system settings ───────────────────
+    await app.Services.MigrateHubAsync();
+    await app.Services.SeedHubSettingsAsync();
+
     // Diagnostics middleware pipeline (order matters)
     app.UseCorrelationId();
     app.UsePlatformExceptionHandling();
@@ -91,6 +95,14 @@ try
 
     // OpenAPI available in all environments for enterprise tooling
     app.MapOpenApi();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/openapi/v1.json", "EdgeGuard Hub API v1");
+        });
+    }
 
     app.UseHttpsRedirection();
     app.UseCors();

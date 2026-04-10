@@ -60,6 +60,8 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.General.Version,      "1.0.0",        Cat.General,  "Software Version",       VT.String, readOnly: true),
         Row(NodeSettingKeys.General.ContactEmail, "",             Cat.General,  "Contact Email",          VT.String),
         Row(NodeSettingKeys.General.ContactPhone, "",             Cat.General,  "Contact Phone",          VT.String),
+        Row(NodeSettingKeys.General.IpAddress,    "127.0.0.1",    Cat.General,  "IP Address",             VT.String),
+        Row(NodeSettingKeys.General.ApiEndpoint,  "",             Cat.General,  "API Endpoint",           VT.String),
 
         // ── Hub ─────────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Hub.Enabled,               "false",  Cat.Hub, "Hub Integration Enabled",       VT.Bool),
@@ -127,6 +129,11 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.PacsCEcho.IntervalSeconds,  "120",  Cat.PacsCEcho, "C-ECHO Interval (sec)",        VT.Int),
         Row(NodeSettingKeys.PacsCEcho.Destinations,     "[]",   Cat.PacsCEcho, "C-ECHO Destinations (JSON)",   VT.Json),
 
+        // ── PACS Destination ─────────────────────────────────────────────────
+        Row(NodeSettingKeys.PacsDestination.Host,    "",    Cat.PacsDestination, "PACS Destination Host",     VT.String),
+        Row(NodeSettingKeys.PacsDestination.Port,    "104", Cat.PacsDestination, "PACS Destination Port",     VT.Int),
+        Row(NodeSettingKeys.PacsDestination.AeTitle, "",    Cat.PacsDestination, "PACS Destination AE Title", VT.String),
+
         // ── Node API ─────────────────────────────────────────────────────────
         Row(NodeSettingKeys.NodeApi.Port, "5120", Cat.NodeApi, "Node API Port", VT.Int),
 
@@ -165,8 +172,9 @@ internal static class NodeSettingsSeed
         public const string Security   = NodeSettingCategories.Security;
         public const string Storage    = NodeSettingCategories.Storage;
         public const string PacsSender = NodeSettingCategories.PacsSender;
-        public const string PacsCEcho  = NodeSettingCategories.PacsCEcho;
-        public const string NodeApi    = NodeSettingCategories.NodeApi;
+        public const string PacsCEcho       = NodeSettingCategories.PacsCEcho;
+        public const string PacsDestination = NodeSettingCategories.PacsDestination;
+        public const string NodeApi         = NodeSettingCategories.NodeApi;
     }
 
     private static class VT

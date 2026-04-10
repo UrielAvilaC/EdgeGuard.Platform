@@ -18,6 +18,8 @@ public static class SharedNodeSettingKeys
         public const string Version      = "node.version";
         public const string ContactEmail = "node.contact_email";
         public const string ContactPhone = "node.contact_phone";
+        public const string IpAddress    = "node.ip_address";
+        public const string ApiEndpoint  = "node.api_endpoint";
     }
 
     // ── Hub ───────────────────────────────────────────────────────────────────────
@@ -108,6 +110,14 @@ public static class SharedNodeSettingKeys
         public const string Enabled         = "cecho.enabled";
         public const string IntervalSeconds = "cecho.interval_seconds";
         public const string Destinations    = "cecho.destinations";
+    }
+
+    // ── PACS Destination ──────────────────────────────────────────────────────────
+    public static class PacsDestination
+    {
+        public const string Host    = "pacs_dest.host";
+        public const string Port    = "pacs_dest.port";
+        public const string AeTitle = "pacs_dest.ae_title";
     }
 
     // ── Node API ─────────────────────────────────────────────────────────────────

@@ -79,6 +79,18 @@ public static class HubPersistenceServiceCollectionExtensions
     }
 
     /// <summary>
+    /// Applies pending EF Core migrations for the Hub database.
+    /// Creates the database if it does not exist.
+    /// Safe to call on every startup — only pending migrations are applied.
+    /// </summary>
+    public static async Task MigrateHubAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
+        await ctx.Database.MigrateAsync(ct);
+    }
+
+    /// <summary>
     /// Seeds missing system settings on startup (safe for upgrades).
     /// Call after the database has been migrated.
     /// </summary>

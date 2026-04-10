@@ -15,6 +15,9 @@ public sealed class ConfigurationController(
     INodeSettingsService settingsService,
     ILogger<ConfigurationController> logger) : ControllerBase
 {
+    private const string ConfigSourceHub = "Hub";
+    private const string ConfigVersionDefault = "not-initialized";
+
     /// <summary>
     /// POST /api/configuration/apply — Receives a full configuration snapshot from the Hub.
     /// </summary>
@@ -45,7 +48,7 @@ public sealed class ConfigurationController(
             await settingsService.SetAsync(
                 NodeSettingKeys.System.LastConfigAppliedUtc, DateTime.UtcNow.ToString("O"), ct);
             await settingsService.SetAsync(
-                NodeSettingKeys.System.LastConfigSource, "Hub", ct);
+                NodeSettingKeys.System.LastConfigSource, ConfigSourceHub, ct);
 
             await settingsService.ReloadAsync(ct);
 
@@ -81,7 +84,7 @@ public sealed class ConfigurationController(
     public async Task<IActionResult> GetVersion(CancellationToken ct)
     {
         var version = await settingsService.GetAsync<string>(
-            NodeSettingKeys.System.ConfigVersion, "not-initialized", ct);
+            NodeSettingKeys.System.ConfigVersion, ConfigVersionDefault, ct);
 
         return Ok(new { configVersion = version });
     }
