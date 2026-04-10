@@ -15,29 +15,33 @@ using Dicom.Edge.Node.Worklist;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 
-BootstrapLogger.Initialize("logs/node-bootstrap-.log");
+BootstrapLogger.Initialize(NodeConstants.BootstrapLogPath);
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Configuration.AddJsonFile("appsettings.diagnostics.json", optional: true, reloadOnChange: true);
+    builder.Configuration.AddJsonFile(NodeConstants.DiagnosticsSettingsFile, optional: true, reloadOnChange: true);
 
-    // ── Resolve SQLite DB path (env var takes precedence) ────────────────
-    var dbPath = Environment.GetEnvironmentVariable(PersistenceExtensions.NodeDbPathEnvVar)
-        ?? builder.Configuration["Persistence:DatabasePath"]
-        ?? "edge-node.db";
-    var sqliteConnectionString = $"Data Source={dbPath}";
+    // ── Resolve SQLite connection string (env var → ConnectionStrings → default) ─
+    var sqliteConnectionString = Environment.GetEnvironmentVariable(PersistenceExtensions.NodeDbPathEnvVar)
+                                     is { Length: > 0 } envPath
+        ? $"Data Source={envPath}"
+        : builder.Configuration.GetConnectionString(NodeConstants.ConnectionStringName)
+          ?? NodeConstants.DefaultConnectionString;
 
     // ── Load operational settings from SQLite database ────────────────────
     builder.Configuration.AddNodeDatabaseConfiguration(sqliteConnectionString);
 
     // ── Kestrel configuration for Node API endpoints ─────────────────────
-    var nodeApiPort = builder.Configuration.GetValue("NodeApi:Port", 5120);
+    var nodeApiPort = builder.Configuration.GetValue(NodeConstants.NodeApiPortKey, NodeConstants.DefaultNodeApiPort);
     builder.WebHost.ConfigureKestrel(options =>
     {
         options.ListenAnyIP(nodeApiPort);
     });
+
+    // ── OpenAPI (document generation for Swagger UI) ─────────────────────
+    builder.Services.AddOpenApi();
 
     // ── Diagnostics (logging, OpenTelemetry, health checks) ──────────────
     builder.Host.UseEdgeLogging(builder.Configuration);
@@ -54,6 +58,9 @@ try
 
     // ── Work Queue (INodeWorkQueue placeholder / extensions) ─────────────
     builder.Services.AddNodeQueue();
+
+    // ── DICOM Instance Handler (C-STORE callback → save + enqueue) ─────
+    builder.Services.AddSingleton<Dicom.Edge.Node.DicomServer.IDicomInstanceHandler, DicomInstanceHandler>();
 
     // ── DICOM Server (C-STORE SCP + MWL C-FIND SCP) ─────────────────────
     builder.Services.AddNodeDicomServer(builder.Configuration);
@@ -82,6 +89,17 @@ try
     app.UseCorrelationId();
     app.UsePlatformExceptionHandling();
     app.MapDiagnosticsEndpoints();
+
+    // ── OpenAPI & Swagger UI (development only) ──────────────────────────
+    app.MapOpenApi();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/openapi/v1.json", "EdgeGuard Node API v1");
+        });
+    }
 
     // ── Map Node API endpoints ───────────────────────────────────────────
     app.MapNodeApi();

@@ -20,6 +20,8 @@ public static class NodeSettingKeys
         public const string Version      = SharedNodeSettingKeys.General.Version;
         public const string ContactEmail = SharedNodeSettingKeys.General.ContactEmail;
         public const string ContactPhone = SharedNodeSettingKeys.General.ContactPhone;
+        public const string IpAddress    = SharedNodeSettingKeys.General.IpAddress;
+        public const string ApiEndpoint  = SharedNodeSettingKeys.General.ApiEndpoint;
     }
 
     // ── Hub ───────────────────────────────────────────────────────────────────────
@@ -110,6 +112,14 @@ public static class NodeSettingKeys
         public const string Enabled         = SharedNodeSettingKeys.PacsCEcho.Enabled;
         public const string IntervalSeconds = SharedNodeSettingKeys.PacsCEcho.IntervalSeconds;
         public const string Destinations    = SharedNodeSettingKeys.PacsCEcho.Destinations;
+    }
+
+    // ── PACS Destination ──────────────────────────────────────────────────────────
+    public static class PacsDestination
+    {
+        public const string Host    = SharedNodeSettingKeys.PacsDestination.Host;
+        public const string Port    = SharedNodeSettingKeys.PacsDestination.Port;
+        public const string AeTitle = SharedNodeSettingKeys.PacsDestination.AeTitle;
     }
 
     // ── Node API ─────────────────────────────────────────────────────────────────

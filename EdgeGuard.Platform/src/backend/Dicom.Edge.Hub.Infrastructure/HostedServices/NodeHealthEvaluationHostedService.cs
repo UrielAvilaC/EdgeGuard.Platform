@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Domain.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,16 +8,16 @@ namespace Dicom.Edge.Hub.Infrastructure.HostedServices;
 
 public sealed class NodeHealthEvaluationHostedService : BackgroundService
 {
-    private readonly INodeHealthEvaluator _nodeHealthEvaluator;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<NodeHealthEvaluationHostedService> _logger;
     private readonly HubBackgroundJobsOptions _options;
 
     public NodeHealthEvaluationHostedService(
-        INodeHealthEvaluator nodeHealthEvaluator,
+        IServiceScopeFactory scopeFactory,
         IOptions<HubBackgroundJobsOptions> options,
         ILogger<NodeHealthEvaluationHostedService> logger)
     {
-        _nodeHealthEvaluator = nodeHealthEvaluator;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _options = options.Value;
     }
@@ -39,7 +40,9 @@ public sealed class NodeHealthEvaluationHostedService : BackgroundService
         {
             try
             {
-                await _nodeHealthEvaluator.EvaluateAllNodesAsync(stoppingToken);
+                using var scope = _scopeFactory.CreateScope();
+                var evaluator = scope.ServiceProvider.GetRequiredService<INodeHealthEvaluator>();
+                await evaluator.EvaluateAllNodesAsync(stoppingToken);
             }
             catch (OperationCanceledException)
             {

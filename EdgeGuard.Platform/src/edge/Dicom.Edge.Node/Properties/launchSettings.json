@@ -4,8 +4,12 @@
     "Dicom.Edge.Node": {
       "commandName": "Project",
       "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5120",
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+  "DOTNET_ENVIRONMENT": "Development"
       }
     }
   }

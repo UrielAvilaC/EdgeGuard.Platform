@@ -27,18 +27,28 @@ public static class PersistenceExtensions
     ///   <item><see cref="StudyCleanupService"/> BackgroundService.</item>
     ///   <item><see cref="PersistenceInitializerService"/> — runs seed check on startup.</item>
     /// </list>
-    /// Migrations are <strong>not</strong> applied automatically; run <c>dotnet ef database update</c> manually.
+    /// Pending migrations are applied automatically on startup by <see cref="PersistenceInitializerService"/>.
     /// </summary>
     public static IServiceCollection AddEdgePersistence(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Environment variable takes precedence over appsettings
-        var dbPath = Environment.GetEnvironmentVariable(NodeDbPathEnvVar)
-            ?? configuration["Persistence:DatabasePath"]
-            ?? "edge-node.db";
+        var connectionString = Environment.GetEnvironmentVariable(NodeDbPathEnvVar)
+                                   is { Length: > 0 } envPath
+            ? $"Data Source={envPath}"
+            : configuration.GetConnectionString(ConnectionStringName)
+              ?? DefaultConnectionString;
 
-        ConfigureDbContext(services, dbPath);
+        // Ensure the directory for the SQLite file exists
+        var builder = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(connectionString);
+        if (!string.IsNullOrEmpty(builder.DataSource))
+        {
+            var dir = Path.GetDirectoryName(Path.GetFullPath(builder.DataSource));
+            if (!string.IsNullOrEmpty(dir))
+                Directory.CreateDirectory(dir);
+        }
+
+        ConfigureDbContext(services, connectionString);
         RegisterInfrastructure(services);
         RegisterBackgroundServices(services);
         RegisterTracing(services);
@@ -46,18 +56,22 @@ public static class PersistenceExtensions
         return services;
     }
 
+    /// <summary>Name of the connection string in <c>ConnectionStrings</c> section.</summary>
+    public const string ConnectionStringName = "NodeDatabase";
+
+    /// <summary>Fallback SQLite connection string when nothing is configured.</summary>
+    public const string DefaultConnectionString = "Data Source=edge-node.db";
+
     /// <summary>
     /// Environment variable for the Node SQLite database file path.
-    /// Takes precedence over <c>Persistence:DatabasePath</c> in appsettings.
+    /// Takes precedence over <c>ConnectionStrings:NodeDatabase</c> in appsettings.
     /// </summary>
     public const string NodeDbPathEnvVar = "EDGEGUARD_NODE_DB_PATH";
 
     // ── DbContext ─────────────────────────────────────────────────────────────
 
-    private static void ConfigureDbContext(IServiceCollection services, string dbPath)
+    private static void ConfigureDbContext(IServiceCollection services, string connectionString)
     {
-        var connectionString = $"Data Source={dbPath}";
-
         void ConfigureOptions(DbContextOptionsBuilder opts) =>
             opts.UseSqlite(
                     connectionString,
@@ -78,7 +92,8 @@ public static class PersistenceExtensions
 
         // Scoped registration — used by repositories and UoW within request scopes.
         // Resolves from the pooled factory so both paths share the same pool.
-        services.AddDbContext<EdgeNodeDbContext>(ConfigureOptions);
+        services.AddScoped(sp =>
+            sp.GetRequiredService<IDbContextFactory<EdgeNodeDbContext>>().CreateDbContext());
     }
 
     // ── Infrastructure ────────────────────────────────────────────────────────
@@ -115,8 +130,7 @@ public static class PersistenceExtensions
 /// <summary>
 /// Startup-only hosted service that:
 /// <list type="number">
-///   <item>Ensures the SQLite database and schema exist (EnsureCreated for first deployment,
-///         then checks pending migrations for subsequent upgrades).</item>
+///   <item>Applies pending EF Core migrations (creates the SQLite database if it does not exist).</item>
 ///   <item>Runs <see cref="NodeSettingsSeed.SeedMissingAsync"/> to insert any new default settings.</item>
 ///   <item>Warms the <see cref="INodeSettingsService"/> in-memory cache via <see cref="INodeSettingsService.ReloadAsync"/>.</item>
 /// </list>
@@ -134,41 +148,22 @@ internal sealed class PersistenceInitializerService(
 
         await using var ctx = await factory.CreateDbContextAsync(cancellationToken);
 
-        // ── Phase 1: Ensure database & schema exist ──────────────────────────
-        // Edge Nodes deploy to remote sites without DBA access.
-        // EnsureCreated() is idempotent and won't modify an existing DB.
-        // For schema evolution we check pending migrations as a warning.
-        var created = await ctx.Database.EnsureCreatedAsync(cancellationToken);
-        if (created)
-        {
-            logger.LogInformation("SQLite database created and schema initialized");
-        }
-        else
-        {
-            // DB already existed — check migration drift
-            try
-            {
-                var pending = (await ctx.Database
-                    .GetPendingMigrationsAsync(cancellationToken)).ToList();
+        // ── Phase 1: Apply pending migrations (creates DB if it does not exist) ─
+        // MigrateAsync is idempotent: creates the database when absent,
+        // applies only pending migrations, and records them in __EFMigrationsHistory.
+        // Edge Nodes deploy to remote sites without DBA access, so auto-migration is required.
+        var pending = (await ctx.Database
+            .GetPendingMigrationsAsync(cancellationToken)).ToList();
 
-                if (pending.Count > 0)
-                {
-                    logger.LogWarning(
-                        "There are {Count} pending migration(s): [{Migrations}]. " +
-                        "Run 'dotnet ef database update' before starting the node.",
-                        pending.Count, string.Join(", ", pending));
-                }
-                else
-                {
-                    logger.LogDebug("Database schema is up to date");
-                }
-            }
-            catch (Exception ex)
-            {
-                // No migrations table yet (pre-migration deployment) — safe to ignore
-                logger.LogDebug(ex, "Migration check skipped (no migration history table)");
-            }
+        if (pending.Count > 0)
+        {
+            logger.LogInformation(
+                "Applying {Count} pending migration(s): [{Migrations}]",
+                pending.Count, string.Join(", ", pending));
         }
+
+        await ctx.Database.MigrateAsync(cancellationToken);
+        logger.LogInformation("Database schema is up to date");
 
         // ── Phase 2: Seed missing settings ───────────────────────────────────
         await NodeSettingsSeed.SeedMissingAsync(ctx, cancellationToken);

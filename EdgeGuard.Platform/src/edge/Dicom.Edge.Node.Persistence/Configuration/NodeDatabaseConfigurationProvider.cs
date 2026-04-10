@@ -28,7 +28,7 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             connection.Open();
 
             using var cmd = connection.CreateCommand();
-            cmd.CommandText = "SELECT key, value FROM node_settings";
+            cmd.CommandText = $"SELECT key, value FROM {Constants.TableNames.NodeSettings}";
 
             using var reader = cmd.ExecuteReader();
             var dbSettings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -42,9 +42,11 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
 
             MapNodeApi(dbSettings, data);
             MapHubConnection(dbSettings, data);
+            MapHubConnectionIdentity(dbSettings, data);
             MapDicomServer(dbSettings, data);
             MapPacsSender(dbSettings, data);
             MapPacsCEcho(dbSettings, data);
+            MapPacsDestination(dbSettings, data);
         }
         catch
         {
@@ -61,7 +63,7 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string> db,
         Dictionary<string, string?> cfg)
     {
-        Map(db, cfg, NodeSettingKeys.NodeApi.Port, "NodeApi:Port");
+        Map(db, cfg, NodeSettingKeys.NodeApi.Port, ConfigPaths.NodeApiPort);
     }
 
     // ── HubConnection ────────────────────────────────────────────────────────
@@ -70,13 +72,13 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string> db,
         Dictionary<string, string?> cfg)
     {
-        Map(db, cfg, NodeSettingKeys.Hub.Enabled,               "HubConnection:Enabled");
-        Map(db, cfg, NodeSettingKeys.Hub.ApiKey,                "HubConnection:ApiKey");
-        Map(db, cfg, NodeSettingKeys.Hub.TimeoutSeconds,        "HubConnection:TimeoutSeconds");
-        Map(db, cfg, NodeSettingKeys.Hub.HeartbeatIntervalSec,  "HubConnection:HeartbeatIntervalSeconds");
-        Map(db, cfg, NodeSettingKeys.Hub.RegisterOnStartup,     "HubConnection:RegisterOnStartup");
-        Map(db, cfg, NodeSettingKeys.Hub.MaxReconnectAttempts,   "HubConnection:MaxReconnectAttempts");
-        Map(db, cfg, NodeSettingKeys.Hub.ReconnectDelaySeconds,  "HubConnection:ReconnectDelaySeconds");
+        Map(db, cfg, NodeSettingKeys.Hub.Enabled,               ConfigPaths.HubEnabled);
+        Map(db, cfg, NodeSettingKeys.Hub.ApiKey,                ConfigPaths.HubApiKey);
+        Map(db, cfg, NodeSettingKeys.Hub.TimeoutSeconds,        ConfigPaths.HubTimeoutSeconds);
+        Map(db, cfg, NodeSettingKeys.Hub.HeartbeatIntervalSec,  ConfigPaths.HubHeartbeatIntervalSeconds);
+        Map(db, cfg, NodeSettingKeys.Hub.RegisterOnStartup,     ConfigPaths.HubRegisterOnStartup);
+        Map(db, cfg, NodeSettingKeys.Hub.MaxReconnectAttempts,   ConfigPaths.HubMaxReconnectAttempts);
+        Map(db, cfg, NodeSettingKeys.Hub.ReconnectDelaySeconds,  ConfigPaths.HubReconnectDelaySeconds);
 
         // Compose HubBaseUrl from individual DB keys
         if (db.TryGetValue(NodeSettingKeys.Hub.Protocol, out var protocol) &&
@@ -84,17 +86,33 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             !string.IsNullOrWhiteSpace(hostname))
         {
             var port = db.TryGetValue(NodeSettingKeys.Hub.Port, out var portStr)
-                ? portStr : "443";
+                ? portStr : ConfigDefaults.HubPort;
 
-            cfg["HubConnection:HubBaseUrl"] = $"{protocol}://{hostname}:{port}";
+            cfg[ConfigPaths.HubBaseUrl] = $"{protocol}://{hostname}:{port}";
         }
 
         // Map config pull interval (stored as minutes in DB, seconds in Options)
         if (db.TryGetValue(NodeSettingKeys.Hub.PullConfigIntervalMin, out var pullMin) &&
             int.TryParse(pullMin, out var minutes))
         {
-            cfg["HubConnection:ConfigPullIntervalSeconds"] = (minutes * 60).ToString();
+            cfg[ConfigPaths.HubConfigPullIntervalSeconds] = (minutes * 60).ToString();
         }
+    }
+
+    // ── HubConnection identity (General + Dicom → HubConnection:*) ────────
+
+    private static void MapHubConnectionIdentity(
+        Dictionary<string, string> db,
+        Dictionary<string, string?> cfg)
+    {
+        Map(db, cfg, NodeSettingKeys.General.NodeName,     ConfigPaths.HubNodeName);
+        Map(db, cfg, NodeSettingKeys.General.AeTitle,      ConfigPaths.HubAeTitle);
+        Map(db, cfg, NodeSettingKeys.General.IpAddress,    ConfigPaths.HubIpAddress);
+        Map(db, cfg, NodeSettingKeys.Dicom.Port,           ConfigPaths.HubPort);
+        Map(db, cfg, NodeSettingKeys.General.ApiEndpoint,  ConfigPaths.HubApiEndpoint);
+        Map(db, cfg, NodeSettingKeys.General.Location,     ConfigPaths.HubLocation);
+        Map(db, cfg, NodeSettingKeys.General.FacilityName, ConfigPaths.HubFacilityName);
+        Map(db, cfg, NodeSettingKeys.General.Version,      ConfigPaths.HubVersion);
     }
 
     // ── DicomServer ──────────────────────────────────────────────────────────
@@ -103,18 +121,18 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string> db,
         Dictionary<string, string?> cfg)
     {
-        Map(db, cfg, NodeSettingKeys.Dicom.Enabled,              "DicomServer:Enabled");
-        Map(db, cfg, NodeSettingKeys.Dicom.AeTitle,              "DicomServer:AeTitle");
-        Map(db, cfg, NodeSettingKeys.Dicom.Port,                 "DicomServer:Port");
-        Map(db, cfg, NodeSettingKeys.Dicom.MaxAssociations,      "DicomServer:MaxClients");
-        Map(db, cfg, NodeSettingKeys.Dicom.AssociationTimeoutSec,"DicomServer:AssociationTimeoutSeconds");
-        Map(db, cfg, NodeSettingKeys.Dicom.DimseTimeoutSec,      "DicomServer:DimseTimeoutSeconds");
-        Map(db, cfg, NodeSettingKeys.Dicom.MaxPduLength,         "DicomServer:MaxPduLength");
-        Map(db, cfg, NodeSettingKeys.Dicom.MwlEnabled,           "DicomServer:MwlEnabled");
+        Map(db, cfg, NodeSettingKeys.Dicom.Enabled,              ConfigPaths.DicomEnabled);
+        Map(db, cfg, NodeSettingKeys.Dicom.AeTitle,              ConfigPaths.DicomAeTitle);
+        Map(db, cfg, NodeSettingKeys.Dicom.Port,                 ConfigPaths.DicomPort);
+        Map(db, cfg, NodeSettingKeys.Dicom.MaxAssociations,      ConfigPaths.DicomMaxClients);
+        Map(db, cfg, NodeSettingKeys.Dicom.AssociationTimeoutSec,ConfigPaths.DicomAssociationTimeout);
+        Map(db, cfg, NodeSettingKeys.Dicom.DimseTimeoutSec,      ConfigPaths.DicomDimseTimeout);
+        Map(db, cfg, NodeSettingKeys.Dicom.MaxPduLength,         ConfigPaths.DicomMaxPduLength);
+        Map(db, cfg, NodeSettingKeys.Dicom.MwlEnabled,           ConfigPaths.DicomMwlEnabled);
 
         // AllowedCallingAeTitles is stored as JSON array — map to indexed IConfiguration keys
         if (db.TryGetValue(NodeSettingKeys.Dicom.AllowedAeTitles, out var aeTitlesJson) &&
-            !string.IsNullOrWhiteSpace(aeTitlesJson) && aeTitlesJson != "[]")
+            !string.IsNullOrWhiteSpace(aeTitlesJson) && aeTitlesJson != ConfigDefaults.EmptyJsonArray)
         {
             try
             {
@@ -122,7 +140,7 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
                 if (titles is { Length: > 0 })
                 {
                     for (var i = 0; i < titles.Length; i++)
-                        cfg[$"DicomServer:AllowedCallingAeTitles:{i}"] = titles[i];
+                        cfg[$"{ConfigPaths.DicomAllowedCallingPrefix}:{i}"] = titles[i];
                 }
             }
             catch { /* malformed JSON — skip */ }
@@ -135,13 +153,13 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string> db,
         Dictionary<string, string?> cfg)
     {
-        Map(db, cfg, NodeSettingKeys.PacsSender.Enabled,                   "PacsSender:Enabled");
-        Map(db, cfg, NodeSettingKeys.PacsSender.LocalAeTitle,              "PacsSender:LocalAeTitle");
-        Map(db, cfg, NodeSettingKeys.PacsSender.MaxConcurrentSends,        "PacsSender:MaxConcurrentSends");
-        Map(db, cfg, NodeSettingKeys.PacsSender.TimeoutSeconds,            "PacsSender:TimeoutSeconds");
-        Map(db, cfg, NodeSettingKeys.PacsSender.MaxRetries,                "PacsSender:MaxRetries");
-        Map(db, cfg, NodeSettingKeys.PacsSender.RetryBaseDelaySeconds,     "PacsSender:RetryBaseDelaySeconds");
-        Map(db, cfg, NodeSettingKeys.PacsSender.ProcessingIntervalSeconds, "PacsSender:ProcessingIntervalSeconds");
+        Map(db, cfg, NodeSettingKeys.PacsSender.Enabled,                   ConfigPaths.PacsSenderEnabled);
+        Map(db, cfg, NodeSettingKeys.PacsSender.LocalAeTitle,              ConfigPaths.PacsSenderLocalAeTitle);
+        Map(db, cfg, NodeSettingKeys.PacsSender.MaxConcurrentSends,        ConfigPaths.PacsSenderMaxConcurrentSends);
+        Map(db, cfg, NodeSettingKeys.PacsSender.TimeoutSeconds,            ConfigPaths.PacsSenderTimeoutSeconds);
+        Map(db, cfg, NodeSettingKeys.PacsSender.MaxRetries,                ConfigPaths.PacsSenderMaxRetries);
+        Map(db, cfg, NodeSettingKeys.PacsSender.RetryBaseDelaySeconds,     ConfigPaths.PacsSenderRetryBaseDelaySeconds);
+        Map(db, cfg, NodeSettingKeys.PacsSender.ProcessingIntervalSeconds, ConfigPaths.PacsSenderProcessingIntervalSeconds);
     }
 
     // ── PacsCEcho ────────────────────────────────────────────────────────────
@@ -150,12 +168,12 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string> db,
         Dictionary<string, string?> cfg)
     {
-        Map(db, cfg, NodeSettingKeys.PacsCEcho.Enabled,         "PacsCEcho:Enabled");
-        Map(db, cfg, NodeSettingKeys.PacsCEcho.IntervalSeconds, "PacsCEcho:IntervalSeconds");
+        Map(db, cfg, NodeSettingKeys.PacsCEcho.Enabled,         ConfigPaths.PacsCEchoEnabled);
+        Map(db, cfg, NodeSettingKeys.PacsCEcho.IntervalSeconds, ConfigPaths.PacsCEchoIntervalSeconds);
 
         // Destinations is stored as JSON array of objects — map to indexed IConfiguration keys
         if (db.TryGetValue(NodeSettingKeys.PacsCEcho.Destinations, out var destJson) &&
-            !string.IsNullOrWhiteSpace(destJson) && destJson != "[]")
+            !string.IsNullOrWhiteSpace(destJson) && destJson != ConfigDefaults.EmptyJsonArray)
         {
             try
             {
@@ -167,7 +185,7 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
                     for (var i = 0; i < destinations.Length; i++)
                     {
                         var dest = destinations[i];
-                        var prefix = $"PacsCEcho:Destinations:{i}";
+                        var prefix = $"{ConfigPaths.PacsCEchoDestinations}:{i}";
 
                         if (dest.TryGetProperty("Id", out var id))
                             cfg[$"{prefix}:Id"] = id.GetString();
@@ -184,6 +202,17 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             }
             catch { /* malformed JSON — skip */ }
         }
+    }
+
+    // ── PacsDestination ──────────────────────────────────────────────────────
+
+    private static void MapPacsDestination(
+        Dictionary<string, string> db,
+        Dictionary<string, string?> cfg)
+    {
+        Map(db, cfg, NodeSettingKeys.PacsDestination.Host,    ConfigPaths.PacsDestinationHost);
+        Map(db, cfg, NodeSettingKeys.PacsDestination.Port,    ConfigPaths.PacsDestinationPort);
+        Map(db, cfg, NodeSettingKeys.PacsDestination.AeTitle, ConfigPaths.PacsDestinationAeTitle);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

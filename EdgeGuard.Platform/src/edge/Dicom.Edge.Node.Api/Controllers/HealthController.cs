@@ -13,6 +13,8 @@ namespace Dicom.Edge.Node.Api.Controllers;
 public sealed class HealthController(
     IWorklistManager worklistManager) : ControllerBase
 {
+    private const string StatusHealthy = "Healthy";
+
     /// <summary>
     /// GET /api/health — Returns node health status.
     /// </summary>
@@ -23,7 +25,7 @@ public sealed class HealthController(
 
         var response = new NodeHealthResponse
         {
-            Status = "Healthy",
+            Status = StatusHealthy,
             TimestampUtc = DateTime.UtcNow,
             NodeName = Environment.MachineName,
             ActiveWorklistItems = activeItems,
