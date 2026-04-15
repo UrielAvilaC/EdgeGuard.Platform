@@ -5,6 +5,7 @@ using Dicom.Edge.Hub.Infrastructure.Constants;
 using Dicom.Edge.Hub.Infrastructure.HostedServices;
 using Dicom.Edge.Hub.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 
 namespace Dicom.Edge.Hub.Infrastructure.Extensions;
 
@@ -24,11 +25,13 @@ public static class Hl7InfrastructureExtensions
         services.AddSingleton<IHl7Listener, Hl7TcpListener>();
         services.AddHostedService<Hl7ListenerHostedService>();
 
-        // HTTP client for dispatching to nodes
+        // HTTP client for dispatching to nodes — with standard resilience (retry + circuit breaker)
         services.AddHttpClient(DispatchConstants.HttpClientName, client =>
         {
             client.Timeout = TimeSpan.FromSeconds(DispatchConstants.DefaultTimeoutSeconds);
-        });
+        })
+        .AddStandardResilienceHandler();
+
         services.AddScoped<INodeDispatcher, NodeHttpDispatcher>();
 
         // Node configuration push service

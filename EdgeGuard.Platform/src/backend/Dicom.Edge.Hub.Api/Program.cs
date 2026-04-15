@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Dicom.Edge.Common.Resilience;
 using Dicom.Edge.Diagnostics.Bootstrap;
 using Dicom.Edge.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Api.Constants;
@@ -74,6 +75,9 @@ try
 
     // Enterprise diagnostics (PHI redaction, audit, health checks, OTel)
     builder.Services.AddHubDiagnostics(builder.Configuration);
+
+    // Platform resilience pipelines (retry + circuit breaker via Polly v8)
+    builder.Services.AddPlatformResilience(builder.Configuration);
 
     // Clean Architecture service registration
     builder.Services.AddHubPersistence(builder.Configuration);

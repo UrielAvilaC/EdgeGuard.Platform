@@ -8,6 +8,7 @@ using Dicom.Edge.Node.Persistence.Services;
 using Dicom.Edge.Node.Persistence.Seed;
 using Dicom.Edge.Node.Persistence.UnitOfWork;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Trace;
 
 namespace Dicom.Edge.Node.Persistence.Extensions;
@@ -52,6 +53,13 @@ public static class PersistenceExtensions
         RegisterInfrastructure(services);
         RegisterBackgroundServices(services);
         RegisterTracing(services);
+
+        // Database health check (readiness probe)
+        services.AddHealthChecks()
+            .AddDbContextCheck<EdgeNodeDbContext>(
+                "database",
+                HealthStatus.Unhealthy,
+                ["ready", "database"]);
 
         return services;
     }

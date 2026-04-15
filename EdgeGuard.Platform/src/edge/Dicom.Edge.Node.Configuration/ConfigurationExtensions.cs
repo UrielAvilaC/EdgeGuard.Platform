@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 
 namespace Dicom.Edge.Node.Configuration;
 
@@ -25,7 +26,8 @@ public static class ConfigurationExtensions
             client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
             if (!string.IsNullOrEmpty(opts.ApiKey))
                 client.DefaultRequestHeaders.Add(ApiKeyHeaderName, opts.ApiKey);
-        });
+        })
+        .AddStandardResilienceHandler();
 
         services.AddHostedService<HubConfigSyncHostedService>();
 

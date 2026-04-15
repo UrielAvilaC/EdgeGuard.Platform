@@ -1,4 +1,5 @@
 using Dicom.Edge.Node;
+using Dicom.Edge.Common.Resilience;
 using Dicom.Edge.Diagnostics.Bootstrap;
 using Dicom.Edge.Diagnostics.Extensions;
 using Dicom.Edge.Node.Api;
@@ -20,7 +21,6 @@ BootstrapLogger.Initialize(NodeConstants.BootstrapLogPath);
 try
 {
     var builder = WebApplication.CreateBuilder(args);
-
     builder.Configuration.AddJsonFile(NodeConstants.DiagnosticsSettingsFile, optional: true, reloadOnChange: true);
 
     // ── Resolve SQLite connection string (env var → ConnectionStrings → default) ─
@@ -47,6 +47,9 @@ try
     builder.Host.UseEdgeLogging(builder.Configuration);
     builder.Services.AddEdgeDiagnostics(builder.Configuration);
 
+    // ── Platform resilience pipelines (retry + circuit breaker via Polly v8) ─
+    builder.Services.AddPlatformResilience(builder.Configuration);
+
     // ── Persistence (SQLite EF Core, repos, settings, cleanup) ───────────
     builder.Services.AddEdgePersistence(builder.Configuration);
 
@@ -60,7 +63,7 @@ try
     builder.Services.AddNodeQueue();
 
     // ── DICOM Instance Handler (C-STORE callback → save + enqueue) ─────
-    builder.Services.AddSingleton<Dicom.Edge.Node.DicomServer.IDicomInstanceHandler, DicomInstanceHandler>();
+    builder.Services.AddSingleton<IDicomInstanceHandler, DicomInstanceHandler>();
 
     // ── DICOM Server (C-STORE SCP + MWL C-FIND SCP) ─────────────────────
     builder.Services.AddNodeDicomServer(builder.Configuration);

@@ -19,6 +19,7 @@ using Dicom.Edge.Hub.Persistence.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Dicom.Edge.Hub.Persistence.Extensions;
 
@@ -74,6 +75,13 @@ public static class HubPersistenceServiceCollectionExtensions
 
         // Node configuration profiles
         services.AddScoped<INodeConfigurationProfileRepository, NodeConfigurationProfileRepository>();
+
+        // Database health check (readiness probe)
+        services.AddHealthChecks()
+            .AddDbContextCheck<HubDbContext>(
+                "database",
+                HealthStatus.Unhealthy,
+                ["ready", "database"]);
 
         return services;
     }

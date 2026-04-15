@@ -28,6 +28,9 @@ public static class HealthCheckConstants
     /// <summary>Tag for HL7-related health checks.</summary>
     public const string Hl7Tag = "hl7";
 
+    /// <summary>Tag for database-related health checks.</summary>
+    public const string DatabaseTag = "database";
+
     // ==================== Check Names ====================
 
     /// <summary>Registered name for the storage health check.</summary>
@@ -38,6 +41,9 @@ public static class HealthCheckConstants
 
     /// <summary>Registered name for the HL7 listener health check.</summary>
     public const string Hl7ListenerCheckName = "hl7-listener";
+
+    /// <summary>Registered name for the database health check.</summary>
+    public const string DatabaseCheckName = "database";
 
     // ==================== Descriptors ====================
 
