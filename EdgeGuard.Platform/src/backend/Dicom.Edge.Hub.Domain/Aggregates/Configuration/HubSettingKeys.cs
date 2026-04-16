@@ -43,10 +43,10 @@ public static class HubSettingKeys
     public static class WhatsApp
     {
         public const string Enabled = "whatsapp.enabled";
-        public const string AutoSendOnOru = "whatsapp.auto_send_on_oru";
-        public const string RequirePacsLink = "whatsapp.require_pacs_link";
-        public const string ApiBaseUrl = "whatsapp.api_base_url";
-        public const string DefaultMessageTemplate = "whatsapp.default_message_template";
+        public const string EnableAutomaticDelivery = "whatsapp.enable_automatic_delivery";
+        public const string Provider = "whatsapp.provider";
+        public const string ProviderConfig = "whatsapp.provider_config";
+        public const string DefaultCountryPrefix = "whatsapp.default_country_prefix";
         public const string RetryMaxAttempts = "whatsapp.retry_max_attempts";
         public const string RetryDelaySeconds = "whatsapp.retry_delay_seconds";
     }

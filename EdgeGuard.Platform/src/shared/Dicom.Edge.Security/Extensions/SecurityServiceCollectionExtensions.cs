@@ -1,5 +1,7 @@
 ﻿using Dicom.Edge.Security.Authentication;
 using Dicom.Edge.Security.Authorization;
+using Dicom.Edge.Security.Cryptography;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,6 +32,11 @@ namespace Dicom.Edge.Security.Extensions
 
             // Register authorization service
             services.AddSingleton<IAuthorizationService, AuthorizationService>();
+
+            // Data Protection + setting encryption
+            services.AddDataProtection()
+                .SetApplicationName("EdgeGuard.Platform");
+            services.AddSingleton<ISettingEncryptionService, DataProtectionSettingEncryptionService>();
 
             return services;
         }

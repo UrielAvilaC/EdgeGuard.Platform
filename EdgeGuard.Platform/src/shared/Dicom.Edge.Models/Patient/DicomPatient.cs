@@ -235,6 +235,16 @@
         // ==================== Additional Clinical Information ====================
 
         /// <summary>
+        /// Gets or sets the patient phone number extracted from PID-13 / PID-14.
+        /// </summary>
+        public string? PhoneNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the patient email extracted from PID-13 repetitions.
+        /// </summary>
+        public string? Email { get; set; }
+
+        /// <summary>
         /// Gets or sets patient allergies for safety protocols.
         /// </summary>
         /// <remarks>

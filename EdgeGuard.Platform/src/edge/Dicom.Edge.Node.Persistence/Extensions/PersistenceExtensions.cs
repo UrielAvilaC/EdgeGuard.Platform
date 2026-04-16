@@ -7,6 +7,9 @@ using Dicom.Edge.Node.Persistence.Repositories;
 using Dicom.Edge.Node.Persistence.Services;
 using Dicom.Edge.Node.Persistence.Seed;
 using Dicom.Edge.Node.Persistence.UnitOfWork;
+using Dicom.Edge.Node.Queue;
+using Dicom.Edge.Node.Router;
+using Dicom.Edge.Node.Worklist;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Trace;
@@ -112,6 +115,8 @@ public static class PersistenceExtensions
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddSingleton<INodeSettingsService, NodeSettingsService>();
         services.AddSingleton<IEdgeQueue<EdgeQueueItem>, SqliteEdgeQueue>();
+        services.AddSingleton<INodeWorkQueue, SqliteNodeWorkQueue>();
+        services.AddSingleton<IWorklistManager, SqliteWorklistManager>();
         services.AddSingleton<IEventBus, InMemoryEventBus>();
     }
 
@@ -122,6 +127,7 @@ public static class PersistenceExtensions
         services.AddHostedService<PersistenceInitializerService>();
         services.AddHostedService<StudyCompletionWatcherService>();
         services.AddHostedService<StudyCleanupService>();
+        services.AddHostedService<RoutingRuleLoaderService>();
     }
 
     // ── OpenTelemetry tracing ─────────────────────────────────────────────────

@@ -59,7 +59,7 @@ try
     // ── Hub Configuration Sync (HTTP client, config pull, heartbeat) ─────
     builder.Services.AddNodeConfiguration(builder.Configuration);
 
-    // ── Work Queue (INodeWorkQueue placeholder / extensions) ─────────────
+    // ── Work Queue (INodeWorkQueue — backed by Persistence layer) ─────────
     builder.Services.AddNodeQueue();
 
     // ── DICOM Instance Handler (C-STORE callback → save + enqueue) ─────
@@ -77,7 +77,7 @@ try
     // ── Study Processing Pipeline (dequeue → route → send) ──────────────
     builder.Services.AddNodeProcessing();
 
-    // ── Worklist (in-memory HL7 worklist manager) ────────────────────────
+    // ── Worklist (SQLite-backed, fallback to in-memory) ───────────────────
     builder.Services.AddNodeWorklist();
 
     // ── Node API (controllers for Hub→Node HTTP push) ────────────────────

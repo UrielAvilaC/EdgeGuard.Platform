@@ -14,17 +14,20 @@ public class Hl7MessageProcessor : IHl7MessageProcessor
     private readonly IHl7MessageRepository _repository;
     private readonly IHl7ValidationService _validationService;
     private readonly IHl7RoutingEngine _routingEngine;
+    private readonly IHl7PatientSyncService _patientSyncService;
     private readonly ILogger<Hl7MessageProcessor> _logger;
 
     public Hl7MessageProcessor(
         IHl7MessageRepository repository,
         IHl7ValidationService validationService,
         IHl7RoutingEngine routingEngine,
+        IHl7PatientSyncService patientSyncService,
         ILogger<Hl7MessageProcessor> logger)
     {
         _repository = repository;
         _validationService = validationService;
         _routingEngine = routingEngine;
+        _patientSyncService = patientSyncService;
         _logger = logger;
     }
 
@@ -63,6 +66,16 @@ public class Hl7MessageProcessor : IHl7MessageProcessor
                 _logger.LogWarning(
                     "Validation warnings for {MessageId}: {Warnings}",
                     message.Id, string.Join("; ", validation.Warnings));
+            }
+
+            // ── Step 1.5: Sync patient from HL7 PID ──────────────────────────
+            try
+            {
+                await _patientSyncService.SyncFromHl7Async(message, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Patient sync failed for {MessageId}, continuing pipeline", message.Id);
             }
 
             // ── Step 2: Route to target node ──────────────────────────────────

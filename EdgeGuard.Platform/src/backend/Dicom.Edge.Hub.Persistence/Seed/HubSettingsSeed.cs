@@ -79,13 +79,13 @@ public static class HubSettingsSeed
         Row(HubSettingKeys.General.Environment,           "Production",     Cat.General,  "Environment",          VT.String),
 
         // ── WhatsApp ────────────────────────────────────────────────────────
-        Row(HubSettingKeys.WhatsApp.Enabled,                 "false",  Cat.WhatsApp, "WhatsApp Enabled",                VT.Bool),
-        Row(HubSettingKeys.WhatsApp.AutoSendOnOru,           "false",  Cat.WhatsApp, "Auto Send on ORU",                VT.Bool),
-        Row(HubSettingKeys.WhatsApp.RequirePacsLink,         "true",   Cat.WhatsApp, "Require PACS Link",               VT.Bool),
-        Row(HubSettingKeys.WhatsApp.ApiBaseUrl,              "",       Cat.WhatsApp, "API Base URL",                    VT.String),
-        Row(HubSettingKeys.WhatsApp.DefaultMessageTemplate,  "",       Cat.WhatsApp, "Default Message Template",        VT.String),
-        Row(HubSettingKeys.WhatsApp.RetryMaxAttempts,        "3",      Cat.WhatsApp, "Retry Max Attempts",              VT.Int),
-        Row(HubSettingKeys.WhatsApp.RetryDelaySeconds,       "60",     Cat.WhatsApp, "Retry Delay (sec)",               VT.Int),
+        Row(HubSettingKeys.WhatsApp.Enabled,                    "false",   Cat.WhatsApp, "WhatsApp Enabled",              VT.Bool),
+        Row(HubSettingKeys.WhatsApp.EnableAutomaticDelivery,    "false",   Cat.WhatsApp, "Enable Automatic Delivery",     VT.Bool),
+        Row(HubSettingKeys.WhatsApp.Provider,                   "Twilio",  Cat.WhatsApp, "Messaging Provider",            VT.String),
+        EncRow(HubSettingKeys.WhatsApp.ProviderConfig,          "{}",      Cat.WhatsApp, "Provider Configuration (JSON)", VT.String),
+        Row(HubSettingKeys.WhatsApp.DefaultCountryPrefix,       "+521",    Cat.WhatsApp, "Default Country Prefix",        VT.String),
+        Row(HubSettingKeys.WhatsApp.RetryMaxAttempts,           "3",       Cat.WhatsApp, "Retry Max Attempts",            VT.Int),
+        Row(HubSettingKeys.WhatsApp.RetryDelaySeconds,          "60",      Cat.WhatsApp, "Retry Delay (sec)",             VT.Int),
 
         // ── Background Jobs ──────────────────────────────────────────────────
         Row(HubSettingKeys.BackgroundJobs.EnableNodeHealth,          "true",   Cat.Jobs,      "Enable Node Health Evaluator",         VT.Bool),
@@ -113,6 +113,14 @@ public static class HubSettingsSeed
         string valueType,
         bool readOnly = false) =>
         SystemSetting.Create(key, value, category, displayName, valueType, isReadOnly: readOnly);
+
+    private static SystemSetting EncRow(
+        string key,
+        string value,
+        string category,
+        string displayName,
+        string valueType) =>
+        SystemSetting.Create(key, value, category, displayName, valueType, isEncrypted: true);
 
     // ── Aliases for cleaner seed table ────────────────────────────────────────
     private static class Cat

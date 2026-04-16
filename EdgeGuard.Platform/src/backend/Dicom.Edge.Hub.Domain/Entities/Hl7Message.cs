@@ -28,6 +28,10 @@ public class Hl7Message
     public string? PatientName { get; private set; }
     public string? AccessionNumber { get; private set; }
     public string? Hl7Version { get; private set; }
+    public string? PatientPhone { get; private set; }
+    public string? PatientEmail { get; private set; }
+    public string? PatientSex { get; private set; }
+    public string? PatientBirthDate { get; private set; }
 
     // ── Dispatch lifecycle ────────────────────────────────────────────────────
     public Hl7DispatchStatus DispatchStatus { get; private set; }
@@ -64,6 +68,10 @@ public class Hl7Message
             PatientId = ExtractField(cleanContent, "PID", 3),
             PatientName = ExtractField(cleanContent, "PID", 5),
             AccessionNumber = ExtractField(cleanContent, "OBR", 18),
+            PatientPhone = ExtractPhoneFromPid(cleanContent),
+            PatientEmail = ExtractEmailFromPid(cleanContent),
+            PatientSex = ExtractField(cleanContent, "PID", 8),
+            PatientBirthDate = ExtractField(cleanContent, "PID", 7),
             ReceivedAt = DateTime.UtcNow,
             ClientEndpoint = clientEndpoint,
             ReceivedOnPort = receivedOnPort,
@@ -179,6 +187,78 @@ public class Hl7Message
         if (msgType is null) return null;
         var parts = msgType.Split('^');
         return parts.Length > 1 ? parts[1] : null;
+    }
+
+    /// <summary>
+    /// Extracts a sub-component from an HL7 field.
+    /// Fields: |, Components: ^, Repetitions: ~
+    /// </summary>
+    private static string? ExtractSubField(string content, string segmentId,
+        int fieldIndex, int componentIndex = 0, int repetitionIndex = 0)
+    {
+        var field = ExtractField(content, segmentId, fieldIndex);
+        if (field is null) return null;
+
+        var repetitions = field.Split('~');
+        if (repetitionIndex >= repetitions.Length) return null;
+
+        var components = repetitions[repetitionIndex].Split('^');
+        return components.Length > componentIndex ? NullIfEmpty(components[componentIndex]) : null;
+    }
+
+    /// <summary>
+    /// Extracts phone from PID-13 component 1 (first repetition that is NOT an email).
+    /// Falls back to PID-14 component 1.
+    /// </summary>
+    private static string? ExtractPhoneFromPid(string content)
+    {
+        var pid13 = ExtractField(content, "PID", 13);
+        if (pid13 is not null)
+        {
+            foreach (var repetition in pid13.Split('~'))
+            {
+                var comp1 = NullIfEmpty(repetition.Split('^')[0]);
+                if (comp1 is not null && !comp1.Contains('@'))
+                    return comp1;
+            }
+        }
+
+        return ExtractSubField(content, "PID", 14, componentIndex: 0);
+    }
+
+    /// <summary>
+    /// Scans all PID-13 repetitions for an email address.
+    /// Checks component 4 (index 3) for @, or component 1 when telecom type is "Internet"/"NET".
+    /// </summary>
+    private static string? ExtractEmailFromPid(string content)
+    {
+        var field = ExtractField(content, "PID", 13);
+        if (field is null) return null;
+
+        foreach (var repetition in field.Split('~'))
+        {
+            var components = repetition.Split('^');
+
+            // Check component 4 (index 3) — email address subcomponent
+            if (components.Length > 3)
+            {
+                var comp4 = NullIfEmpty(components[3]);
+                if (comp4 is not null && comp4.Contains('@'))
+                    return comp4;
+            }
+
+            // Check component 1 with telecom type "Internet"/"NET" (component 3, index 2)
+            if (components.Length > 2)
+            {
+                var telecomType = NullIfEmpty(components[2]);
+                var value = NullIfEmpty(components[0]);
+                if (value is not null && value.Contains('@') &&
+                    telecomType is "Internet" or "NET")
+                    return value;
+            }
+        }
+
+        return null;
     }
 
     private static string? NullIfEmpty(string? value) =>

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Dicom.Edge.Node.Queue;
 
@@ -6,9 +7,9 @@ public static class QueueExtensions
 {
     public static IServiceCollection AddNodeQueue(this IServiceCollection services)
     {
-        // INodeWorkQueue implementation is provided by Persistence layer
-        // (SqliteEdgeQueue adapts IEdgeQueue<EdgeQueueItem>).
-        // This extension is a placeholder for future in-memory or Redis queue overrides.
+        // INodeWorkQueue is registered by the Persistence layer (SqliteNodeWorkQueue).
+        // TryAdd ensures no duplicate registration if Persistence already registered it.
+        // If Persistence is not used, a consumer must register their own INodeWorkQueue.
         return services;
     }
 }

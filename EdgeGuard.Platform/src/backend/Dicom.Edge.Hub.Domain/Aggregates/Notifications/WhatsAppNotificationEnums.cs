@@ -19,3 +19,38 @@ public enum WhatsAppTriggerSource
     Automatic,
     Manual
 }
+
+/// <summary>
+/// Supported messaging providers for WhatsApp delivery.
+/// </summary>
+public enum MessagingProvider
+{
+    Twilio,
+    Meta
+}
+
+/// <summary>
+/// Well-known variable tags that can be used in WhatsApp content templates.
+/// Each tag is resolved at send-time from the study/patient context.
+/// </summary>
+public static class WhatsAppTemplateTags
+{
+    public const string AccessionNumber = "accessionNumber";
+    public const string PatientCode = "patientCode";
+    public const string PatientName = "patientName";
+    public const string StudyDate = "studyDate";
+    public const string AppointmentDate = "appointmentDate";
+    public const string StudyDescription = "studyDescription";
+    public const string Modality = "modality";
+    public const string ReferringPhysician = "referringPhysician";
+    public const string InstitutionName = "institutionName";
+    public const string PacsViewerLink = "pacsViewerLink";
+    public const string ImagesUrl = "imagesUrl";
+
+    public static IReadOnlyList<string> All =>
+    [
+        AccessionNumber, PatientCode, PatientName, StudyDate,
+        AppointmentDate, StudyDescription, Modality,
+        ReferringPhysician, InstitutionName, PacsViewerLink, ImagesUrl
+    ];
+}

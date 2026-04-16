@@ -1,44 +1,76 @@
 using Dicom.Edge.Abstractions.Events;
-using Microsoft.Extensions.DependencyInjection;
+using Dicom.Edge.Node.Queue;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Node.Processing;
 
 /// <summary>
-/// Background service that listens for <c>StudyCompletedEvent</c> and runs each
-/// study through the processing pipeline (route → send → notify).
+/// Background service that polls the persistent <see cref="INodeWorkQueue"/> for completed
+/// studies and runs each through the processing pipeline (route → send → notify).
 /// </summary>
+/// <remarks>
+/// <para>
+/// <strong>Architecture:</strong> The <see cref="StudyCompletionEnqueueHandler"/> listens for
+/// <see cref="Abstractions.Events.StudyCompletedEvent"/> (published by the Persistence layer's
+/// <c>StudyCompletionWatcherService</c>) and writes a durable <see cref="NodeWorkItem"/> into the
+/// SQLite-backed work queue. This service then dequeues and processes items, ensuring nothing
+/// is lost on crash or restart.
+/// </para>
+/// </remarks>
 public sealed class StudyProcessingHostedService(
     IStudyPipeline pipeline,
+    INodeWorkQueue workQueue,
     IEventBus eventBus,
     ILogger<StudyProcessingHostedService> logger) : BackgroundService
 {
-    private readonly Queue<string> _pendingStudies = new();
-    private readonly SemaphoreSlim _signal = new(0);
+    /// <summary>
+    /// Interval between queue polls when the queue is empty.
+    /// </summary>
+    private static readonly TimeSpan IdlePollInterval = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Short delay between consecutive dequeues to avoid tight-looping.
+    /// </summary>
+    private static readonly TimeSpan BusyPollInterval = TimeSpan.FromMilliseconds(200);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Study processing hosted service started");
+        logger.LogInformation("Study processing hosted service started (persistent queue mode)");
 
-        eventBus.Subscribe<StudyCompletedEvent>(new StudyCompletedHandler(this));
+        // Subscribe to completion events to enqueue work items into the persistent queue
+        eventBus.Subscribe<StudyCompletedEvent>(
+            new StudyCompletionEnqueueHandler(workQueue, logger));
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await _signal.WaitAsync(stoppingToken);
+                var dequeueResult = await workQueue.DequeueAsync(stoppingToken);
 
-                string? studyUid;
-                lock (_pendingStudies)
+                if (dequeueResult.IsFailure)
                 {
-                    _pendingStudies.TryDequeue(out studyUid);
+                    logger.LogWarning("Queue dequeue failed: {Error}", dequeueResult.Error?.Message);
+                    await Task.Delay(IdlePollInterval, stoppingToken);
+                    continue;
                 }
 
-                if (studyUid is not null)
+                var workItem = dequeueResult.Value;
+                if (workItem is null)
                 {
-                    await pipeline.ProcessStudyAsync(studyUid, stoppingToken);
+                    // Queue is empty — wait before polling again
+                    await Task.Delay(IdlePollInterval, stoppingToken);
+                    continue;
                 }
+
+                logger.LogInformation(
+                    "Processing work item {ItemId} for study {StudyUid} (type={Type}, retry={Retry})",
+                    workItem.Id, workItem.StudyInstanceUid, workItem.Type, workItem.RetryCount);
+
+                await pipeline.ProcessStudyAsync(workItem.StudyInstanceUid, stoppingToken);
+
+                // Small delay between items to avoid monopolizing the DB
+                await Task.Delay(BusyPollInterval, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -46,40 +78,48 @@ public sealed class StudyProcessingHostedService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Study processing error");
+                logger.LogError(ex, "Study processing error — retrying after delay");
+                await Task.Delay(IdlePollInterval, stoppingToken);
             }
         }
-    }
 
-    internal void EnqueueStudy(string studyInstanceUid)
-    {
-        lock (_pendingStudies)
-        {
-            _pendingStudies.Enqueue(studyInstanceUid);
-        }
-        _signal.Release();
-    }
-
-    private sealed class StudyCompletedHandler(StudyProcessingHostedService host) : IEventHandler<StudyCompletedEvent>
-    {
-        public Task HandleAsync(StudyCompletedEvent @event, CancellationToken cancellationToken = default)
-        {
-            host.EnqueueStudy(@event.StudyInstanceUid);
-            return Task.CompletedTask;
-        }
+        logger.LogInformation("Study processing hosted service stopped");
     }
 }
 
 /// <summary>
-/// Domain event published when a study has completed receiving all instances.
+/// Event handler that writes a durable <see cref="NodeWorkItem"/> into the persistent
+/// work queue when a <see cref="StudyCompletedEvent"/> is raised by the persistence layer.
 /// </summary>
-public sealed class StudyCompletedEvent(string studyInstanceUid) : IEdgeEvent
+internal sealed class StudyCompletionEnqueueHandler(
+    INodeWorkQueue workQueue,
+    ILogger logger) : IEventHandler<StudyCompletedEvent>
 {
-    public string StudyInstanceUid { get; } = studyInstanceUid;
-    public Guid EventId { get; } = Guid.NewGuid();
-    public DateTime OccurredAtUtc { get; } = DateTime.UtcNow;
-    public string EventType => "StudyCompleted";
-    public string Source => "Node.Processing";
-    public string? CorrelationId => null;
-    public int Version => 1;
+    public async Task HandleAsync(StudyCompletedEvent @event, CancellationToken cancellationToken = default)
+    {
+        var workItem = new NodeWorkItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            StudyInstanceUid = @event.Study.StudyInstanceUid,
+            Type = NodeWorkItemType.PacsSend,
+            Priority = 5,
+            SourceAeTitle = @event.Study.CallingAeTitle,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var result = await workQueue.EnqueueAsync(workItem, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            logger.LogInformation(
+                "Enqueued work item for completed study {StudyUid}",
+                @event.Study.StudyInstanceUid);
+        }
+        else
+        {
+            logger.LogError(
+                "Failed to enqueue work item for study {StudyUid}: {Error}",
+                @event.Study.StudyInstanceUid, result.Error?.Message);
+        }
+    }
 }

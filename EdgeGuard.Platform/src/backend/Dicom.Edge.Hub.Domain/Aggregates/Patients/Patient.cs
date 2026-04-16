@@ -13,6 +13,8 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
     public string PatientName { get; private set; } = default!;
     public DateTime? BirthDate { get; private set; }
     public string? Sex { get; private set; }
+    public string? PhoneNumber { get; private set; }
+    public string? Email { get; private set; }
     public string? IssuerOfPatientId { get; private set; }
     public string? OtherPatientIds { get; private set; }
     public string? FacilitySource { get; private set; }
@@ -33,7 +35,9 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
         string? sex = null,
         string? issuerOfPatientId = null,
         string? facilitySource = null,
-        string? createdByNodeId = null)
+        string? createdByNodeId = null,
+        string? phoneNumber = null,
+        string? email = null)
     {
         if (string.IsNullOrWhiteSpace(patientName))
             throw new ArgumentException("Patient name cannot be empty.", nameof(patientName));
@@ -48,6 +52,8 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
             IssuerOfPatientId = issuerOfPatientId?.Trim(),
             FacilitySource = facilitySource?.Trim(),
             CreatedByNodeId = createdByNodeId,
+            PhoneNumber = phoneNumber?.Trim(),
+            Email = email?.Trim(),
             LastUpdatedAt = DateTime.UtcNow,
             IsActive = true
         };
@@ -75,6 +81,33 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
         UpdatedAt = DateTime.UtcNow;
 
         AddDomainEvent(new PatientUpdatedEvent(Id, PatientDicomId.Value));
+    }
+
+    /// <summary>
+    /// Updates patient contact information (phone and/or email).
+    /// Only overwrites fields that are provided (non-null).
+    /// </summary>
+    public void UpdateContactInfo(string? phoneNumber = null, string? email = null)
+    {
+        var changed = false;
+
+        if (phoneNumber is not null && phoneNumber.Trim() != PhoneNumber)
+        {
+            PhoneNumber = phoneNumber.Trim();
+            changed = true;
+        }
+
+        if (email is not null && email.Trim() != Email)
+        {
+            Email = email.Trim();
+            changed = true;
+        }
+
+        if (changed)
+        {
+            LastUpdatedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 
     public void Deactivate()

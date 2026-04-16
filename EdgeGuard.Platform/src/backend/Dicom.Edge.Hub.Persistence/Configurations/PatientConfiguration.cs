@@ -13,6 +13,8 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Property(p => p.Id).HasMaxLength(50);
         builder.Property(p => p.PatientName).IsRequired().HasMaxLength(256);
         builder.Property(p => p.Sex).HasMaxLength(16);
+        builder.Property(p => p.PhoneNumber).HasMaxLength(32);
+        builder.Property(p => p.Email).HasMaxLength(256);
         builder.Property(p => p.IssuerOfPatientId).HasMaxLength(128);
         builder.Property(p => p.OtherPatientIds).HasMaxLength(512);
         builder.Property(p => p.FacilitySource).HasMaxLength(128);
@@ -29,6 +31,7 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         });
 
         builder.HasIndex(p => p.PatientName);
+        builder.HasIndex(p => p.PhoneNumber);
         builder.HasIndex(p => p.IsActive);
 
         builder.Ignore(p => p.DomainEvents);

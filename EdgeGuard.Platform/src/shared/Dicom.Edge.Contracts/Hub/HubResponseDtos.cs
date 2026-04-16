@@ -9,6 +9,8 @@ public sealed record PatientDto
     public required string PatientName { get; init; }
     public DateTime? BirthDate { get; init; }
     public string? Sex { get; init; }
+    public string? PhoneNumber { get; init; }
+    public string? Email { get; init; }
     public string? IssuerOfPatientId { get; init; }
     public string? FacilitySource { get; init; }
     public string? CreatedByNodeId { get; init; }

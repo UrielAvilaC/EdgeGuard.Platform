@@ -71,6 +71,8 @@ public static class HubPersistenceServiceCollectionExtensions
         // Audit / Notification / PACS audit repositories
         services.AddScoped<IHubAuditLogRepository, HubAuditLogRepository>();
         services.AddScoped<IWhatsAppNotificationRepository, WhatsAppNotificationRepository>();
+        services.AddScoped<IWhatsAppTemplateRepository, WhatsAppTemplateRepository>();
+        services.AddScoped<IWhatsAppAutoSendRuleRepository, WhatsAppAutoSendRuleRepository>();
         services.AddScoped<IPacsSendAuditRepository, PacsSendAuditRepository>();
 
         // Node configuration profiles

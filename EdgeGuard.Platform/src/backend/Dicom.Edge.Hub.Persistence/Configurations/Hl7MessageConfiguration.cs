@@ -24,6 +24,10 @@ public sealed class Hl7MessageConfiguration : IEntityTypeConfiguration<Hl7Messag
         builder.Property(m => m.PatientId).HasMaxLength(100);
         builder.Property(m => m.PatientName).HasMaxLength(200);
         builder.Property(m => m.AccessionNumber).HasMaxLength(100);
+        builder.Property(m => m.PatientPhone).HasMaxLength(32);
+        builder.Property(m => m.PatientEmail).HasMaxLength(256);
+        builder.Property(m => m.PatientSex).HasMaxLength(16);
+        builder.Property(m => m.PatientBirthDate).HasMaxLength(16);
 
         builder.Property(m => m.TargetNodeId).HasMaxLength(100);
         builder.Property(m => m.TargetNodeName).HasMaxLength(200);

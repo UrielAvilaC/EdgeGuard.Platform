@@ -1,5 +1,7 @@
+using Dicom.Edge.Hub.Application.Messaging;
 using Dicom.Edge.Hub.Application.Queue;
 using Dicom.Edge.Hub.Infrastructure.HostedServices;
+using Dicom.Edge.Hub.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +23,10 @@ public static class HubHostedServicesExtensions
         services.AddHostedService<StudyCleanupEvaluationHostedService>();
         services.AddHostedService<MessageDispatchHostedService>();
         services.AddHostedService<DataRetentionHostedService>();
+        services.AddHostedService<WhatsAppNotificationHostedService>();
+
+        // Messaging provider (Twilio default)
+        services.AddScoped<IMessagingProvider, TwilioMessagingProvider>();
 
         return services;
     }

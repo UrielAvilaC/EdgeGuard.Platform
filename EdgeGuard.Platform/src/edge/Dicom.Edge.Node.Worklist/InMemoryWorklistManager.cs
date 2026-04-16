@@ -88,6 +88,9 @@ public sealed class InMemoryWorklistManager(
             if (to.HasValue)
                 query = query.Where(i => i.ReceivedAt <= to.Value);
 
+            if (!string.IsNullOrEmpty(modality))
+                query = query.Where(i => string.Equals(i.Modality, modality, StringComparison.OrdinalIgnoreCase));
+
             return Task.FromResult<IReadOnlyList<WorklistItem>>(query.ToList());
         }
     }

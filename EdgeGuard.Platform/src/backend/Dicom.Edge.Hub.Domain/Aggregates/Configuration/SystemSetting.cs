@@ -24,7 +24,8 @@ public sealed class SystemSetting : Entity<string>
         string displayName,
         string valueType = "string",
         string? description = null,
-        bool isReadOnly = false)
+        bool isReadOnly = false,
+        bool isEncrypted = false)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new ArgumentException("Setting key cannot be empty.", nameof(key));
@@ -38,6 +39,7 @@ public sealed class SystemSetting : Entity<string>
             ValueType = valueType,
             Description = description,
             IsReadOnly = isReadOnly,
+            IsEncrypted = isEncrypted,
         };
     }
 
