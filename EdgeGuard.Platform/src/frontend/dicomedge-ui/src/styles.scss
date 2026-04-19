@@ -14,3 +14,9 @@ body {
   background-color: var(--mat-sys-surface, #ffffff);
   color: var(--mat-sys-on-surface, #1a1a1a);
 }
+
+// Toast notification styles
+.toast-success { --mdc-snackbar-container-color: #107c10; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-error { --mdc-snackbar-container-color: #d13438; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-warning { --mdc-snackbar-container-color: #f7630c; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-info { --mdc-snackbar-container-color: #0078d4; --mdc-snackbar-supporting-text-color: #fff; }
