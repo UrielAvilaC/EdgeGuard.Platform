@@ -47,6 +47,8 @@ import {
   faCircle as farCircle,
 } from '@fortawesome/free-regular-svg-icons';
 
+import { AuthService } from './core/auth/services/auth.service';
+
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,8 +65,11 @@ export class App {
   protected readonly title = signal('EdgeGuard');
 
   private readonly library = inject(FaIconLibrary);
+  private readonly authService = inject(AuthService);
 
   constructor() {
+    this.authService.init();
+
     this.library.addIcons(
       faHome, faUser, faCog, faSearch, faBars,
       faPlus, faEdit, faTrash, faCheck, faTimes,

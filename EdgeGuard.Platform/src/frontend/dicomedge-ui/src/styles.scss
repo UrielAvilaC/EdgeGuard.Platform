@@ -4,19 +4,185 @@
 @tailwind components;
 @tailwind utilities;
 
+// ── Design Tokens ──────────────────────────────────────────────────────
+:root {
+  --eg-font-sans: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --eg-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  // Elevation
+  --eg-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --eg-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --eg-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --eg-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --eg-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  // Radius
+  --eg-radius-sm: 6px;
+  --eg-radius-md: 8px;
+  --eg-radius-lg: 12px;
+  --eg-radius-xl: 16px;
+
+  // Sidebar
+  --eg-sidebar-width: 260px;
+  --eg-sidebar-collapsed-width: 68px;
+  --eg-header-height: 56px;
+
+  // Transitions
+  --eg-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --eg-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --eg-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Light surface tokens
+  --eg-surface: #ffffff;
+  --eg-surface-dim: #f8fafc;
+  --eg-surface-container: #f1f5f9;
+  --eg-surface-container-high: #e2e8f0;
+  --eg-border: #e2e8f0;
+  --eg-border-subtle: #f1f5f9;
+  --eg-text-primary: #0f172a;
+  --eg-text-secondary: #475569;
+  --eg-text-muted: #94a3b8;
+}
+
+.dark {
+  --eg-surface: #0f172a;
+  --eg-surface-dim: #1e293b;
+  --eg-surface-container: #1e293b;
+  --eg-surface-container-high: #334155;
+  --eg-border: #334155;
+  --eg-border-subtle: #1e293b;
+  --eg-text-primary: #f1f5f9;
+  --eg-text-secondary: #94a3b8;
+  --eg-text-muted: #64748b;
+}
+
+// ── Global Resets ───────────────────────────────────────────────────────
 html, body {
   height: 100%;
   margin: 0;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  font-family: var(--eg-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background-color: var(--mat-sys-surface, #ffffff);
-  color: var(--mat-sys-on-surface, #1a1a1a);
+  background-color: var(--eg-surface-dim);
+  color: var(--eg-text-primary);
 }
 
-// Toast notification styles
-.toast-success { --mdc-snackbar-container-color: #107c10; --mdc-snackbar-supporting-text-color: #fff; }
-.toast-error { --mdc-snackbar-container-color: #d13438; --mdc-snackbar-supporting-text-color: #fff; }
-.toast-warning { --mdc-snackbar-container-color: #f7630c; --mdc-snackbar-supporting-text-color: #fff; }
+// ── Scrollbar ────────────────────────────────────────────────────────
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--eg-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--eg-border);
+  border-radius: 3px;
+
+  &:hover {
+    background-color: var(--eg-text-muted);
+  }
+}
+
+// ── Focus Ring (WCAG AA) ─────────────────────────────────────────────
+*:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+// ── Angular Material Overrides ──────────────────────────────────────
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-shape: var(--eg-radius-md);
+  --mdc-outlined-text-field-outline-color: var(--eg-border);
+  --mdc-outlined-text-field-focus-outline-color: #0078d4;
+  --mdc-outlined-text-field-hover-outline-color: #94a3b8;
+}
+
+.mat-mdc-card {
+  --mdc-elevated-card-container-shape: var(--eg-radius-lg);
+  --mdc-elevated-card-container-elevation: var(--eg-shadow-sm);
+  border: 1px solid var(--eg-border-subtle);
+  transition: box-shadow var(--eg-transition-normal);
+
+  &:hover {
+    box-shadow: var(--eg-shadow-md);
+  }
+}
+
+.mat-mdc-dialog-surface {
+  border-radius: var(--eg-radius-xl) !important;
+}
+
+.mat-mdc-table {
+  --mat-table-background-color: var(--eg-surface);
+
+  .mat-mdc-header-row {
+    background: var(--eg-surface-dim);
+    height: 44px;
+  }
+
+  .mat-mdc-row {
+    transition: background-color var(--eg-transition-fast);
+    height: 52px;
+
+    &:hover {
+      background-color: var(--eg-surface-container) !important;
+    }
+  }
+}
+
+.mat-mdc-paginator {
+  background: transparent;
+  border-top: 1px solid var(--eg-border);
+}
+
+.mat-mdc-snack-bar-container {
+  border-radius: var(--eg-radius-md) !important;
+}
+
+.mat-mdc-menu-panel {
+  border-radius: var(--eg-radius-lg) !important;
+  border: 1px solid var(--eg-border-subtle);
+  box-shadow: var(--eg-shadow-lg) !important;
+}
+
+// ── Toast Notifications ─────────────────────────────────────────────
+.toast-success { --mdc-snackbar-container-color: #059669; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-error { --mdc-snackbar-container-color: #dc2626; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-warning { --mdc-snackbar-container-color: #d97706; --mdc-snackbar-supporting-text-color: #fff; }
 .toast-info { --mdc-snackbar-container-color: #0078d4; --mdc-snackbar-supporting-text-color: #fff; }
+
+// ── Utility: Animate In ─────────────────────────────────────────────
+@keyframes eg-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes eg-slide-in-right {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.eg-animate-in {
+  animation: eg-fade-in var(--eg-transition-normal) both;
+}
+
+.eg-stagger > * {
+  animation: eg-fade-in var(--eg-transition-normal) both;
+  @for $i from 1 through 12 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 50}ms;
+    }
+  }
+}
