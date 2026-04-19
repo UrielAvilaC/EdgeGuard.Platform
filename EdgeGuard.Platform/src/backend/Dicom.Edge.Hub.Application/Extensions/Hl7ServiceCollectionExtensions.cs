@@ -10,6 +10,7 @@ using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Application.PacsServers;
 using Dicom.Edge.Hub.Application.Queue;
 using Dicom.Edge.Hub.Application.Routing;
+using Dicom.Edge.Hub.Application.Studies;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -46,6 +47,7 @@ public static class HubApplicationServiceCollectionExtensions
         services.AddScoped<INodeService, NodeService>();
         services.AddScoped<IPacsServerService, PacsServerService>();
         services.AddScoped<IRoutingRuleService, RoutingRuleService>();
+        services.AddScoped<IStudyService, StudyService>();
 
         // Edge node-facing orchestration service
         services.AddScoped<IEdgeNodeService, EdgeNodeService>();

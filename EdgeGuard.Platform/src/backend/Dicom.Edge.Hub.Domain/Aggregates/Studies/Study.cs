@@ -202,6 +202,21 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void UpdateMetadata(
+        string? studyDescription = null,
+        string? referringPhysician = null,
+        string? accessionNumber = null,
+        int? priority = null,
+        bool? isUrgent = null)
+    {
+        if (studyDescription is not null) StudyDescription = studyDescription.Trim();
+        if (referringPhysician is not null) ReferringPhysician = referringPhysician.Trim();
+        if (accessionNumber is not null) AccessionNumber = accessionNumber.Trim();
+        if (priority.HasValue) Priority = priority.Value;
+        if (isUrgent.HasValue) IsUrgent = isUrgent.Value;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void AddSeries(StudySeries series)
     {
         if (!_series.Any(s => s.SeriesInstanceUid == series.SeriesInstanceUid))

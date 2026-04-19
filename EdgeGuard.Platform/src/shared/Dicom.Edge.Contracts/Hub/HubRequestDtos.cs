@@ -289,6 +289,25 @@ public sealed class UpdatePatientRequest
     public string? Email { get; init; }
 }
 
+// ── Update Study ─────────────────────────────────────────────────────────────
+
+public sealed class UpdateStudyRequest
+{
+    [StringLength(256)]
+    public string? StudyDescription { get; init; }
+
+    [StringLength(256)]
+    public string? ReferringPhysician { get; init; }
+
+    [StringLength(64)]
+    public string? AccessionNumber { get; init; }
+
+    [Range(0, 10)]
+    public int? Priority { get; init; }
+
+    public bool? IsUrgent { get; init; }
+}
+
 // ── Update Study Status (manual) ─────────────────────────────────────────────
 
 public sealed class UpdateStudyStatusRequest

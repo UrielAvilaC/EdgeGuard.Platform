@@ -1,11 +1,10 @@
-using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Common.Filters;
 using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Mapping;
 using Dicom.Edge.Hub.Application.CsvServices;
+using Dicom.Edge.Hub.Application.Studies;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
-using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,19 +17,19 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class StudiesController : ControllerBase
 {
     private readonly IStudyRepository _studyRepository;
+    private readonly IStudyService _studyService;
     private readonly ICsvExportService _csvExportService;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<StudiesController> _logger;
 
     public StudiesController(
         IStudyRepository studyRepository,
+        IStudyService studyService,
         ICsvExportService csvExportService,
-        IUnitOfWork unitOfWork,
         ILogger<StudiesController> logger)
     {
         _studyRepository = studyRepository;
+        _studyService = studyService;
         _csvExportService = csvExportService;
-        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -96,30 +95,24 @@ public class StudiesController : ControllerBase
         return Ok(new CountDto { Count = count });
     }
 
+    [HttpPut("{id}")]
+    [Authorize(Policy = Policies.EditStudyMetadata)]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateStudyRequest request, CancellationToken ct)
+    {
+        var study = await _studyService.UpdateAsync(id, request, ct);
+        return study is null ? NotFound() : Ok(study.ToDto());
+    }
+
     [HttpPut("{id}/status")]
     [Authorize(Policy = Policies.EditStudyMetadata)]
     public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateStudyStatusRequest request, CancellationToken ct)
     {
-        var study = await _studyRepository.GetByIdAsync(id, ct);
-        if (study is null) return NotFound();
+        var (study, error) = await _studyService.UpdateStatusAsync(id, request, ct);
 
-        if (!Enum.TryParse<StudyStatus>(request.Status, true, out var newStatus))
-            return BadRequest(new ErrorDto { Error = $"Invalid status: {request.Status}" });
+        if (error is not null)
+            return BadRequest(new ErrorDto { Error = error });
 
-        switch (newStatus)
-        {
-            case StudyStatus.Completed: study.MarkCompleted(); break;
-            case StudyStatus.Failed: study.MarkFailed(request.Reason ?? "Manual status change"); break;
-            case StudyStatus.SentToPacs: study.MarkSentToPacs(); break;
-            default:
-                return BadRequest(new ErrorDto { Error = $"Manual transition to {newStatus} is not supported" });
-        }
-
-        await _studyRepository.UpdateAsync(study, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        _logger.LogInformation("Study {StudyId} status manually changed to {Status}", id, newStatus);
-        return Ok(study.ToDto());
+        return study is null ? NotFound() : Ok(study.ToDto());
     }
 
     [HttpGet("export")]
