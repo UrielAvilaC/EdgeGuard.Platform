@@ -6,6 +6,8 @@ using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Models.Enums;
+using Dicom.Edge.Security.Authentication;
+using Dicom.Edge.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Application.Edge;
@@ -19,6 +21,7 @@ public sealed class EdgeNodeService(
     IStudyRepository studyRepository,
     IHealthCheckRepository healthCheckRepository,
     INodeConfigurationService configService,
+    IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,
     ILogger<EdgeNodeService> logger) : IEdgeNodeService
 {
@@ -38,11 +41,12 @@ public sealed class EdgeNodeService(
             await nodeRepository.UpdateAsync(existing, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
+            // Re-registration: do NOT return API key again
             return new NodeRegistrationResponse
             {
                 NodeId = existing.Id,
                 Accepted = true,
-                Message = "Re-registered successfully"
+                Message = "Re-registered successfully. API key unchanged."
             };
         }
 
@@ -57,17 +61,24 @@ public sealed class EdgeNodeService(
 
         node.UpdateConfiguration(version: request.Version);
 
+        // Generate API key, hash it, store the hash
+        var rawApiKey = ApiKeyGenerator.Generate();
+        var apiKeyHash = passwordHasher.HashPassword(rawApiKey);
+        node.SetApiKeyHash(apiKeyHash);
+
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("Node registered: {NodeId} {AeTitle} at {Ip}:{Port}",
+        logger.LogInformation("Node registered: {NodeId} {AeTitle} at {Ip}:{Port} (API key issued)",
             node.Id, request.AeTitle, request.IpAddress, request.Port);
 
+        // First registration: return API key (one time only)
         return new NodeRegistrationResponse
         {
             NodeId = node.Id,
             Accepted = true,
-            Message = "Registered successfully"
+            Message = "Registered successfully. Store the API key securely — it will not be shown again.",
+            ApiKey = rawApiKey
         };
     }
 

@@ -1,4 +1,7 @@
+using System.Linq.Expressions;
+using Dicom.Edge.Common.Filters;
 using Dicom.Edge.Common.Pagination;
+using Dicom.Edge.Common.Sorting;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -65,4 +68,66 @@ public class PatientRepository : IPatientRepository
 
     public async Task<int> CountAsync(CancellationToken ct = default) =>
         await _context.Patients.CountAsync(ct);
+
+    public async Task<PagedResult<Patient>> GetFilteredPagedAsync(
+        PaginationRequest pagination,
+        PatientFilterCriteria filter,
+        CancellationToken ct = default)
+    {
+        var query = BuildFilteredQuery(filter.Search, filter.CreatedByNodeId, filter.IsActive, filter.HasPhone, filter.HasEmail);
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .ApplySort(filter.SortBy, filter.SortDir, PatientSortFields, q => q.OrderBy(p => p.PatientName))
+            .Skip(pagination.Skip)
+            .Take(pagination.PageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<Patient>
+        {
+            Items = items,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    public async Task<IReadOnlyList<Patient>> GetFilteredAllAsync(
+        PatientFilterCriteria filter,
+        CancellationToken ct = default)
+    {
+        return await BuildFilteredQuery(filter.Search, filter.CreatedByNodeId, filter.IsActive, filter.HasPhone, filter.HasEmail)
+            .ApplySort(filter.SortBy, filter.SortDir, PatientSortFields, q => q.OrderBy(p => p.PatientName))
+            .ToListAsync(ct);
+    }
+
+    private static readonly Dictionary<string, Expression<Func<Patient, object?>>> PatientSortFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["patientName"] = p => p.PatientName,
+        ["createdAt"] = p => p.CreatedAt,
+        ["updatedAt"] = p => p.UpdatedAt,
+        ["birthDate"] = p => p.BirthDate,
+        ["sex"] = p => p.Sex,
+        ["patientDicomId"] = p => p.PatientDicomId.Value,
+        ["isActive"] = p => p.IsActive,
+    };
+
+    private IQueryable<Patient> BuildFilteredQuery(
+        string? search, string? createdByNodeId, bool? isActive, bool? hasPhone, bool? hasEmail)
+    {
+        var query = _context.Patients.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(p =>
+                p.PatientName.Contains(search) ||
+                p.PatientDicomId.Value.Contains(search));
+
+        if (!string.IsNullOrWhiteSpace(createdByNodeId)) query = query.Where(p => p.CreatedByNodeId == createdByNodeId);
+        if (isActive.HasValue) query = query.Where(p => p.IsActive == isActive.Value);
+        if (hasPhone == true) query = query.Where(p => p.PhoneNumber != null && p.PhoneNumber != "");
+        if (hasPhone == false) query = query.Where(p => p.PhoneNumber == null || p.PhoneNumber == "");
+        if (hasEmail == true) query = query.Where(p => p.Email != null && p.Email != "");
+        if (hasEmail == false) query = query.Where(p => p.Email == null || p.Email == "");
+
+        return query;
+    }
 }

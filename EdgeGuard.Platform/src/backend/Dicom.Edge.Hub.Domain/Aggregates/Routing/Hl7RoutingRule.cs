@@ -89,4 +89,28 @@ public sealed class Hl7RoutingRule : AggregateRoot<string>
     public void Disable() { IsEnabled = false; UpdatedAt = DateTime.UtcNow; }
 
     public void UpdatePriority(int priority) { Priority = priority; UpdatedAt = DateTime.UtcNow; }
+
+    public void Update(
+        string name,
+        string targetNodeId,
+        int priority,
+        string? matchMessageType,
+        string? matchTriggerEvent,
+        string? matchSendingFacility,
+        string? matchSendingApplication)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Rule name cannot be empty.", nameof(name));
+        if (string.IsNullOrWhiteSpace(targetNodeId))
+            throw new ArgumentException("Target node ID cannot be empty.", nameof(targetNodeId));
+
+        Name = name.Trim();
+        TargetNodeId = targetNodeId;
+        Priority = priority;
+        MatchMessageType = matchMessageType?.Trim().ToUpperInvariant();
+        MatchTriggerEvent = matchTriggerEvent?.Trim().ToUpperInvariant();
+        MatchSendingFacility = matchSendingFacility?.Trim();
+        MatchSendingApplication = matchSendingApplication?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

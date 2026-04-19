@@ -2,6 +2,8 @@ using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Constants;
 using Dicom.Edge.Hub.Api.Mapping;
 using Dicom.Edge.Hub.Application.Edge;
+using Dicom.Edge.Security.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -9,9 +11,11 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 /// <summary>
 /// Node-facing endpoints. Edge Nodes call these endpoints to register,
 /// send heartbeats, and report status to the Hub.
-/// Routes match <see cref="Dicom.Edge.Contracts.Edge.HubApiRoutes"/>.
+/// All endpoints except /edge/register require API key authentication.
+/// /edge/register is protected by bootstrap token middleware.
 /// </summary>
 [ApiController]
+[Authorize(AuthenticationSchemes = ApiKeyAuthenticationOptions.Scheme)]
 public class EdgeController : ControllerBase
 {
     private readonly IEdgeNodeService _edgeService;
@@ -25,8 +29,9 @@ public class EdgeController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>POST /edge/register — Node self-registration.</summary>
+    /// <summary>POST /edge/register — Node self-registration. Protected by bootstrap token.</summary>
     [HttpPost("/edge/register")]
+    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] NodeRegistrationRequest request, CancellationToken ct)
     {
         var result = await _edgeService.RegisterAsync(request, ct);
@@ -89,6 +94,7 @@ public class EdgeController : ControllerBase
 
     /// <summary>GET /info — Hub version and capability info.</summary>
     [HttpGet("/info")]
+    [AllowAnonymous]
     public IActionResult GetInfo()
     {
         return Ok(EdgeMappingProfile.ToHubInfo());

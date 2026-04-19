@@ -4,11 +4,14 @@ using Dicom.Edge.Common.Resilience;
 using Dicom.Edge.Diagnostics.Bootstrap;
 using Dicom.Edge.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Api.Constants;
+using Dicom.Edge.Hub.Api.Middleware;
 using Dicom.Edge.Hub.Application.Extensions;
 using Dicom.Edge.Hub.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Infrastructure.Extensions;
 using Dicom.Edge.Hub.Persistence.Configuration;
 using Dicom.Edge.Hub.Persistence.Extensions;
+using Dicom.Edge.Hub.Api.Hubs;
+using Dicom.Edge.Security.Extensions;
 
 BootstrapLogger.Initialize(HubApiConstants.BootstrapLogPath);
 
@@ -86,11 +89,19 @@ try
     builder.Services.AddHl7Infrastructure();
     builder.Services.AddHubHostedServices(builder.Configuration);
 
+    // JWT authentication + permission-based authorization pipeline
+    builder.Services.AddEdgeSecurity(builder.Configuration);
+    builder.Services.AddEdgeAuthentication(builder.Configuration);
+
+    // SignalR for real-time dashboard notifications
+    builder.Services.AddSignalR();
+
     var app = builder.Build();
 
     // ── Apply pending migrations & seed system settings ───────────────────
     await app.Services.MigrateHubAsync();
     await app.Services.SeedHubSettingsAsync();
+    await app.Services.SeedAdminUserAsync();
 
     // Diagnostics middleware pipeline (order matters)
     app.UseCorrelationId();
@@ -111,8 +122,14 @@ try
     app.UseHttpsRedirection();
     app.UseCors();
     app.UseRateLimiter();
+
+    // Bootstrap token validation for /edge/register (before auth pipeline)
+    app.UseMiddleware<BootstrapTokenMiddleware>();
+
+    app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHub<EdgeHubNotificationHub>("/hubs/notifications");
 
     app.Run();
 }

@@ -3,6 +3,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Cleanup;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
+using Dicom.Edge.Hub.Domain.Aggregates.Identity;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
@@ -78,6 +79,9 @@ public static class HubPersistenceServiceCollectionExtensions
         // Node configuration profiles
         services.AddScoped<INodeConfigurationProfileRepository, NodeConfigurationProfileRepository>();
 
+        // Identity
+        services.AddScoped<IUserRepository, UserRepository>();
+
         // Database health check (readiness probe)
         services.AddHealthChecks()
             .AddDbContextCheck<HubDbContext>(
@@ -109,5 +113,19 @@ public static class HubPersistenceServiceCollectionExtensions
         using var scope = serviceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
         await HubSettingsSeed.SeedMissingAsync(ctx, ct);
+    }
+
+    /// <summary>
+    /// Seeds the default super-administrator user on first run.
+    /// Safe to call on every startup — skips if the admin user already exists.
+    /// </summary>
+    public static async Task SeedAdminUserAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<Dicom.Edge.Security.Cryptography.IPasswordHasher>();
+        var logger = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger(typeof(AdminUserSeed).FullName!);
+        await AdminUserSeed.SeedAsync(ctx, passwordHasher, logger, ct);
     }
 }

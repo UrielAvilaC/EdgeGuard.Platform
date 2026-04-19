@@ -1,3 +1,7 @@
+using System.Linq.Expressions;
+using Dicom.Edge.Common.Filters;
+using Dicom.Edge.Common.Pagination;
+using Dicom.Edge.Common.Sorting;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
@@ -50,4 +54,33 @@ public class PacsServerRepository : IPacsServerRepository
         if (pacs is not null)
             _context.PacsServers.Remove(pacs);
     }
+
+    public async Task<PagedResult<PacsServer>> GetFilteredPagedAsync(PaginationRequest pagination, PacsServerFilterCriteria filter, CancellationToken ct = default)
+    {
+        var query = _context.PacsServers.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+            query = query.Where(p => p.Name.Contains(filter.Search) || p.AeTitle.Value.Contains(filter.Search) || p.HostName.Contains(filter.Search));
+        if (filter.IsEnabled.HasValue) query = query.Where(p => p.IsEnabled == filter.IsEnabled.Value);
+        if (filter.IsGlobal.HasValue) query = query.Where(p => p.IsGlobal == filter.IsGlobal.Value);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .ApplySort(filter.SortBy, filter.SortDir, PacsSortFields, q => q.OrderBy(p => p.Name))
+            .Skip(pagination.Skip).Take(pagination.PageSize).ToListAsync(ct);
+
+        return new PagedResult<PacsServer> { Items = items, Page = pagination.Page, PageSize = pagination.PageSize, TotalCount = totalCount };
+    }
+
+    private static readonly Dictionary<string, Expression<Func<PacsServer, object?>>> PacsSortFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["name"] = p => p.Name,
+        ["aeTitle"] = p => p.AeTitle.Value,
+        ["hostName"] = p => p.HostName,
+        ["port"] = p => p.Port,
+        ["isEnabled"] = p => p.IsEnabled,
+        ["isGlobal"] = p => p.IsGlobal,
+        ["createdAt"] = p => p.CreatedAt,
+        ["lastCEchoAt"] = p => p.LastCEchoAt,
+    };
 }

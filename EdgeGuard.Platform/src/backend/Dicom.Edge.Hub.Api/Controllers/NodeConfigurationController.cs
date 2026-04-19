@@ -1,5 +1,7 @@
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -9,6 +11,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/node-configuration")]
+[Authorize(Policy = Policies.ViewConfiguration)]
 public class NodeConfigurationController : ControllerBase
 {
     private readonly INodeConfigurationService _configService;

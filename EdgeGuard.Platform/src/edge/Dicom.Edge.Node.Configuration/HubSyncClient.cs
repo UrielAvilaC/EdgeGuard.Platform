@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Dicom.Edge.Contracts.Edge;
 using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Security.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -8,6 +9,8 @@ namespace Dicom.Edge.Node.Configuration;
 
 /// <summary>
 /// HTTP-based client for Hub registration, heartbeat, and configuration pull.
+/// Registration uses the bootstrap token (X-Bootstrap-Token header).
+/// All other calls use the per-node API key (X-Api-Key header).
 /// </summary>
 public sealed class HubSyncClient(
     HttpClient httpClient,
@@ -17,7 +20,16 @@ public sealed class HubSyncClient(
     private readonly HubConnectionOptions _opts = options.Value;
     private string? _registeredNodeId;
 
-    public async Task<bool> RegisterAsync(CancellationToken ct = default)
+    /// <summary>API key cached in-memory after registration or loaded from settings.</summary>
+    private string? _apiKey;
+
+    /// <summary>
+    /// Sets the API key for subsequent calls. Called by the hosted service
+    /// after loading from DB or receiving from registration.
+    /// </summary>
+    internal void SetApiKey(string apiKey) => _apiKey = apiKey;
+
+    public async Task<string?> RegisterAsync(CancellationToken ct = default)
     {
         try
         {
@@ -33,24 +45,47 @@ public sealed class HubSyncClient(
                 Version = _opts.Version
             };
 
-            var response = await httpClient.PostAsJsonAsync(
-                HubApiRoutes.Register, payload, ct);
+            // Use bootstrap token for registration
+            var bootstrapToken = !string.IsNullOrEmpty(_opts.BootstrapToken)
+                ? _opts.BootstrapToken
+                : Environment.GetEnvironmentVariable(ApiKeyAuthenticationOptions.BootstrapTokenEnvVar);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, HubApiRoutes.Register);
+            request.Content = JsonContent.Create(payload);
+
+            if (!string.IsNullOrEmpty(bootstrapToken))
+                request.Headers.Add(ApiKeyAuthenticationOptions.BootstrapHeaderName, bootstrapToken);
+
+            var response = await httpClient.SendAsync(request, ct);
 
             if (response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadFromJsonAsync<NodeRegistrationResponse>(ct);
                 _registeredNodeId = body?.NodeId;
-                logger.LogInformation("Registered with Hub successfully (NodeId={NodeId})", _registeredNodeId);
-                return true;
+
+                if (!string.IsNullOrEmpty(body?.ApiKey))
+                {
+                    _apiKey = body.ApiKey;
+                    logger.LogInformation(
+                        "Registered with Hub (NodeId={NodeId}) — API key received and will be persisted",
+                        _registeredNodeId);
+                    return body.ApiKey;
+                }
+
+                // Re-registration: API key unchanged, use existing
+                logger.LogInformation(
+                    "Re-registered with Hub (NodeId={NodeId}) — using existing API key",
+                    _registeredNodeId);
+                return null;
             }
 
             logger.LogWarning("Hub registration failed: {Status}", response.StatusCode);
-            return false;
+            return null;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Hub registration error");
-            return false;
+            return null;
         }
     }
 
@@ -69,9 +104,11 @@ public sealed class HubSyncClient(
                 NodeId = _registeredNodeId
             };
 
-            var response = await httpClient.PostAsJsonAsync(
-                HubApiRoutes.Heartbeat, payload, ct);
+            using var request = new HttpRequestMessage(HttpMethod.Post, HubApiRoutes.Heartbeat);
+            request.Content = JsonContent.Create(payload);
+            ApplyApiKeyHeader(request);
 
+            var response = await httpClient.SendAsync(request, ct);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -92,7 +129,10 @@ public sealed class HubSyncClient(
             }
 
             var url = $"{HubApiRoutes.ConfigurationPull}?nodeId={Uri.EscapeDataString(_registeredNodeId)}";
-            var response = await httpClient.GetAsync(url, ct);
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            ApplyApiKeyHeader(request);
+
+            var response = await httpClient.SendAsync(request, ct);
             if (!response.IsSuccessStatusCode) return null;
 
             var config = await response.Content
@@ -111,7 +151,10 @@ public sealed class HubSyncClient(
     {
         try
         {
-            var response = await httpClient.DeleteAsync(HubApiRoutes.Deregister, ct);
+            using var request = new HttpRequestMessage(HttpMethod.Delete, HubApiRoutes.Deregister);
+            ApplyApiKeyHeader(request);
+
+            var response = await httpClient.SendAsync(request, ct);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
@@ -119,5 +162,11 @@ public sealed class HubSyncClient(
             logger.LogWarning(ex, "Deregistration failed");
             return false;
         }
+    }
+
+    private void ApplyApiKeyHeader(HttpRequestMessage request)
+    {
+        if (!string.IsNullOrEmpty(_apiKey))
+            request.Headers.Add(ApiKeyAuthenticationOptions.HeaderName, _apiKey);
     }
 }

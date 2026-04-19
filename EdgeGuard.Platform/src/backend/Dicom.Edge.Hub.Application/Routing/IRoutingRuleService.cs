@@ -11,6 +11,9 @@ public interface IRoutingRuleService
     /// <summary>Creates a new routing rule from the request DTO and persists it.</summary>
     Task<Hl7RoutingRule> CreateAsync(CreateRoutingRuleRequest request, CancellationToken ct = default);
 
+    /// <summary>Updates a routing rule. Returns null if not found.</summary>
+    Task<Hl7RoutingRule?> UpdateAsync(string id, UpdateRoutingRuleRequest request, CancellationToken ct = default);
+
     /// <summary>Enables a routing rule. Returns false if not found.</summary>
     Task<bool> EnableAsync(string id, CancellationToken ct = default);
 

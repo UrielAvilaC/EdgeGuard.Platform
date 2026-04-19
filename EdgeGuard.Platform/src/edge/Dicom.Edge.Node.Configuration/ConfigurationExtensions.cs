@@ -6,9 +6,6 @@ namespace Dicom.Edge.Node.Configuration;
 
 public static class ConfigurationExtensions
 {
-    /// <summary>API key header name for Hub authentication.</summary>
-    private const string ApiKeyHeaderName = "X-Api-Key";
-
     public static IServiceCollection AddNodeConfiguration(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -16,6 +13,8 @@ public static class ConfigurationExtensions
         services.Configure<HubConnectionOptions>(
             configuration.GetSection(HubConnectionOptions.SectionName));
 
+        // HttpClient base address and timeout only — API key is added per-request
+        // by HubSyncClient (loaded from DB or received during registration)
         services.AddHttpClient<IHubSyncClient, HubSyncClient>((sp, client) =>
         {
             var opts = configuration
@@ -24,8 +23,6 @@ public static class ConfigurationExtensions
 
             client.BaseAddress = new Uri(opts.HubBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
-            if (!string.IsNullOrEmpty(opts.ApiKey))
-                client.DefaultRequestHeaders.Add(ApiKeyHeaderName, opts.ApiKey);
         })
         .AddStandardResilienceHandler();
 

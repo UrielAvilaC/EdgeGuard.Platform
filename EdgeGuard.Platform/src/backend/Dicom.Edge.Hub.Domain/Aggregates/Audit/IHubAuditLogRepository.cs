@@ -1,3 +1,6 @@
+using Dicom.Edge.Common.Filters;
+using Dicom.Edge.Common.Pagination;
+
 namespace Dicom.Edge.Hub.Domain.Aggregates.Audit;
 
 /// <summary>
@@ -6,6 +9,13 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Audit;
 public interface IHubAuditLogRepository
 {
     Task<HubAuditLog> AddAsync(HubAuditLog entry, CancellationToken ct = default);
+
+    /// <summary>Returns a paged, filtered, and sorted list of audit logs.</summary>
+    Task<PagedResult<HubAuditLog>> GetPagedAsync(
+        PaginationRequest pagination,
+        AuditLogFilterCriteria filter,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<HubAuditLog>> GetByCorrelationIdAsync(string correlationId, CancellationToken ct = default);
     Task<IReadOnlyList<HubAuditLog>> GetByEntityAsync(string entityType, string entityId, CancellationToken ct = default);
     Task<IReadOnlyList<HubAuditLog>> GetByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct = default);

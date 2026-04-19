@@ -33,6 +33,26 @@ public sealed class PacsServerService(
         return pacs;
     }
 
+    public async Task<bool> UpdateAsync(string id, UpdatePacsServerRequest request, CancellationToken ct = default)
+    {
+        var pacs = await pacsRepository.GetByIdAsync(id, ct);
+        if (pacs is null) return false;
+
+        pacs.UpdateConfiguration(
+            request.Name,
+            request.HostName,
+            request.Port,
+            request.Description,
+            request.MaxConcurrentAssociations,
+            request.TimeoutSeconds);
+
+        await pacsRepository.UpdateAsync(pacs, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation("PACS server updated: {PacsId}", id);
+        return true;
+    }
+
     public async Task<bool> EnableAsync(string id, CancellationToken ct = default)
     {
         var pacs = await pacsRepository.GetByIdAsync(id, ct);

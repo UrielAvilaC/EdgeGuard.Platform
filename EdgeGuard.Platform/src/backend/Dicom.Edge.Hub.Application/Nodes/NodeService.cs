@@ -34,6 +34,26 @@ public sealed class NodeService(
         return node;
     }
 
+    public async Task<bool> UpdateAsync(string id, UpdateNodeRequest request, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(id, ct);
+        if (node is null) return false;
+
+        node.UpdateConfiguration(
+            request.Location,
+            request.FacilityName,
+            request.TimeZone,
+            version: null,
+            request.HealthCheckIntervalSeconds,
+            request.MaxStorageMb);
+
+        await nodeRepository.UpdateAsync(node, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation("Node updated: {NodeId}", id);
+        return true;
+    }
+
     public async Task<bool> EnableAsync(string id, CancellationToken ct = default)
     {
         var node = await nodeRepository.GetByIdAsync(id, ct);
