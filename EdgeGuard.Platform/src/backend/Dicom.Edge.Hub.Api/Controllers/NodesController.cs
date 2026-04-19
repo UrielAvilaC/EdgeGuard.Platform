@@ -1,14 +1,18 @@
+using Dicom.Edge.Common.Filters;
 using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Mapping;
 using Dicom.Edge.Hub.Application.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
+using Dicom.Edge.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = Policies.ViewNodes)]
 public class NodesController : ControllerBase
 {
     private readonly INodeRepository _nodeRepository;
@@ -25,15 +29,23 @@ public class NodesController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet("paged")]
-    public async Task<IActionResult> GetPaged([FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
+    [HttpGet]
+    public async Task<IActionResult> GetPaged([FromQuery] NodeFilter filter, CancellationToken ct = default)
     {
-        var pagination = new PaginationRequest { Page = page, PageSize = pageSize };
-        var result = await _nodeRepository.GetPagedAsync(pagination, ct);
+        var pagination = new PaginationRequest { Page = filter.Page, PageSize = filter.PageSize };
+        var criteria = new NodeFilterCriteria
+        {
+            Search = filter.Search,
+            Status = filter.Status,
+            IsEnabled = filter.IsEnabled,
+            SortBy = filter.SortBy,
+            SortDir = filter.SortDir
+        };
+        var result = await _nodeRepository.GetFilteredPagedAsync(pagination, criteria, ct);
         return Ok(result.ToPagedResponse(n => n.ToDto()));
     }
 
-    [HttpGet]
+    [HttpGet("all")]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var nodes = await _nodeRepository.GetAllAsync(ct);
@@ -55,13 +67,23 @@ public class NodesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
     public async Task<IActionResult> Create([FromBody] CreateNodeRequest request, CancellationToken ct)
     {
         var node = await _nodeService.CreateAsync(request, ct);
         return CreatedAtAction(nameof(GetById), new { id = node.Id }, node.ToDto());
     }
 
+    [HttpPut("{id}")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateNodeRequest request, CancellationToken ct)
+    {
+        var found = await _nodeService.UpdateAsync(id, request, ct);
+        return found ? NoContent() : NotFound();
+    }
+
     [HttpPut("{id}/enable")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
     public async Task<IActionResult> Enable(string id, CancellationToken ct)
     {
         var found = await _nodeService.EnableAsync(id, ct);
@@ -69,6 +91,7 @@ public class NodesController : ControllerBase
     }
 
     [HttpPut("{id}/disable")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
     public async Task<IActionResult> Disable(string id, CancellationToken ct)
     {
         var found = await _nodeService.DisableAsync(id, ct);

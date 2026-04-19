@@ -288,3 +288,65 @@ public sealed record ErrorDto
 {
     public required string Error { get; init; }
 }
+
+// ── Audit Logs ───────────────────────────────────────────────────────────────
+
+public sealed record AuditLogDto
+{
+    public required string Id { get; init; }
+    public required string EventType { get; init; }
+    public required string Action { get; init; }
+    public required string Severity { get; init; }
+    public string? UserId { get; init; }
+    public string? UserName { get; init; }
+    public string? IpAddress { get; init; }
+    public string? CorrelationId { get; init; }
+    public string? EntityId { get; init; }
+    public string? EntityType { get; init; }
+    public bool IsSuccess { get; init; }
+    public string? ErrorMessage { get; init; }
+    public string? Details { get; init; }
+    public DateTime CreatedAt { get; init; }
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+
+public sealed record DashboardSummaryDto
+{
+    public int TotalStudies { get; init; }
+    public int TotalPatients { get; init; }
+    public int TotalNodes { get; init; }
+    public int ActiveNodes { get; init; }
+    public int PendingPacsStudies { get; init; }
+    public int FailedStudies { get; init; }
+    public QueueSummaryDto QueueSummary { get; init; } = new();
+    public Hl7ListenerStatusDto? Hl7Status { get; init; }
+    public IReadOnlyList<StudyDto> RecentStudies { get; init; } = [];
+    public IReadOnlyList<NodeDto> Nodes { get; init; } = [];
+}
+
+// ── CSV Import/Export ────────────────────────────────────────────────────────
+
+public sealed record CsvExportResultDto
+{
+    public required byte[] FileContent { get; init; }
+    public required string FileName { get; init; }
+    public required string ContentType { get; init; }
+    public int RecordCount { get; init; }
+}
+
+public sealed record ImportResultDto
+{
+    public int TotalRecords { get; init; }
+    public int SuccessCount { get; init; }
+    public int ErrorCount { get; init; }
+    public IReadOnlyList<ImportRowResult> Rows { get; init; } = [];
+}
+
+public sealed record ImportRowResult
+{
+    public int RowNumber { get; init; }
+    public required string Status { get; init; }
+    public string? Identifier { get; init; }
+    public string? Error { get; init; }
+}

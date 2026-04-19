@@ -1,12 +1,15 @@
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Constants;
 using Dicom.Edge.Hub.Application.Configuration;
+using Dicom.Edge.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = Policies.ViewConfiguration)]
 public class SystemSettingsController : ControllerBase
 {
     private readonly ISystemSettingsService _settingsService;
@@ -42,6 +45,7 @@ public class SystemSettingsController : ControllerBase
     }
 
     [HttpPut("{key}")]
+    [Authorize(Policy = Policies.EditConfiguration)]
     public async Task<IActionResult> Update(string key, [FromBody] UpdateSettingRequest request, CancellationToken ct)
     {
         var existing = await _settingsService.GetAsync(key, ct);
@@ -52,6 +56,7 @@ public class SystemSettingsController : ControllerBase
     }
 
     [HttpPost("seed-defaults")]
+    [Authorize(Policy = Policies.EditConfiguration)]
     public async Task<IActionResult> SeedDefaults(CancellationToken ct)
     {
         await _settingsService.SeedDefaultsAsync(ct);

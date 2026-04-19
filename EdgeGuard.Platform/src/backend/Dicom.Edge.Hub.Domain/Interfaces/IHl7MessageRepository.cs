@@ -1,3 +1,5 @@
+using Dicom.Edge.Common.Filters;
+using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Hub.Domain.Entities;
 
 namespace Dicom.Edge.Hub.Domain.Interfaces;
@@ -12,6 +14,7 @@ public interface IHl7MessageRepository
     Task<IEnumerable<Hl7Message>> GetByStatusAsync(Hl7MessageStatus status, CancellationToken cancellationToken = default);
     Task<IEnumerable<Hl7Message>> GetByDispatchStatusAsync(Hl7DispatchStatus status, CancellationToken cancellationToken = default);
     Task<IEnumerable<Hl7Message>> GetQueuedForDispatchAsync(int batchSize, CancellationToken cancellationToken = default);
+    Task<PagedResult<Hl7Message>> GetFilteredPagedAsync(PaginationRequest pagination, Hl7MessageFilterCriteria filter, CancellationToken ct = default);
     Task UpdateAsync(Hl7Message message, CancellationToken cancellationToken = default);
     Task<IEnumerable<Hl7Message>> GetRecentMessagesAsync(int count, CancellationToken cancellationToken = default);
     Task<int> CountByDispatchStatusAsync(Hl7DispatchStatus status, CancellationToken cancellationToken = default);

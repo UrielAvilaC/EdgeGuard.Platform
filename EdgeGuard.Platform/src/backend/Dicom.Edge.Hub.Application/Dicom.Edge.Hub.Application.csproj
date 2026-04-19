@@ -10,6 +10,7 @@
     <ProjectReference Include="..\Dicom.Edge.Hub.Domain\Dicom.Edge.Hub.Domain.csproj" />
     <ProjectReference Include="..\..\shared\Dicom.Edge.Abstractions\Dicom.Edge.Abstractions.csproj" />
     <ProjectReference Include="..\..\shared\Dicom.Edge.Contracts\Dicom.Edge.Contracts.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Security\Dicom.Edge.Security.csproj" />
   </ItemGroup>
 
   <ItemGroup>

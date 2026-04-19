@@ -10,6 +10,6 @@ namespace Dicom.Edge.Security.Identity
 
         public string Username { get; set; } = default!;
 
-        public string Role { get; set; } = default!;
+        public IReadOnlyList<string> Roles { get; set; } = [];
     }
 }

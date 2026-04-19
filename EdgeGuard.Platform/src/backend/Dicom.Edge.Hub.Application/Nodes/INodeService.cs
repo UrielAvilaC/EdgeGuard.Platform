@@ -13,6 +13,9 @@ public interface INodeService
     /// <summary>Creates a new node from the request DTO and persists it.</summary>
     Task<Node> CreateAsync(CreateNodeRequest request, CancellationToken ct = default);
 
+    /// <summary>Updates node metadata. Returns false if the node was not found.</summary>
+    Task<bool> UpdateAsync(string id, UpdateNodeRequest request, CancellationToken ct = default);
+
     /// <summary>Enables a node. Returns false if the node was not found.</summary>
     Task<bool> EnableAsync(string id, CancellationToken ct = default);
 

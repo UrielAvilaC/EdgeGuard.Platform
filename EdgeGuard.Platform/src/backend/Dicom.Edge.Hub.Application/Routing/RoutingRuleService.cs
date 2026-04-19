@@ -45,6 +45,27 @@ public sealed class RoutingRuleService(
         return true;
     }
 
+    public async Task<Hl7RoutingRule?> UpdateAsync(string id, UpdateRoutingRuleRequest request, CancellationToken ct = default)
+    {
+        var rule = await ruleRepository.GetByIdAsync(id, ct);
+        if (rule is null) return null;
+
+        rule.Update(
+            request.Name,
+            request.TargetNodeId,
+            request.Priority,
+            request.MatchMessageType,
+            request.MatchTriggerEvent,
+            request.MatchSendingFacility,
+            request.MatchSendingApplication);
+
+        await ruleRepository.UpdateAsync(rule, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation("Routing rule updated: {RuleId} {Name}", id, request.Name);
+        return rule;
+    }
+
     public async Task<bool> DisableAsync(string id, CancellationToken ct = default)
     {
         var rule = await ruleRepository.GetByIdAsync(id, ct);

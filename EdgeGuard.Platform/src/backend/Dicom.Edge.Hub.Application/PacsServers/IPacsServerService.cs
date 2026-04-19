@@ -11,6 +11,9 @@ public interface IPacsServerService
     /// <summary>Creates a new PACS server from the request DTO and persists it.</summary>
     Task<PacsServer> CreateAsync(CreatePacsServerRequest request, CancellationToken ct = default);
 
+    /// <summary>Updates PACS server configuration. Returns false if not found.</summary>
+    Task<bool> UpdateAsync(string id, UpdatePacsServerRequest request, CancellationToken ct = default);
+
     /// <summary>Enables a PACS server. Returns false if not found.</summary>
     Task<bool> EnableAsync(string id, CancellationToken ct = default);
 

@@ -1,3 +1,4 @@
+using Dicom.Edge.Common.Filters;
 using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Models.Enums;
 
@@ -17,6 +18,18 @@ public interface IStudyRepository
     Task<IReadOnlyList<Study>> GetPendingForPacsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Study>> GetStudiesForCleanupAsync(string modality, DateTime olderThan, CancellationToken ct = default);
     Task<PagedResult<Study>> GetPagedAsync(PaginationRequest pagination, CancellationToken ct = default);
+
+    /// <summary>Returns a paged, filtered, and sorted list of studies.</summary>
+    Task<PagedResult<Study>> GetFilteredPagedAsync(
+        PaginationRequest pagination,
+        StudyFilterCriteria filter,
+        CancellationToken ct = default);
+
+    /// <summary>Returns all studies matching filters (no pagination) for export.</summary>
+    Task<IReadOnlyList<Study>> GetFilteredAllAsync(
+        StudyFilterCriteria filter,
+        CancellationToken ct = default);
+
     Task<Study> AddAsync(Study study, CancellationToken ct = default);
     Task UpdateAsync(Study study, CancellationToken ct = default);
     Task<int> CountAsync(CancellationToken ct = default);

@@ -1,3 +1,7 @@
+using System.Linq.Expressions;
+using Dicom.Edge.Common.Filters;
+using Dicom.Edge.Common.Pagination;
+using Dicom.Edge.Common.Sorting;
 using Dicom.Edge.Hub.Domain.Entities;
 using Dicom.Edge.Hub.Domain.Interfaces;
 using Dicom.Edge.Hub.Persistence.Context;
@@ -88,4 +92,33 @@ public sealed class EfHl7MessageRepository : IHl7MessageRepository
         } while (deleted == batchSize && !cancellationToken.IsCancellationRequested);
         return total;
     }
+
+    public async Task<PagedResult<Hl7Message>> GetFilteredPagedAsync(PaginationRequest pagination, Hl7MessageFilterCriteria filter, CancellationToken ct = default)
+    {
+        var query = _context.Hl7Messages.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.MessageType)) query = query.Where(m => m.MessageType == filter.MessageType);
+        if (!string.IsNullOrWhiteSpace(filter.DispatchStatus) && Enum.TryParse<Hl7DispatchStatus>(filter.DispatchStatus, true, out var ds))
+            query = query.Where(m => m.DispatchStatus == ds);
+        if (!string.IsNullOrWhiteSpace(filter.TargetNodeId)) query = query.Where(m => m.TargetNodeId == filter.TargetNodeId);
+        if (filter.DateFrom.HasValue) query = query.Where(m => m.ReceivedAt >= filter.DateFrom.Value);
+        if (filter.DateTo.HasValue) query = query.Where(m => m.ReceivedAt <= filter.DateTo.Value);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .ApplySort(filter.SortBy, filter.SortDir, Hl7SortFields, q => q.OrderByDescending(m => m.ReceivedAt))
+            .Skip(pagination.Skip).Take(pagination.PageSize).ToListAsync(ct);
+
+        return new PagedResult<Hl7Message> { Items = items, Page = pagination.Page, PageSize = pagination.PageSize, TotalCount = totalCount };
+    }
+
+    private static readonly Dictionary<string, Expression<Func<Hl7Message, object?>>> Hl7SortFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["receivedAt"] = m => m.ReceivedAt,
+        ["messageType"] = m => m.MessageType,
+        ["dispatchStatus"] = m => m.DispatchStatus,
+        ["priority"] = m => m.Priority,
+        ["targetNodeId"] = m => m.TargetNodeId,
+        ["dispatchAttempts"] = m => m.DispatchAttempts,
+    };
 }

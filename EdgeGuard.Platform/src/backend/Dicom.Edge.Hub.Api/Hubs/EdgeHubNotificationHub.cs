@@ -1,0 +1,66 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
+namespace Dicom.Edge.Hub.Api.Hubs;
+
+/// <summary>
+/// SignalR hub for real-time dashboard and event notifications.
+/// Clients join groups to receive targeted updates.
+/// </summary>
+[Authorize]
+public sealed class EdgeHubNotificationHub : Microsoft.AspNetCore.SignalR.Hub
+{
+    /// <summary>
+    /// Joins the "dashboard" group for receiving KPI/summary updates.
+    /// </summary>
+    public Task JoinDashboard() =>
+        Groups.AddToGroupAsync(Context.ConnectionId, "dashboard");
+
+    /// <summary>
+    /// Leaves the "dashboard" group.
+    /// </summary>
+    public Task LeaveDashboard() =>
+        Groups.RemoveFromGroupAsync(Context.ConnectionId, "dashboard");
+
+    /// <summary>
+    /// Joins a node-specific group for receiving node events.
+    /// </summary>
+    public Task JoinNode(string nodeId) =>
+        Groups.AddToGroupAsync(Context.ConnectionId, $"node-{nodeId}");
+
+    /// <summary>
+    /// Leaves a node-specific group.
+    /// </summary>
+    public Task LeaveNode(string nodeId) =>
+        Groups.RemoveFromGroupAsync(Context.ConnectionId, $"node-{nodeId}");
+}
+
+/// <summary>
+/// Extension methods for broadcasting real-time events via SignalR.
+/// Inject <see cref="IHubContext{EdgeHubNotificationHub}"/> and use these helpers.
+/// </summary>
+public static class HubNotificationExtensions
+{
+    public static Task NotifyStudyReceived(this IHubContext<EdgeHubNotificationHub> hub, object payload) =>
+        hub.Clients.Group("dashboard").SendAsync("StudyReceived", payload);
+
+    public static Task NotifyStudyStatusChanged(this IHubContext<EdgeHubNotificationHub> hub, object payload) =>
+        hub.Clients.Group("dashboard").SendAsync("StudyStatusChanged", payload);
+
+    public static Task NotifyNodeStatusChanged(this IHubContext<EdgeHubNotificationHub> hub, string nodeId, object payload) =>
+        Task.WhenAll(
+            hub.Clients.Group("dashboard").SendAsync("NodeStatusChanged", payload),
+            hub.Clients.Group($"node-{nodeId}").SendAsync("NodeStatusChanged", payload));
+
+    public static Task NotifyNodeHeartbeat(this IHubContext<EdgeHubNotificationHub> hub, string nodeId, object payload) =>
+        hub.Clients.Group($"node-{nodeId}").SendAsync("NodeHeartbeat", payload);
+
+    public static Task NotifyHl7MessageReceived(this IHubContext<EdgeHubNotificationHub> hub, object payload) =>
+        hub.Clients.Group("dashboard").SendAsync("Hl7MessageReceived", payload);
+
+    public static Task NotifyWhatsAppSent(this IHubContext<EdgeHubNotificationHub> hub, object payload) =>
+        hub.Clients.Group("dashboard").SendAsync("WhatsAppNotificationSent", payload);
+
+    public static Task NotifyAuditEvent(this IHubContext<EdgeHubNotificationHub> hub, object payload) =>
+        hub.Clients.Group("dashboard").SendAsync("AuditEvent", payload);
+}

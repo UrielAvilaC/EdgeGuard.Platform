@@ -2,6 +2,7 @@ using Dicom.Edge.Hub.Domain.Common;
 using Dicom.Edge.Hub.Domain.Services;
 using Dicom.Edge.Hub.Infrastructure.EventHandlers;
 using Dicom.Edge.Hub.Infrastructure.Services;
+using Dicom.Edge.Security.Authentication;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Dicom.Edge.Hub.Infrastructure.Extensions;
@@ -25,6 +26,9 @@ public static class HubDomainServiceCollectionExtensions
 
         // Domain event handlers (dispatched by DomainEventDispatchInterceptor)
         services.AddScoped<IDomainEventHandler, AuditDomainEventHandler>();
+
+        // M2M API key validation for Edge Node authentication
+        services.AddScoped<IApiKeyValidator, NodeApiKeyValidator>();
 
         return services;
     }

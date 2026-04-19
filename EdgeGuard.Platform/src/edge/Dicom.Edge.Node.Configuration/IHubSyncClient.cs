@@ -5,7 +5,10 @@ namespace Dicom.Edge.Node.Configuration;
 /// </summary>
 public interface IHubSyncClient
 {
-    Task<bool> RegisterAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Registers with the Hub. Returns the API key on first registration, null on re-registration or failure.
+    /// </summary>
+    Task<string?> RegisterAsync(CancellationToken ct = default);
     Task<bool> SendHeartbeatAsync(CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, string>?> PullConfigurationAsync(CancellationToken ct = default);
     Task<bool> DeregisterAsync(CancellationToken ct = default);

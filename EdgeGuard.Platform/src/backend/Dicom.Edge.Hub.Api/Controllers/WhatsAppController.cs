@@ -1,11 +1,14 @@
 using Dicom.Edge.Contracts.WhatsApp;
 using Dicom.Edge.Hub.Application.WhatsApp;
+using Dicom.Edge.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/whatsapp")]
+[Authorize(Policy = Policies.EditConfiguration)]
 public class WhatsAppController(
     IWhatsAppNotificationService notificationService,
     IWhatsAppTemplateService templateService,
