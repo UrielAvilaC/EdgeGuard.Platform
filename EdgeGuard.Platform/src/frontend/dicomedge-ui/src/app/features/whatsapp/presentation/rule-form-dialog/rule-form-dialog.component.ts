@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faRobot } from '@fortawesome/free-solid-svg-icons';
 
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
 import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
@@ -43,6 +43,7 @@ export class RuleFormDialog {
   private readonly data: RuleFormDialogData = inject(MAT_DIALOG_DATA);
 
   protected readonly faXmark = faXmark;
+  protected readonly faRobot = faRobot;
   protected readonly isEdit = !!this.data.rule;
 
   protected readonly studyStatusOptions: DropdownOption<string>[] = STUDY_STATUS_OPTIONS.map(s => ({
@@ -61,6 +62,11 @@ export class RuleFormDialog {
 
   protected templateId = this.data.rule?.templateId ?? '';
   protected description = this.data.rule?.description ?? '';
+
+  protected get isFormValid(): boolean {
+    if (this.isEdit) return true;
+    return !!this.createForm.studyStatus && !!this.templateId;
+  }
 
   protected onSubmit(): void {
     if (this.isEdit) {

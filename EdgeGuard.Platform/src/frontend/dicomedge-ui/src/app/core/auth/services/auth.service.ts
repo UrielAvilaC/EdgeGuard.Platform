@@ -25,7 +25,7 @@ export class AuthService {
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.api.post<AuthResponse>(API_ROUTES.AUTH.LOGIN, request).pipe(
       tap((res) => {
-        const user = this.decodeUserFromToken(res.accessToken);
+        const user = this.decodeUserFromToken(res.accessToken, res.permissions);
         this.store.setAuth(res.accessToken, res.refreshToken, res.expiresIn, user);
       }),
     );
@@ -43,7 +43,7 @@ export class AuthService {
     const request: RefreshRequest = { accessToken, refreshToken };
     return this.api.post<AuthResponse>(API_ROUTES.AUTH.REFRESH, request).pipe(
       tap((res) => {
-        const user = this.decodeUserFromToken(res.accessToken);
+        const user = this.decodeUserFromToken(res.accessToken, res.permissions);
         this.store.setAuth(res.accessToken, res.refreshToken, res.expiresIn, user);
       }),
     );
@@ -73,7 +73,7 @@ export class AuthService {
     );
   }
 
-  private decodeUserFromToken(token: string): UserProfile {
+  private decodeUserFromToken(token: string, permissions?: string[]): UserProfile {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return {
@@ -81,9 +81,7 @@ export class AuthService {
         userName: payload.userName ?? payload.unique_name ?? '',
         fullName: payload.fullName ?? payload.name ?? '',
         roles: Array.isArray(payload.role) ? payload.role : payload.role ? [payload.role] : [],
-        permissions: typeof payload.permissions === 'string'
-          ? payload.permissions.split(',').filter(Boolean)
-          : Array.isArray(payload.permissions) ? payload.permissions : [],
+        permissions: permissions ?? [],
       };
     } catch {
       return { userId: '', userName: '', fullName: '', roles: [], permissions: [] };

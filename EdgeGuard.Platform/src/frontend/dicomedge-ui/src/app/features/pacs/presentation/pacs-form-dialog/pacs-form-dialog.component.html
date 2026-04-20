@@ -1,68 +1,94 @@
-<div class="p-6 w-[540px] max-w-full">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ isEdit ? 'Editar Servidor PACS' : 'Crear Servidor PACS' }}
-        </h2>
+<div class="p-6 w-[560px] max-w-full">
+      <!-- Header -->
+      <div class="flex items-start justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+            <fa-icon [icon]="faDatabase" class="text-azure-600 dark:text-azure-400" />
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ isEdit ? 'Editar Servidor PACS' : 'Nuevo Servidor PACS' }}
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {{ isEdit ? 'Actualiza la configuración de conexión.' : 'Configura la conexión a un servidor PACS.' }}
+            </p>
+          </div>
+        </div>
         <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
       </div>
 
-      <form #pacsForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-4">
-        <ui-input-text
-          label="Nombre"
-          placeholder="Nombre del servidor"
-          [(ngModel)]="form.name"
-          name="name"
-          required
-        />
+      <form #pacsForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-5">
+        <!-- Identity section -->
+        <div class="space-y-4">
+          <ui-input-text
+            label="Nombre"
+            placeholder="Ej: PACS Radiología"
+            hint="Nombre descriptivo para identificar el servidor."
+            [(ngModel)]="form.name"
+            name="name"
+            required
+          />
 
-        @if (!isEdit) {
-          <ui-input-text
-            label="AE Title"
-            placeholder="AE Title DICOM"
-            [(ngModel)]="createAeTitle"
-            name="aeTitle"
-            required
-          />
-        }
+          @if (!isEdit) {
+            <ui-input-text
+              label="AE Title"
+              placeholder="AE Title DICOM"
+              hint="Identificador DICOM único del servidor."
+              [(ngModel)]="createAeTitle"
+              name="aeTitle"
+              required
+            />
+          }
+        </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <ui-input-text
-            label="Host"
-            placeholder="192.168.1.50"
-            [(ngModel)]="form.hostName"
-            name="hostName"
-            required
-          />
-          <ui-input-text
-            label="Puerto"
-            type="number"
-            placeholder="104"
-            [(ngModel)]="form.port"
-            name="port"
-            required
-          />
+        <!-- Connection section -->
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Conexión</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <ui-input-text
+              label="Host"
+              placeholder="192.168.1.50"
+              [(ngModel)]="form.hostName"
+              name="hostName"
+              required
+            />
+            <ui-input-text
+              label="Puerto"
+              type="number"
+              placeholder="104"
+              [(ngModel)]="form.port"
+              name="port"
+              required
+            />
+          </div>
         </div>
 
         <ui-input-text
           label="Descripción"
-          placeholder="Descripción del servidor"
+          placeholder="Descripción opcional del servidor"
           [(ngModel)]="form.description"
           name="description"
         />
 
-        <div class="grid grid-cols-2 gap-4">
-          <ui-input-text
-            label="Asociaciones concurrentes"
-            type="number"
-            [(ngModel)]="form.maxConcurrentAssociations"
-            name="maxConcurrentAssociations"
-          />
-          <ui-input-text
-            label="Timeout (seg)"
-            type="number"
-            [(ngModel)]="form.timeoutSeconds"
-            name="timeoutSeconds"
-          />
+        <!-- Performance section -->
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Rendimiento</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <ui-input-text
+              label="Asociaciones concurrentes"
+              type="number"
+              hint="Máx. conexiones simultáneas."
+              [(ngModel)]="form.maxConcurrentAssociations"
+              name="maxConcurrentAssociations"
+            />
+            <ui-input-text
+              label="Timeout (seg)"
+              type="number"
+              hint="Tiempo límite de conexión."
+              [(ngModel)]="form.timeoutSeconds"
+              name="timeoutSeconds"
+            />
+          </div>
         </div>
 
         @if (!isEdit) {
@@ -77,8 +103,8 @@
           <ui-button variant="secondary" type="button" (clicked)="onCancel()">
             Cancelar
           </ui-button>
-          <ui-button type="submit">
-            {{ isEdit ? 'Guardar' : 'Crear' }}
+          <ui-button type="submit" [disabled]="!isFormValid">
+            {{ isEdit ? 'Guardar cambios' : 'Crear servidor' }}
           </ui-button>
         </div>
       </form>

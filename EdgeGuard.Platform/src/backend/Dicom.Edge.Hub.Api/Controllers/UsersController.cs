@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/users")]
 [Authorize(Policy = Policies.ViewUsers)]
 public class UsersController : ControllerBase
 {

@@ -87,8 +87,9 @@ export class DashboardFacade {
   }
 
   private initSignalR(): void {
-    this.signalR.start(this.destroyRef).then(() => {
-      this.signalR.joinDashboard();
-    });
+    this.signalR.start(this.destroyRef).then(
+      () => this.signalR.joinDashboard(),
+      () => { /* SignalR connection failed — dashboard will rely on polling */ },
+    );
   }
 }

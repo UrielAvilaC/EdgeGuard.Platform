@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthenticationService _authService;

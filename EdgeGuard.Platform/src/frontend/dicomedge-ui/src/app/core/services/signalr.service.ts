@@ -37,6 +37,9 @@ export class SignalRService {
   async start(destroyRef: DestroyRef): Promise<void> {
     if (this.connection?.state === HubConnectionState.Connected) return;
 
+    const token = this.authStore.accessToken();
+    if (!token) return;
+
     this.connection = new HubConnectionBuilder()
       .withUrl(this.env.signalRUrl, {
         accessTokenFactory: () => this.authStore.accessToken() ?? '',

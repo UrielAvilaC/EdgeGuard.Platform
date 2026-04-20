@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
+import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
 import { UiDropdown } from '../../../../shared/forms/dropdown/dropdown.component';
 import { ROLES, CreateUserRequest } from '../../models/users.models';
@@ -12,7 +13,7 @@ import { ROLES, CreateUserRequest } from '../../models/users.models';
 @Component({
   selector: 'app-user-form-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, FontAwesomeModule, UiButton, UiInputText, UiDropdown],
+  imports: [ReactiveFormsModule, FontAwesomeModule, UiButton, UiIconButton, UiInputText, UiDropdown],
   templateUrl: './user-form-dialog.component.html',
   styleUrl: './user-form-dialog.component.scss'
 })
@@ -20,6 +21,7 @@ export class UserFormDialog {
   protected readonly dialogRef = inject(MatDialogRef<UserFormDialog>);
   private readonly fb = inject(FormBuilder);
   protected readonly faTimes = faTimes;
+  protected readonly faUserPlus = faUserPlus;
 
   protected readonly roleOptions = ROLES.map(r => ({ value: r.value, label: r.label }));
 

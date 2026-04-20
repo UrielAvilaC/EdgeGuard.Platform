@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faFileLines } from '@fortawesome/free-solid-svg-icons';
 
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
 import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
@@ -44,6 +44,7 @@ export class TemplateFormDialog {
   private readonly data: TemplateFormDialogData = inject(MAT_DIALOG_DATA);
 
   protected readonly faXmark = faXmark;
+  protected readonly faFileLines = faFileLines;
   protected readonly isEdit = !!this.data.template;
 
   protected readonly tagOptions: DropdownOption<string>[] = this.data.tags.map(t => ({
@@ -57,6 +58,10 @@ export class TemplateFormDialog {
     description: this.data.template?.description ?? '',
     tags: this.data.template?.variables.map(v => v.tag) ?? [],
   };
+
+  protected get isFormValid(): boolean {
+    return !!this.form.name && !!this.form.contentSid;
+  }
 
   protected onSubmit(): void {
     const result: CreateWhatsAppTemplateRequest = {

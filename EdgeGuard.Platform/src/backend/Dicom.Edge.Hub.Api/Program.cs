@@ -32,7 +32,7 @@ try
         options.AddDefaultPolicy(policy =>
         {
             var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                ?? ["http://localhost:3000", "http://localhost:5173"];
+                ?? ["http://localhost:4200", "http://localhost:5173"];
             policy.WithOrigins(origins)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
@@ -86,6 +86,7 @@ try
     builder.Services.AddHubPersistence(builder.Configuration);
     builder.Services.AddHubDomainServices();
     builder.Services.AddHubApplication(builder.Configuration);
+    builder.Services.AddWhatsAppServices();
     builder.Services.AddHl7Infrastructure();
     builder.Services.AddHubHostedServices(builder.Configuration);
 
@@ -119,8 +120,8 @@ try
         });
     }
 
-    app.UseHttpsRedirection();
     app.UseCors();
+    //app.UseHttpsRedirection();
     app.UseRateLimiter();
 
     // Bootstrap token validation for /edge/register (before auth pipeline)

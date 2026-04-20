@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/queue-monitoring")]
 [Authorize(Policy = Policies.ViewQueue)]
 public class QueueMonitoringController : ControllerBase
 {

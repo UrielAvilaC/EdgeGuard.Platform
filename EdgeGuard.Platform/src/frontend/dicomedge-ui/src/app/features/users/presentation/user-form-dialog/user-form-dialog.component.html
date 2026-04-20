@@ -1,26 +1,39 @@
-<div class="p-6 max-w-lg">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Crear usuario</h2>
-        <button type="button" class="text-gray-400 hover:text-gray-600" (click)="dialogRef.close(null)" aria-label="Cerrar">
-          <fa-icon [icon]="faTimes" />
-        </button>
+<div class="p-6 w-[560px] max-w-full">
+      <!-- Header -->
+      <div class="flex items-start justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+            <fa-icon [icon]="faUserPlus" class="text-azure-600 dark:text-azure-400" />
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Nuevo usuario</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Registra un usuario en la plataforma.</p>
+          </div>
+        </div>
+        <ui-icon-button [icon]="faTimes" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="dialogRef.close(null)" />
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
-        <ui-input-text label="Nombre de usuario" formControlName="username" [required]="true" />
-        <ui-input-text label="Nombre completo" formControlName="fullName" [required]="true" />
-        <ui-input-text label="Contraseña" formControlName="password" type="password" [required]="true" />
-        <ui-dropdown
-          label="Roles"
-          formControlName="roles"
-          [options]="roleOptions"
-          [multiple]="true"
-          placeholder="Seleccionar roles"
-        />
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-5">
+        <div class="space-y-4">
+          <ui-input-text label="Nombre de usuario" placeholder="Ej: jperez" hint="Se usará para iniciar sesión." formControlName="username" [required]="true" />
+          <ui-input-text label="Nombre completo" placeholder="Ej: Juan Pérez" formControlName="fullName" [required]="true" />
+          <ui-input-text label="Contraseña" placeholder="Mínimo 8 caracteres" hint="Debe tener al menos 8 caracteres." formControlName="password" type="password" [required]="true" />
+        </div>
 
-        <div class="flex justify-end gap-3 pt-4">
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Permisos</h3>
+          <ui-dropdown
+            label="Roles"
+            formControlName="roles"
+            [options]="roleOptions"
+            [multiple]="true"
+            placeholder="Seleccionar roles"
+          />
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <ui-button variant="secondary" (clicked)="dialogRef.close(null)">Cancelar</ui-button>
-          <ui-button type="submit" [disabled]="form.invalid">Crear</ui-button>
+          <ui-button type="submit" [disabled]="form.invalid">Crear usuario</ui-button>
         </div>
       </form>
     </div>

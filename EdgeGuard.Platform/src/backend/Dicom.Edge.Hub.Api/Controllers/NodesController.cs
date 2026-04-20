@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/nodes")]
 [Authorize(Policy = Policies.ViewNodes)]
 public class NodesController : ControllerBase
 {

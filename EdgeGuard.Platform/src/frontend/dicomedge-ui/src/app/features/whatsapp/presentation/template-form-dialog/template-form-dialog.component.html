@@ -1,50 +1,70 @@
-<div class="p-6 w-[540px] max-w-full">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ isEdit ? 'Editar Template' : 'Crear Template' }}
-        </h2>
+<div class="p-6 w-[560px] max-w-full">
+      <!-- Header -->
+      <div class="flex items-start justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+            <fa-icon [icon]="faFileLines" class="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ isEdit ? 'Editar Template' : 'Nuevo Template WhatsApp' }}
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {{ isEdit ? 'Modifica la configuración del template.' : 'Configura un template de Twilio para envío de mensajes.' }}
+            </p>
+          </div>
+        </div>
         <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
       </div>
 
-      <form #templateForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-4">
-        <ui-input-text
-          label="Nombre"
-          placeholder="Nombre del template"
-          [(ngModel)]="form.name"
-          name="name"
-          required
-        />
+      <form #templateForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-5">
+        <div class="space-y-4">
+          <ui-input-text
+            label="Nombre"
+            placeholder="Ej: Notificación de resultados"
+            hint="Nombre descriptivo para identificar el template."
+            [(ngModel)]="form.name"
+            name="name"
+            required
+          />
 
-        <ui-input-text
-          label="Content SID"
-          placeholder="HX1234567890..."
-          [(ngModel)]="form.contentSid"
-          name="contentSid"
-          required
-        />
+          <ui-input-text
+            label="Content SID"
+            placeholder="HX1234567890..."
+            hint="Identificador del template en Twilio."
+            [(ngModel)]="form.contentSid"
+            name="contentSid"
+            required
+          />
 
-        <ui-textarea
-          label="Descripción"
-          placeholder="Descripción del template..."
-          [(ngModel)]="form.description"
-          name="description"
-        />
+          <ui-textarea
+            label="Descripción"
+            placeholder="Describe el propósito de este template..."
+            [(ngModel)]="form.description"
+            name="description"
+          />
+        </div>
 
-        <ui-dropdown
-          label="Tags (variables)"
-          [options]="tagOptions"
-          [(ngModel)]="form.tags"
-          name="tags"
-          [multiple]="true"
-          placeholder="Seleccionar tags..."
-        />
+        <!-- Tags section -->
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Variables del template</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 -mt-2">Selecciona los tags que se reemplazarán en el mensaje.</p>
+          <ui-dropdown
+            label="Tags"
+            [options]="tagOptions"
+            [(ngModel)]="form.tags"
+            name="tags"
+            [multiple]="true"
+            placeholder="Seleccionar tags..."
+          />
+        </div>
 
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <ui-button variant="secondary" type="button" (clicked)="onCancel()">
             Cancelar
           </ui-button>
-          <ui-button type="submit">
-            {{ isEdit ? 'Guardar' : 'Crear' }}
+          <ui-button type="submit" [disabled]="!isFormValid">
+            {{ isEdit ? 'Guardar cambios' : 'Crear template' }}
           </ui-button>
         </div>
       </form>

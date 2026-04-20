@@ -1,7 +1,9 @@
 ﻿namespace Dicom.Edge.Contracts.Edge
 {
     /// <summary>
-    /// Data transfer object for Edge Node information.
+    /// Data transfer object for Edge Node 
+    /// 
+    /// rmation.
     /// </summary>
     public class EdgeNodeDto
     {

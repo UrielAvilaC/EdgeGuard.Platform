@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/pacs-servers")]
 [Authorize(Policy = Policies.ViewConfiguration)]
 public class PacsServersController : ControllerBase
 {

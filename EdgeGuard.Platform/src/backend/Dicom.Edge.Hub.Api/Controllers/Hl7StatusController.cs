@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/hl7-status")]
 [Authorize(Policy = Policies.ViewSystemStatus)]
 public class Hl7StatusController : ControllerBase
 {

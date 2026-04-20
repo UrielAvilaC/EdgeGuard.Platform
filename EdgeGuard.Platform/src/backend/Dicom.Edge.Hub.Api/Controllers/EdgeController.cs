@@ -14,6 +14,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 /// All endpoints except /edge/register require API key authentication.
 /// /edge/register is protected by bootstrap token middleware.
 /// </summary>
+[Route("edge")]
 [ApiController]
 [Authorize(AuthenticationSchemes = ApiKeyAuthenticationOptions.Scheme)]
 public class EdgeController : ControllerBase
@@ -30,7 +31,7 @@ public class EdgeController : ControllerBase
     }
 
     /// <summary>POST /edge/register — Node self-registration. Protected by bootstrap token.</summary>
-    [HttpPost("/edge/register")]
+    [HttpPost("register")]
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] NodeRegistrationRequest request, CancellationToken ct)
     {
@@ -52,7 +53,7 @@ public class EdgeController : ControllerBase
     }
 
     /// <summary>POST /edge/studies — Node notifies Hub of a received study.</summary>
-    [HttpPost("/edge/studies")]
+    [HttpPost("studies")]
     public async Task<IActionResult> StudyNotify([FromBody] StudyNotifyRequest request, CancellationToken ct)
     {
         var result = await _edgeService.ProcessStudyNotifyAsync(request, ct);
@@ -68,7 +69,7 @@ public class EdgeController : ControllerBase
     }
 
     /// <summary>POST /edge/health — Node reports health metrics.</summary>
-    [HttpPost("/edge/health")]
+    [HttpPost("health")]
     public async Task<IActionResult> HealthReport([FromBody] NodeHealthReportRequest request, CancellationToken ct)
     {
         var result = await _edgeService.ProcessHealthReportAsync(request, ct);
@@ -79,7 +80,7 @@ public class EdgeController : ControllerBase
     }
 
     /// <summary>GET /edge/configuration — Node pulls its config as key-value pairs.</summary>
-    [HttpGet("/edge/configuration")]
+    [HttpGet("configuration")]
     public async Task<IActionResult> PullConfiguration([FromQuery] string nodeId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(nodeId))

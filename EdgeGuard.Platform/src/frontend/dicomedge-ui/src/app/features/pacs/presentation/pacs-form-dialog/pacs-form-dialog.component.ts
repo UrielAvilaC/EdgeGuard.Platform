@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faDatabase } from '@fortawesome/free-solid-svg-icons';
 
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
 import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
@@ -36,6 +36,7 @@ export class PacsFormDialog {
   private readonly data: PacsFormDialogData = inject(MAT_DIALOG_DATA);
 
   protected readonly faXmark = faXmark;
+  protected readonly faDatabase = faDatabase;
   protected readonly isEdit = !!this.data.server;
 
   protected createAeTitle = '';
@@ -49,6 +50,11 @@ export class PacsFormDialog {
     maxConcurrentAssociations: this.data.server?.maxConcurrentAssociations ?? 10,
     timeoutSeconds: this.data.server?.timeoutSeconds ?? 30,
   };
+
+  protected get isFormValid(): boolean {
+    if (this.isEdit) return !!this.form.name && !!this.form.hostName && this.form.port > 0;
+    return !!this.form.name && !!this.createAeTitle && !!this.form.hostName && this.form.port > 0;
+  }
 
   protected onSubmit(): void {
     if (this.isEdit) {
