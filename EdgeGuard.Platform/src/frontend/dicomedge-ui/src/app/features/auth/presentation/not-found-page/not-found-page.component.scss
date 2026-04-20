@@ -1,0 +1,46 @@
+:host { display: block; }
+
+    .not-found-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      background: var(--eg-surface-dim);
+    }
+
+    .not-found-card {
+      text-align: center;
+      max-width: 400px;
+      padding: 56px 40px;
+      background: var(--eg-surface);
+      border: 1px solid var(--eg-border-subtle);
+      border-radius: var(--eg-radius-xl);
+      box-shadow: var(--eg-shadow-md);
+    }
+
+    .not-found-code {
+      font-size: 6rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #0078d4, #005a9e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .not-found-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--eg-text-primary);
+      letter-spacing: -0.01em;
+      margin: 16px 0 8px;
+    }
+
+    .not-found-message {
+      font-size: 0.875rem;
+      color: var(--eg-text-secondary);
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }

@@ -1,0 +1,14 @@
+<div class="page-header">
+      <div class="page-header-text">
+        @if (subtitle()) {
+          <p class="page-header-subtitle">{{ subtitle() }}</p>
+        }
+        <h1 class="page-header-title">{{ title() }}</h1>
+        @if (description()) {
+          <p class="page-header-description">{{ description() }}</p>
+        }
+      </div>
+      <div class="page-header-actions">
+        <ng-content />
+      </div>
+    </div>

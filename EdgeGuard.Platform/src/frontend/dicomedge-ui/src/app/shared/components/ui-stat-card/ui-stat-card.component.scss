@@ -1,0 +1,65 @@
+:host { display: block; }
+
+    .stat-card {
+      height: 100%;
+      transition: box-shadow var(--eg-transition-normal), transform var(--eg-transition-normal), border-color var(--eg-transition-normal);
+      cursor: default;
+
+      &:hover {
+        box-shadow: var(--eg-shadow-md) !important;
+        transform: translateY(-2px);
+        border-color: var(--eg-border) !important;
+      }
+    }
+
+    .stat-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px !important;
+    }
+
+    .stat-icon-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .stat-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--eg-text-muted);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--eg-text-primary);
+      letter-spacing: -0.025em;
+      line-height: 1.2;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-trend {
+      margin-top: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }

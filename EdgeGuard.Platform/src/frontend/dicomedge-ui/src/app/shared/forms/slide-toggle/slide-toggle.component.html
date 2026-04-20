@@ -1,0 +1,8 @@
+<mat-slide-toggle
+      [ngModel]="value"
+      (ngModelChange)="onValueChange($event)"
+      [disabled]="isDisabled"
+      [attr.aria-label]="ariaLabel() || label()"
+    >
+      {{ label() }}
+    </mat-slide-toggle>

@@ -1,0 +1,62 @@
+:host {
+      display: block;
+    }
+
+    .table-card {
+      position: relative;
+      background: var(--eg-surface);
+      border: 1px solid var(--eg-border-subtle);
+      border-radius: var(--eg-radius-lg);
+      box-shadow: var(--eg-shadow-xs);
+      overflow: hidden;
+    }
+
+    .table-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    th.mat-mdc-header-cell {
+      background: var(--eg-surface-dim);
+      border-bottom: 1px solid var(--eg-border);
+      font-weight: 600;
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--eg-text-muted);
+      padding: 0 16px;
+      height: 40px;
+      white-space: nowrap;
+    }
+
+    td.mat-mdc-cell {
+      border-bottom: 1px solid var(--eg-border-subtle);
+      padding: 0 16px;
+      height: 48px;
+      color: var(--eg-text-primary);
+      font-size: 0.875rem;
+    }
+
+    tr.mat-mdc-row {
+      transition: background-color var(--eg-transition-fast);
+
+      &:hover {
+        background: var(--eg-surface-container) !important;
+      }
+
+      &:last-child td.mat-mdc-cell {
+        border-bottom: none;
+      }
+    }

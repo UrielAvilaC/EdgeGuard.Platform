@@ -1,0 +1,31 @@
+@if (variant() === 'ghost') {
+      <button
+        mat-button
+        [class]="buttonClasses()"
+        [disabled]="disabled() || loading()"
+        [type]="type()"
+        (click)="clicked.emit($event)"
+      >
+        @if (loading()) {
+          <mat-spinner diameter="18" class="mr-2" />
+        } @else if (icon()) {
+          <fa-icon [icon]="icon()!" class="mr-2" size="sm" />
+        }
+        <ng-content />
+      </button>
+    } @else {
+      <button
+        mat-flat-button
+        [class]="buttonClasses()"
+        [disabled]="disabled() || loading()"
+        [type]="type()"
+        (click)="clicked.emit($event)"
+      >
+        @if (loading()) {
+          <mat-spinner diameter="18" class="mr-2" />
+        } @else if (icon()) {
+          <fa-icon [icon]="icon()!" class="mr-2" size="sm" />
+        }
+        <ng-content />
+      </button>
+    }

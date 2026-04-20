@@ -1,0 +1,128 @@
+.widget-card {
+      padding: 0 !important;
+      overflow: hidden;
+    }
+
+    .widget-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--eg-border-subtle);
+    }
+
+    .widget-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .widget-icon {
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+
+    .widget-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--eg-text-primary);
+      margin: 0;
+    }
+
+    .widget-link {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--eg-accent, #0078d4);
+      text-decoration: none;
+      transition: color var(--eg-transition-fast);
+
+      &:hover { color: var(--eg-accent-hover, #106ebe); }
+    }
+
+    .nodes-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .node-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--eg-border-subtle);
+      transition: background var(--eg-transition-fast);
+
+      &:last-child { border-bottom: none; }
+      &:hover { background: var(--eg-surface-container); }
+    }
+
+    .node-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .node-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+
+    .node-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--eg-text-primary);
+    }
+
+    .node-meta {
+      font-size: 0.75rem;
+      color: var(--eg-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .meta-sep {
+      opacity: 0.5;
+    }
+
+    .node-storage {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      min-width: 120px;
+    }
+
+    .storage-bar-container {
+      flex: 1;
+      height: 6px;
+      background: var(--eg-surface-container-high);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .storage-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: #0078d4;
+      transition: width var(--eg-transition-normal);
+    }
+
+    .storage-bar-fill.storage-warning {
+      background: #d97706;
+    }
+
+    .storage-bar-fill.storage-danger {
+      background: #dc2626;
+    }
+
+    .storage-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--eg-text-muted);
+      min-width: 32px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }

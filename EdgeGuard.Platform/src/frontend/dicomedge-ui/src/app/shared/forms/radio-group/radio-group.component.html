@@ -1,0 +1,16 @@
+@if (label()) {
+      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ label() }}</label>
+    }
+    <mat-radio-group
+      [ngModel]="value"
+      (ngModelChange)="onValueChange($event)"
+      [disabled]="isDisabled"
+      [class]="inline() ? 'flex gap-4' : 'flex flex-col gap-2'"
+      [attr.aria-label]="ariaLabel() || label()"
+    >
+      @for (opt of options(); track opt.value) {
+        <mat-radio-button [value]="opt.value" [disabled]="opt.disabled ?? false">
+          {{ opt.label }}
+        </mat-radio-button>
+      }
+    </mat-radio-group>

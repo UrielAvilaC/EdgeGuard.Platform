@@ -1,0 +1,145 @@
+<div class="space-y-6">
+      <ui-page-header
+        title="Servidores PACS"
+        description="Administración de servidores PACS destino para envío de estudios."
+      >
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="facade.loadServers()">
+          Actualizar
+        </ui-button>
+        <ui-button size="sm" [icon]="faPlus" (clicked)="openCreateDialog()">
+          Nuevo servidor
+        </ui-button>
+      </ui-page-header>
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" [dismissible]="true" />
+      }
+
+      <!-- Filters -->
+      <div class="space-y-4">
+        <div class="flex items-center gap-4 flex-wrap">
+          <div class="flex-1 min-w-[280px]">
+            <ui-search-bar
+              placeholder="Buscar por nombre, AE Title, host..."
+              (searchChange)="onSearchChange($event)"
+            />
+          </div>
+
+          <ui-button
+            variant="secondary"
+            size="sm"
+            [icon]="faFilter"
+            (clicked)="filtersExpanded = !filtersExpanded"
+          >
+            Filtros
+            @if (facade.activeFilterCount() > 0) {
+              <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-azure-600 text-white">
+                {{ facade.activeFilterCount() }}
+              </span>
+            }
+          </ui-button>
+
+          @if (facade.activeFilterCount() > 0) {
+            <ui-button variant="ghost" size="sm" [icon]="faXmark" (clicked)="facade.clearFilters()">
+              Limpiar
+            </ui-button>
+          }
+        </div>
+
+        @if (filtersExpanded) {
+          <div class="flex items-center gap-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+               role="group" aria-label="Filtros avanzados">
+            <ui-slide-toggle
+              label="Solo habilitados"
+              [ngModel]="facade.filter().isEnabled ?? false"
+              (ngModelChange)="onEnabledChange($event)"
+            />
+            <ui-slide-toggle
+              label="Solo globales"
+              [ngModel]="facade.filter().isGlobal ?? false"
+              (ngModelChange)="onGlobalChange($event)"
+            />
+          </div>
+        }
+      </div>
+
+      <ui-data-table
+        [columns]="columns"
+        [data]="facade.servers()"
+        [pagination]="facade.pagination()"
+        [sort]="facade.sort()"
+        [loading]="facade.loading()"
+        emptyMessage="No se encontraron servidores PACS."
+        (pageChange)="facade.changePage($event.page, $event.pageSize)"
+        (sortChange)="facade.changeSort($event)"
+      >
+        <ng-template [uiCellDef]="'name'" let-row let-value="value">
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+            @if (!row.isEnabled) {
+              <ui-chip color="default">Deshabilitado</ui-chip>
+            }
+            @if (row.isGlobal) {
+              <ui-chip color="info">Global</ui-chip>
+            }
+          </div>
+        </ng-template>
+
+        <ng-template [uiCellDef]="'isReachable'" let-row>
+          <div class="flex items-center gap-2">
+            <fa-icon
+              [icon]="faWifi"
+              [class]="row.isReachable ? 'text-emerald-500' : 'text-red-500'"
+            />
+            <span class="text-sm" [class]="row.isReachable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+              {{ row.isReachable ? 'Alcanzable' : 'No alcanzable' }}
+            </span>
+          </div>
+        </ng-template>
+
+        <ng-template [uiCellDef]="'lastCEchoAt'" let-row>
+          @if (row.lastCEchoAt) {
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full"
+                    [class]="row.lastCEchoSuccess ? 'bg-emerald-500' : 'bg-red-500'">
+              </span>
+              {{ row.lastCEchoAt | relativeTime }}
+            </div>
+          } @else {
+            <span class="text-gray-400">—</span>
+          }
+        </ng-template>
+
+        <ng-template [uiCellDef]="'actions'" let-row>
+          <div class="flex items-center gap-1" (click)="$event.stopPropagation()">
+            <ui-icon-button
+              [icon]="faPen"
+              tooltip="Editar"
+              ariaLabel="Editar servidor"
+              (clicked)="openEditDialog(row)"
+            />
+            @if (row.isEnabled) {
+              <ui-icon-button
+                [icon]="faToggleOff"
+                tooltip="Deshabilitar"
+                ariaLabel="Deshabilitar servidor"
+                (clicked)="facade.disableServer(row.id)"
+              />
+            } @else {
+              <ui-icon-button
+                [icon]="faToggleOn"
+                tooltip="Habilitar"
+                ariaLabel="Habilitar servidor"
+                (clicked)="facade.enableServer(row.id)"
+              />
+            }
+            <ui-icon-button
+              [icon]="faTrash"
+              tooltip="Eliminar"
+              ariaLabel="Eliminar servidor"
+              (clicked)="confirmDelete(row)"
+            />
+          </div>
+        </ng-template>
+      </ui-data-table>
+    </div>

@@ -1,17 +1,17 @@
 import { Routes } from '@angular/router';
 
-import { MainLayout } from './layout/main-layout/main-layout';
+import { MainLayout } from './layout/main-layout/main-layout.component';
 import { authGuard } from './core/auth/guards/auth.guard';
 import { permissionGuard } from './core/auth/guards/permission.guard';
 
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./features/auth/presentation/login-page/login-page'),
+    loadComponent: () => import('./features/auth/presentation/login-page/login-page.component'),
   },
   {
     path: 'unauthorized',
-    loadComponent: () => import('./features/auth/presentation/unauthorized-page/unauthorized-page'),
+    loadComponent: () => import('./features/auth/presentation/unauthorized-page/unauthorized-page.component'),
   },
   {
     path: '',
@@ -91,5 +91,8 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'dashboard' },
+  {
+    path: '**',
+    loadComponent: () => import('./features/auth/presentation/not-found-page/not-found-page.component'),
+  },
 ];

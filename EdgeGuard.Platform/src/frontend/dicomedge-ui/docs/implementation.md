@@ -581,16 +581,16 @@ export const API_ROUTES = {
 ### FASE 6 — Feature: Nodes (2-3 días)
 
 **6.1 — Infrastructure**
-- [ ] `nodes-api.service.ts` — getPaged, getAll, getActive, getById, create, update, enable/disable, count
+- [x] `nodes-api.service.ts` — getPaged, getAll, getActive, getById, create, update, enable/disable, count
 
 **6.2 — Store + Facade**
-- [ ] `nodes.store.ts` / `nodes.facade.ts`
+- [x] `nodes.store.ts` / `nodes.facade.ts`
 
 **6.3 — Presentation**
-- [ ] `nodes-page/` — tabla con status badges, last heartbeat relativo, storage bars
-- [ ] `node-detail-page/` — info completa, PACS assignments, estudios del nodo, health checks, config
-- [ ] `node-form-dialog/` — crear/editar nodo (Name, AeTitle, IP, Port, Location, Facility)
-- [ ] `node-health-card/` — tarjeta con CPU, memoria, disco, queue depth
+- [x] `nodes-page/` — tabla con status badges, last heartbeat relativo, storage bars
+- [x] `node-detail-page/` — info completa, PACS assignments, estudios del nodo, health checks, config
+- [x] `node-form-dialog/` — crear/editar nodo (Name, AeTitle, IP, Port, Location, Facility)
+- [x] `node-health-card/` — tarjeta con CPU, memoria, disco, queue depth
 
 **Entregable**: Gestión completa de nodos, monitoreo de salud, asignación de PACS.
 
@@ -599,11 +599,11 @@ export const API_ROUTES = {
 ### FASE 7 — Feature: PACS Servers (1-2 días)
 
 **7.1 — Infrastructure + Store + Facade**
-- [ ] `pacs-api.service.ts` — CRUD + enable/disable
+- [x] `pacs-api.service.ts` — CRUD + enable/disable
 
 **7.2 — Presentation**
-- [ ] `pacs-page/` — tabla con status (reachable/unreachable), último C-ECHO
-- [ ] `pacs-form-dialog/` — crear/editar servidor PACS
+- [x] `pacs-page/` — tabla con status (reachable/unreachable), último C-ECHO
+- [x] `pacs-form-dialog/` — crear/editar servidor PACS
 
 **Entregable**: Administración de servidores PACS.
 
@@ -614,21 +614,21 @@ export const API_ROUTES = {
 > Agrupa: HL7 Listener Status, Routing Rules, Queue Monitoring
 
 **8.1 — Infrastructure**
-- [ ] `hl7-status-api.service.ts` — getStatus, getRecentMessages, getMessageDetail
-- [ ] `routing-rules-api.service.ts` — CRUD + enable/disable + updatePriority
-- [ ] `queue-api.service.ts` — getSummary, getByStatus, getQueued
+- [x] `hl7-status-api.service.ts` — getStatus, getRecentMessages, getMessageDetail
+- [x] `routing-rules-api.service.ts` — CRUD + enable/disable + updatePriority
+- [x] `queue-api.service.ts` — getSummary, getByStatus, getQueued
 
 **8.2 — Store + Facade**
-- [ ] `hl7.store.ts` / `hl7.facade.ts`
+- [x] `hl7.store.ts` / `hl7.facade.ts`
 
 **8.3 — Presentation**
-- [ ] `hl7-overview-page/` — tabs: Listener Status | Routing Rules | Queue
-- [ ] `hl7-listener-status/` — estado (running/stopped), puerto, conexiones activas, badge auto
-- [ ] `hl7-message-list/` — tabla de mensajes recientes con status chips
-- [ ] `hl7-message-detail-dialog/` — contenido raw HL7, metadata, error info
-- [ ] `routing-rules-page/` — tabla draggable (prioridad), enable/disable inline
-- [ ] `routing-rule-form-dialog/` — crear/editar regla (name, target node, matchers, priority)
-- [ ] `queue-monitor-page/` — visual de pipeline: barras por estado, tabla de mensajes encolados
+- [x] `hl7-overview-page/` — tabs: Listener Status | Routing Rules | Queue
+- [x] `hl7-listener-status/` — estado (running/stopped), puerto, conexiones activas, badge auto
+- [x] `hl7-message-list/` — tabla de mensajes recientes con status chips
+- [x] `hl7-message-detail-dialog/` — contenido raw HL7, metadata, error info
+- [x] `routing-rules-page/` — tabla draggable (prioridad), enable/disable inline
+- [x] `routing-rule-form-dialog/` — crear/editar regla (name, target node, matchers, priority)
+- [x] `queue-monitor-page/` — visual de pipeline: barras por estado, tabla de mensajes encolados
 
 **Entregable**: Monitoreo completo de la integración HL7.
 
@@ -637,18 +637,18 @@ export const API_ROUTES = {
 ### FASE 9 — Feature: WhatsApp (2-3 días)
 
 **9.1 — Infrastructure**
-- [ ] `whatsapp-api.service.ts` — configStatus, templates CRUD, autoSendRules CRUD, sendManual, notifications
+- [x] `whatsapp-api.service.ts` — configStatus, templates CRUD, autoSendRules CRUD, sendManual, notifications
 
 **9.2 — Store + Facade**
-- [ ] `whatsapp.store.ts` / `whatsapp.facade.ts`
+- [x] `whatsapp.store.ts` / `whatsapp.facade.ts`
 
 **9.3 — Presentation**
-- [ ] `whatsapp-overview-page/` — config status card + tabs: Templates | Auto-Send Rules
-- [ ] `templates-page/` — tabla de templates con tags chips
-- [ ] `template-form-dialog/` — crear/editar template (name, ContentSid, description, tags)
-- [ ] `auto-send-rules-page/` — tabla de reglas: status trigger → template, enable/disable inline
-- [ ] `rule-form-dialog/` — crear/editar regla
-- [ ] `send-manual-dialog/` — seleccionar estudio, template, recipients con phone input
+- [x] `whatsapp-overview-page/` — config status card + tabs: Templates | Auto-Send Rules
+- [x] `templates-page/` — tabla de templates con tags chips
+- [x] `template-form-dialog/` — crear/editar template (name, ContentSid, description, tags)
+- [x] `auto-send-rules-page/` — tabla de reglas: status trigger → template, enable/disable inline
+- [x] `rule-form-dialog/` — crear/editar regla
+- [x] `send-manual-dialog/` — seleccionar estudio, template, recipients con phone input
 
 **Entregable**: Configuración completa de WhatsApp.
 
@@ -657,22 +657,22 @@ export const API_ROUTES = {
 ### FASE 10 — Feature: Users + Settings + Audit (3-4 días)
 
 **10.1 — Users**
-- [ ] `users-api.service.ts`, `users.store.ts`, `users.facade.ts`
-- [ ] `users-page/` — tabla con filtros, status badges
-- [ ] `user-detail-page/` — perfil, roles, permisos, acciones (activate/deactivate, unlock, reset password)
-- [ ] `user-form-dialog/` — crear usuario
-- [ ] `role-permission-panel/` — panel de asignación drag/checkboxes
+- [x] `users-api.service.ts`, `users.store.ts`, `users.facade.ts`
+- [x] `users-page/` — tabla con filtros, status badges
+- [x] `user-detail-page/` — perfil, roles, permisos, acciones (activate/deactivate, unlock, reset password)
+- [x] `user-form-dialog/` — crear usuario
+- [x] `role-permission-panel/` — panel de asignación drag/checkboxes
 
 **10.2 — Settings**
-- [ ] `system-settings-api.service.ts`, `node-config-api.service.ts`
-- [ ] `settings-page/` — settings agrupados por categoría, edición inline
-- [ ] `setting-category-panel/` — panel expandible por categoría
-- [ ] `node-config-page/` — selector de nodo + settings del nodo, push config button
+- [x] `system-settings-api.service.ts`, `node-config-api.service.ts`
+- [x] `settings-page/` — settings agrupados por categoría, edición inline
+- [x] `setting-category-panel/` — panel expandible por categoría
+- [x] `node-config-page/` — selector de nodo + settings del nodo, push config button
 
 **10.3 — Audit**
-- [ ] `audit-api.service.ts`, `audit.store.ts`, `audit.facade.ts`
-- [ ] `audit-page/` — tabla con filtros avanzados (tipo, severidad, usuario, entity, fecha)
-- [ ] `audit-detail-dialog/` — detalles completos del log
+- [x] `audit-api.service.ts`, `audit.store.ts`, `audit.facade.ts`
+- [x] `audit-page/` — tabla con filtros avanzados (tipo, severidad, usuario, entity, fecha)
+- [x] `audit-detail-dialog/` — detalles completos del log
 
 **Entregable**: Gestión de usuarios/roles, configuración del sistema, auditoría completa.
 
@@ -681,32 +681,32 @@ export const API_ROUTES = {
 ### FASE 11 — Polish & Cross-cutting (2-3 días)
 
 **11.1 — UX / Accesibilidad**
-- [ ] Verificar todos los componentes con AXE
-- [ ] Focus management en diálogos y navegación por teclado
-- [ ] ARIA labels en todos los controles interactivos
-- [ ] Skip-to-content link
-- [ ] Color contrast WCAG AA en todos los estados
+- [x] Verificar todos los componentes con AXE
+- [x] Focus management en diálogos y navegación por teclado
+- [x] ARIA labels en todos los controles interactivos
+- [x] Skip-to-content link
+- [x] Color contrast WCAG AA en todos los estados
 
 **11.2 — Dark mode**
-- [ ] Toggle en header que agrega/remueve clase `.dark` en `<html>`
-- [ ] Persistir preferencia en localStorage
-- [ ] Verificar todos los componentes en dark mode
+- [x] Toggle en header que agrega/remueve clase `.dark` en `<html>`
+- [x] Persistir preferencia en localStorage
+- [x] Verificar todos los componentes en dark mode
 
 **11.3 — Error handling robusto**
-- [ ] Página 404 not-found con redirect
-- [ ] Página 500 error genérico
-- [ ] Retry automático en errores de red (interceptor con backoff)
-- [ ] Empty states en todas las tablas
+- [x] Página 404 not-found con redirect
+- [x] Página 500 error genérico
+- [x] Retry automático en errores de red (interceptor con backoff)
+- [x] Empty states en todas las tablas
 
 **11.4 — Responsive**
-- [ ] Sidebar colapsable en mobile (hamburger menu)
-- [ ] Tablas con scroll horizontal en mobile
-- [ ] Dashboard widgets stack vertical en mobile
+- [x] Sidebar colapsable en mobile (hamburger menu)
+- [x] Tablas con scroll horizontal en mobile
+- [x] Dashboard widgets stack vertical en mobile
 
 **11.5 — Performance**
-- [ ] `trackBy` en todos los `@for`
-- [ ] Virtual scroll en tablas con muchos registros
-- [ ] Preload strategy para rutas frecuentes
+- [x] `trackBy` en todos los `@for`
+- [x] Virtual scroll en tablas con muchos registros
+- [x] Preload strategy para rutas frecuentes
 
 **Entregable**: App pulida, accesible, responsive, con manejo de errores completo.
 

@@ -1,0 +1,39 @@
+<mat-card class="widget-card">
+      <div class="widget-header">
+        <div class="widget-title-row">
+          <fa-icon icon="clipboard-list" class="widget-icon text-blue-600"></fa-icon>
+          <h3 class="widget-title">Estudios Recientes</h3>
+        </div>
+        <a routerLink="/studies" class="widget-link">Ver todos</a>
+      </div>
+
+      @if (facade.recentStudies().length === 0) {
+        <ui-empty-state title="Sin estudios recientes" />
+      } @else {
+        <div class="studies-list">
+          @for (study of facade.recentStudies(); track study.id) {
+            <div class="study-row">
+              <div class="study-info">
+                <div class="study-main">
+                  <span class="study-patient">{{ study.patientName ?? 'Desconocido' }}</span>
+                  @if (study.isUrgent) {
+                    <span class="urgent-badge">URGENTE</span>
+                  }
+                </div>
+                <div class="study-meta">
+                  <span>{{ study.studyDescription ?? 'Sin descripción' }}</span>
+                  <span class="meta-separator">·</span>
+                  <span>{{ study.totalSizeBytes | fileSize }}</span>
+                  <span class="meta-separator">·</span>
+                  <span>{{ study.createdAt | relativeTime }}</span>
+                </div>
+              </div>
+              <div class="study-actions">
+                <span class="study-instances">{{ study.seriesCount }}S / {{ study.instanceCount }}I</span>
+                <ui-status-badge [status]="study.status" />
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </mat-card>

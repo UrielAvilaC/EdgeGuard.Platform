@@ -1,0 +1,68 @@
+<div class="p-6 w-[520px] max-w-full">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Enviar WhatsApp manual
+        </h2>
+        <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+      </div>
+
+      <form #sendForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-4">
+        <ui-input-text
+          label="Estudio"
+          [ngModel]="data.studyId"
+          name="studyId"
+          [disabled]="true"
+        />
+
+        <ui-dropdown
+          label="Template"
+          [options]="templateOptions"
+          [(ngModel)]="templateId"
+          name="templateId"
+          required
+        />
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Destinatarios</span>
+            <ui-icon-button [icon]="faPlus" tooltip="Agregar" ariaLabel="Agregar destinatario" (clicked)="addRecipient()" />
+          </div>
+          @for (recipient of recipients; track $index) {
+            <div class="flex items-center gap-2 mb-2">
+              <div class="flex-1">
+                <ui-input-text
+                  placeholder="+52 555 123 4567"
+                  [(ngModel)]="recipient.phoneNumber"
+                  [name]="'phone_' + $index"
+                  required
+                />
+              </div>
+              <div class="flex-1">
+                <ui-input-text
+                  placeholder="Nombre (opcional)"
+                  [(ngModel)]="recipient.name"
+                  [name]="'name_' + $index"
+                />
+              </div>
+              @if (recipients.length > 1) {
+                <ui-icon-button
+                  [icon]="faTrash"
+                  tooltip="Eliminar"
+                  ariaLabel="Eliminar destinatario"
+                  (clicked)="removeRecipient($index)"
+                />
+              }
+            </div>
+          }
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <ui-button variant="secondary" type="button" (clicked)="onCancel()">
+            Cancelar
+          </ui-button>
+          <ui-button type="submit">
+            Enviar
+          </ui-button>
+        </div>
+      </form>
+    </div>

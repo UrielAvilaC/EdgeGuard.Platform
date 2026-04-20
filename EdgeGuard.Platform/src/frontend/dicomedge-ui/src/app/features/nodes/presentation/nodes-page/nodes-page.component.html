@@ -1,0 +1,76 @@
+<div class="space-y-6">
+      <ui-page-header
+        title="Nodos Edge"
+        description="Gestión y monitoreo de nodos DICOM Edge conectados a la plataforma."
+      >
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="facade.loadNodes()">
+          Actualizar
+        </ui-button>
+        <ui-button size="sm" [icon]="faPlus" (clicked)="openCreateDialog()">
+          Nuevo nodo
+        </ui-button>
+      </ui-page-header>
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" [dismissible]="true" />
+      }
+
+      <app-node-filters
+        [currentFilter]="facade.filter()"
+        [activeFilterCount]="facade.activeFilterCount()"
+        (filterChange)="facade.updateFilter($event)"
+        (clearFilters)="facade.clearFilters()"
+      />
+
+      <ui-data-table
+        [columns]="columns"
+        [data]="facade.nodes()"
+        [pagination]="facade.pagination()"
+        [sort]="facade.sort()"
+        [loading]="facade.loading()"
+        emptyMessage="No se encontraron nodos con los filtros aplicados."
+        (pageChange)="facade.changePage($event.page, $event.pageSize)"
+        (sortChange)="facade.changeSort($event)"
+        (rowClick)="onRowClick($event)"
+      >
+        <ng-template [uiCellDef]="'name'" let-row let-value="value">
+          <div class="flex items-center gap-2">
+            <span class="font-medium" style="color: var(--eg-text-primary)">{{ value }}</span>
+            @if (!row.isEnabled) {
+              <ui-chip color="default">Deshabilitado</ui-chip>
+            }
+          </div>
+        </ng-template>
+
+        <ng-template [uiCellDef]="'status'" let-value="value">
+          <ui-status-badge [status]="value" />
+        </ng-template>
+
+        <ng-template [uiCellDef]="'lastHeartbeatAt'" let-value="value">
+          {{ value ? (value | relativeTime) : '—' }}
+        </ng-template>
+
+        <ng-template [uiCellDef]="'availableStorageMb'" let-row>
+          <div class="flex items-center gap-2">
+            <fa-icon [icon]="faHardDrive" style="font-size: 0.75rem; color: var(--eg-text-muted)" />
+            <div class="flex-1">
+              <div class="w-full rounded-full h-1.5" style="background: var(--eg-border)">
+                <div
+                  class="h-1.5 rounded-full"
+                  [class]="storagePercent(row) > 90 ? 'bg-red-500' : storagePercent(row) > 70 ? 'bg-amber-500' : 'bg-emerald-500'"
+                  [style.width.%]="storagePercent(row)"
+                  style="transition: width 300ms ease"
+                ></div>
+              </div>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--eg-text-muted); white-space: nowrap">{{ storagePercent(row) }}%</span>
+          </div>
+        </ng-template>
+
+        <ng-template [uiCellDef]="'errorsLast24Hours'" let-value="value">
+          <span [class]="value > 0 ? 'font-semibold' : ''" [style.color]="value > 0 ? '#d13438' : 'inherit'">
+            {{ value }}
+          </span>
+        </ng-template>
+      </ui-data-table>
+    </div>

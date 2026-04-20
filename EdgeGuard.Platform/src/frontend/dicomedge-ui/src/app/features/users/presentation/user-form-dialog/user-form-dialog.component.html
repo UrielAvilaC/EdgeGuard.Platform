@@ -1,0 +1,26 @@
+<div class="p-6 max-w-lg">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Crear usuario</h2>
+        <button type="button" class="text-gray-400 hover:text-gray-600" (click)="dialogRef.close(null)" aria-label="Cerrar">
+          <fa-icon [icon]="faTimes" />
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+        <ui-input-text label="Nombre de usuario" formControlName="username" [required]="true" />
+        <ui-input-text label="Nombre completo" formControlName="fullName" [required]="true" />
+        <ui-input-text label="Contraseña" formControlName="password" type="password" [required]="true" />
+        <ui-dropdown
+          label="Roles"
+          formControlName="roles"
+          [options]="roleOptions"
+          [multiple]="true"
+          placeholder="Seleccionar roles"
+        />
+
+        <div class="flex justify-end gap-3 pt-4">
+          <ui-button variant="secondary" (clicked)="dialogRef.close(null)">Cancelar</ui-button>
+          <ui-button type="submit" [disabled]="form.invalid">Crear</ui-button>
+        </div>
+      </form>
+    </div>

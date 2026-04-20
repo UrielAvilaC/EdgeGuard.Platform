@@ -1,0 +1,15 @@
+:host { display: inline-block; }
+
+    button {
+      color: var(--eg-text-muted);
+      transition: color var(--eg-transition-fast), background-color var(--eg-transition-fast);
+
+      &:hover:not(:disabled) {
+        color: var(--eg-text-primary);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    }

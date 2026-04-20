@@ -1,0 +1,156 @@
+:host {
+      display: block;
+      height: 100vh;
+    }
+
+    .login-container {
+      display: flex;
+      height: 100%;
+    }
+
+    // ── Branding Panel ──
+    .login-branding {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 44%;
+      min-width: 400px;
+      padding: 48px;
+      background: linear-gradient(135deg, #0078d4 0%, #005a9e 50%, #003d6b 100%);
+      color: #fff;
+
+      @media (min-width: 1024px) {
+        display: flex;
+      }
+    }
+
+    .branding-content {
+      margin-top: 32px;
+    }
+
+    .branding-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+
+    .logo-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255 255 255 / 0.2);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+
+    .logo-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .branding-title {
+      font-size: 2.25rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .branding-subtitle {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: rgba(255 255 255 / 0.75);
+      max-width: 380px;
+      margin-bottom: 40px;
+    }
+
+    .branding-features {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.875rem;
+      color: rgba(255 255 255 / 0.9);
+    }
+
+    .feature-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: rgba(255 255 255 / 0.12);
+      font-size: 0.8125rem;
+    }
+
+    .branding-footer {
+      font-size: 0.75rem;
+      color: rgba(255 255 255 / 0.4);
+    }
+
+    // ── Form Panel ──
+    .login-form-panel {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      background: var(--eg-surface);
+    }
+
+    .form-wrapper {
+      width: 100%;
+      max-width: 400px;
+      animation: eg-fade-in var(--eg-transition-normal) both;
+    }
+
+    .form-header {
+      margin-bottom: 32px;
+    }
+
+    .form-logo-mobile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #0078d4;
+      color: #fff;
+      font-size: 1.25rem;
+      margin-bottom: 24px;
+
+      @media (min-width: 1024px) {
+        display: none;
+      }
+    }
+
+    .form-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--eg-text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .form-subtitle {
+      font-size: 0.9375rem;
+      color: var(--eg-text-secondary);
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
