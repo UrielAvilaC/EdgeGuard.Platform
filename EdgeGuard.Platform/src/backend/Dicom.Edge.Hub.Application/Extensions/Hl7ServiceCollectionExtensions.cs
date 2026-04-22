@@ -51,6 +51,7 @@ public static class HubApplicationServiceCollectionExtensions
 
         // Edge node-facing orchestration service
         services.AddScoped<IEdgeNodeService, EdgeNodeService>();
+        services.AddScoped<IBootstrapTokenService, BootstrapTokenService>();
 
         // Identity services
         services.AddScoped<IAuthenticationService, AuthenticationService>();

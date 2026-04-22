@@ -112,8 +112,8 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Security.AuditRetentionDays, "365",   Cat.Security, "Audit Log Retention (days)",      VT.Int),
 
         // ── Storage ──────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Storage.RootPath,    "./data",    Cat.Storage, "DICOM Storage Root Path", VT.String),
-        Row(NodeSettingKeys.Storage.ArchivePath, "./archive", Cat.Storage, "Archive Root Path",        VT.String),
+        Row(NodeSettingKeys.Storage.RootPath,    "./data",      Cat.Storage, "DICOM Storage Root Path", VT.String),
+        Row(NodeSettingKeys.Storage.ArchivePath, "./workspace", Cat.Storage, "Archive Root Path",        VT.String),
 
         // ── PACS Sender ──────────────────────────────────────────────────────
         Row(NodeSettingKeys.PacsSender.Enabled,                   "true",      Cat.PacsSender, "PACS Sender Enabled",               VT.Bool),

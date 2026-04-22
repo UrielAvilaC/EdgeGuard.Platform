@@ -45,7 +45,21 @@ public static class HubSettingKeys
         public const string Enabled = "whatsapp.enabled";
         public const string EnableAutomaticDelivery = "whatsapp.enable_automatic_delivery";
         public const string Provider = "whatsapp.provider";
+
+        /// <summary>
+        /// Encrypted JSON field. Deserialized to <c>MessagingProviderConfig</c> by <c>TwilioMessagingProvider</c>.
+        /// Expected shape:
+        /// <code>
+        /// {
+        ///   "AccountSid":          "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        ///   "AuthToken":           "your_auth_token",
+        ///   "PhoneNumber":         "+14155238886",
+        ///   "MessagingServiceSid": "MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        /// }
+        /// </code>
+        /// </summary>
         public const string ProviderConfig = "whatsapp.provider_config";
+
         public const string DefaultCountryPrefix = "whatsapp.default_country_prefix";
         public const string RetryMaxAttempts = "whatsapp.retry_max_attempts";
         public const string RetryDelaySeconds = "whatsapp.retry_delay_seconds";

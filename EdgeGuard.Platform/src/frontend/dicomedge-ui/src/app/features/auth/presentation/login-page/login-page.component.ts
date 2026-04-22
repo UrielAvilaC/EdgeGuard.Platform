@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { NgOptimizedImage } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -15,6 +16,7 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
+    NgOptimizedImage,
     FontAwesomeModule,
     UiInputText,
     UiInputPassword,

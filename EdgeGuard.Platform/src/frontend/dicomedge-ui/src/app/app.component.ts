@@ -5,6 +5,7 @@ import { fas } from '@fortawesome/free-solid-svg-icons';
 import { far } from '@fortawesome/free-regular-svg-icons';
 
 import { AuthService } from './core/auth/services/auth.service';
+import { TitleService } from './core/services/title.service';
 
 @Component({
   selector: 'app-root',
@@ -18,9 +19,11 @@ export class App {
 
   private readonly library = inject(FaIconLibrary);
   private readonly authService = inject(AuthService);
+  private readonly titleService = inject(TitleService);
 
   constructor() {
     this.authService.init();
+    this.titleService.init();
 
     this.library.addIconPacks(fas, far);
   }

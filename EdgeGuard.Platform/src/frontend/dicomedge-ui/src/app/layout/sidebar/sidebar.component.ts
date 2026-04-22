@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { NgOptimizedImage } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 
@@ -55,7 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
 @Component({
   selector: 'app-sidebar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RouterLinkActive, FontAwesomeModule],
+  imports: [RouterLink, RouterLinkActive, FontAwesomeModule, NgOptimizedImage],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })

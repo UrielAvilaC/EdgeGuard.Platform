@@ -10,6 +10,7 @@ using Dicom.Edge.Hub.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Infrastructure.Extensions;
 using Dicom.Edge.Hub.Persistence.Configuration;
 using Dicom.Edge.Hub.Persistence.Extensions;
+using Dicom.Edge.Hub.Api.Extensions;
 using Dicom.Edge.Hub.Api.Hubs;
 using Dicom.Edge.Security.Extensions;
 
@@ -121,8 +122,13 @@ try
     }
 
     app.UseCors();
-    //app.UseHttpsRedirection();
+    app.UseHttpsRedirection();
     app.UseRateLimiter();
+
+    // Serve Angular SPA from wwwroot only in non-Development environments.
+    // In development the Angular CLI dev-server runs separately (ng serve).
+    if (!app.Environment.IsDevelopment())
+        app.UseSpaStaticFiles();
 
     // Bootstrap token validation for /edge/register (before auth pipeline)
     app.UseMiddleware<BootstrapTokenMiddleware>();
@@ -131,6 +137,10 @@ try
     app.UseAuthorization();
     app.MapControllers();
     app.MapHub<EdgeHubNotificationHub>("/hubs/notifications");
+
+    // SPA client-side routing fallback — must be last, only in production.
+    if (!app.Environment.IsDevelopment())
+        app.MapSpaFallback();
 
     app.Run();
 }

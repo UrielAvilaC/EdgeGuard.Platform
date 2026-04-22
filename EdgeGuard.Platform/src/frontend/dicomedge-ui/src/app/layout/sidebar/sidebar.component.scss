@@ -13,29 +13,27 @@
     .sidebar-brand {
       display: flex;
       align-items: center;
-      gap: 12px;
       padding: 20px 20px 16px;
       border-bottom: 1px solid var(--eg-border-subtle);
     }
 
-    .brand-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
-      color: #fff;
-      font-size: 0.875rem;
-      flex-shrink: 0;
+    .brand-logo {
+      display: block;
+      width: 164px;
+      max-width: 100%;
+      height: auto;
     }
 
-    .brand-text {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--eg-text-primary);
-      letter-spacing: -0.02em;
+    .brand-logo-dark {
+      display: none;
+    }
+
+    :host-context(.dark) .brand-logo-light {
+      display: none;
+    }
+
+    :host-context(.dark) .brand-logo-dark {
+      display: block;
     }
 
     .sidebar-scroll {

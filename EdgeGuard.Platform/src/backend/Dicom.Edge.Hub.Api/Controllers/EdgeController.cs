@@ -2,6 +2,7 @@ using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Constants;
 using Dicom.Edge.Hub.Api.Mapping;
 using Dicom.Edge.Hub.Application.Edge;
+using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,22 +21,33 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class EdgeController : ControllerBase
 {
     private readonly IEdgeNodeService _edgeService;
+    private readonly IBootstrapTokenService _bootstrapTokenService;
     private readonly ILogger<EdgeController> _logger;
 
     public EdgeController(
         IEdgeNodeService edgeService,
+        IBootstrapTokenService bootstrapTokenService,
         ILogger<EdgeController> logger)
     {
-        _edgeService = edgeService;
-        _logger = logger;
+        _edgeService           = edgeService;
+        _bootstrapTokenService = bootstrapTokenService;
+        _logger                = logger;
     }
 
-    /// <summary>POST /edge/register — Node self-registration. Protected by bootstrap token.</summary>
+    /// <summary>POST /edge/register — Node self-registration. Protected by bootstrap token middleware.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] NodeRegistrationRequest request, CancellationToken ct)
     {
         var result = await _edgeService.RegisterAsync(request, ct);
+
+        // Consume the one-time token after successful registration (first-time only)
+        if (!string.IsNullOrEmpty(result.ApiKey)
+            && HttpContext.Items["ValidatedBootstrapToken"] is NodeBootstrapToken bootstrapToken)
+        {
+            await _bootstrapTokenService.ConsumeAsync(bootstrapToken, result.NodeId, ct);
+        }
+
         return result.Message?.Contains("Re-registered") == true
             ? Ok(result)
             : CreatedAtAction(null, result);
