@@ -53,6 +53,21 @@ public class EdgeController : ControllerBase
             : CreatedAtAction(null, result);
     }
 
+    /// <summary>
+    /// POST /edge/token — Self-service bootstrap token for unregistered nodes.
+    /// No authentication required. Token valid for 5 minutes, one-time use.
+    /// </summary>
+    [HttpPost("token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RequestToken(CancellationToken ct)
+    {
+        var result = await _bootstrapTokenService.GenerateAsync(
+            new CreateBootstrapTokenRequest { ExpiresInHours = 0, Note = "self-service" },
+            createdByUserId: null,
+            ct);
+        return Ok(result);
+    }
+
     /// <summary>POST /edge/heartbeat — Periodic heartbeat from a node.</summary>
     [HttpPost("/edge/heartbeat")]
     public async Task<IActionResult> Heartbeat([FromBody] NodeHeartbeatRequest request, CancellationToken ct)

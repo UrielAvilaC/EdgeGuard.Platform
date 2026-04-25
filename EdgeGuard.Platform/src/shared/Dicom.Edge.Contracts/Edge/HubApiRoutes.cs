@@ -27,6 +27,12 @@ public static class HubApiRoutes
 
     /// <summary>GET — Hub version and capability info.</summary>
     public const string HubInfo = "/info";
+
+    /// <summary>
+    /// POST — Request a self-service bootstrap token (no auth required).
+    /// Returns a short-lived one-time token the node uses to call <see cref="Register"/>.
+    /// </summary>
+    public const string RequestToken = "/edge/token";
 }
 
 /// <summary>

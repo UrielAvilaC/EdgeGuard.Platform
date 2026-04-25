@@ -18,6 +18,7 @@ public sealed class EfHl7MessageRepository : IHl7MessageRepository
     public async Task<Hl7Message> AddAsync(Hl7Message message, CancellationToken cancellationToken = default)
     {
         await _context.Hl7Messages.AddAsync(message, cancellationToken);
+        await _context.SaveChangesAsync();
         return message;
     }
 
@@ -52,14 +53,15 @@ public sealed class EfHl7MessageRepository : IHl7MessageRepository
             .Take(batchSize)
             .ToListAsync(cancellationToken);
 
-    public Task UpdateAsync(Hl7Message message, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Hl7Message message, CancellationToken cancellationToken = default)
     {
         var entry = _context.Entry(message);
 
         if (entry.State == EntityState.Detached)
             _context.Hl7Messages.Update(message);
 
-        return Task.CompletedTask;
+        await _context.SaveChangesAsync();
+       
     }
 
     public async Task<IEnumerable<Hl7Message>> GetRecentMessagesAsync(

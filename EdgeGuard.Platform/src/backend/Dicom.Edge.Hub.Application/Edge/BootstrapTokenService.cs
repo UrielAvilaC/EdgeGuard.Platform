@@ -22,9 +22,12 @@ public sealed class BootstrapTokenService(
         string? createdByUserId,
         CancellationToken ct = default)
     {
-        var rawToken = ApiKeyGenerator.Generate();
-        var hash     = ComputeHash(rawToken);
-        var expiresAt = DateTime.UtcNow.AddHours(request.ExpiresInHours);
+        var rawToken  = ApiKeyGenerator.Generate();
+        var hash      = ComputeHash(rawToken);
+        // ExpiresInHours = 0 means short-lived self-service token (5 minutes)
+        var expiresAt = request.ExpiresInHours > 0
+            ? DateTime.UtcNow.AddHours(request.ExpiresInHours)
+            : DateTime.UtcNow.AddMinutes(5);
 
         var entity = NodeBootstrapToken.Create(hash, expiresAt, createdByUserId, request.Note);
         await repository.AddAsync(entity, ct);

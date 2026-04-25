@@ -51,16 +51,16 @@ internal static class NodeSettingsSeed
     private static List<NodeSettingEntity> BuildDefaults() =>
     [
         // ── General ─────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.General.NodeName,     "EdgeNode-1",   Cat.General,  "Node Name",              VT.String),
-        Row(NodeSettingKeys.General.AeTitle,      "EDGE_NODE",    Cat.General,  "AE Title",               VT.String),
+        Row(NodeSettingKeys.General.NodeName,     "",   Cat.General,  "Node Name",              VT.String),
+        Row(NodeSettingKeys.General.AeTitle,      "",    Cat.General,  "AE Title",               VT.String),
         Row(NodeSettingKeys.General.Description,  "",             Cat.General,  "Description",            VT.String),
         Row(NodeSettingKeys.General.Location,     "",             Cat.General,  "Location",               VT.String),
         Row(NodeSettingKeys.General.FacilityName, "",             Cat.General,  "Facility Name",          VT.String),
         Row(NodeSettingKeys.General.Timezone,     "UTC",          Cat.General,  "Timezone",               VT.String),
-        Row(NodeSettingKeys.General.Version,      "1.0.0",        Cat.General,  "Software Version",       VT.String, readOnly: true),
+        Row(NodeSettingKeys.General.Version,      "",        Cat.General,  "Software Version",       VT.String, readOnly: true),
         Row(NodeSettingKeys.General.ContactEmail, "",             Cat.General,  "Contact Email",          VT.String),
         Row(NodeSettingKeys.General.ContactPhone, "",             Cat.General,  "Contact Phone",          VT.String),
-        Row(NodeSettingKeys.General.IpAddress,    "127.0.0.1",    Cat.General,  "IP Address",             VT.String),
+        Row(NodeSettingKeys.General.IpAddress,    "",    Cat.General,  "IP Address",             VT.String),
         Row(NodeSettingKeys.General.ApiEndpoint,  "",             Cat.General,  "API Endpoint",           VT.String),
 
         // ── Hub ─────────────────────────────────────────────────────────────

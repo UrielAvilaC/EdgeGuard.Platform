@@ -122,7 +122,7 @@ try
     }
 
     app.UseCors();
-    app.UseHttpsRedirection();
+    //app.UseHttpsRedirection();
     app.UseRateLimiter();
 
     // Serve Angular SPA from wwwroot only in non-Development environments.

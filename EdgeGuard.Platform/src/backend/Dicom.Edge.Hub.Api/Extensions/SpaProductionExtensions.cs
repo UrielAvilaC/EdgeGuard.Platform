@@ -16,7 +16,8 @@ namespace Dicom.Edge.Hub.Api.Extensions;
 ///         so Angular's client-side router can handle them.</item>
 /// </list>
 /// The fallback must be registered AFTER <see cref="MapControllers"/> and
-/// <see cref="MapHub{THub}"/> so API routes and SignalR hubs take priority.
+/// <see cref="MapHub{THub}"/> so API routes and SignalR 
+/// s take priority.
 /// </remarks>
 /// </summary>
 public static class SpaProductionExtensions

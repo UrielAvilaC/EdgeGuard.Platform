@@ -76,9 +76,11 @@ public sealed class Hl7PatientSyncService(
         if (string.IsNullOrWhiteSpace(hl7Date) || hl7Date.Length < 8)
             return null;
 
-        return DateTime.TryParseExact(hl7Date[..8], "yyyyMMdd",
+         DateTime.TryParseExact(hl7Date[..8], "yyyyMMdd",
             System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None,
-            out var result) ? result : null;
+            out var result);
+        
+            return DateTime.SpecifyKind(result, DateTimeKind.Utc);
     }
 }

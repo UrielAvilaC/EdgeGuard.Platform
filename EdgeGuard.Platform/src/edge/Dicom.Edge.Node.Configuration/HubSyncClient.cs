@@ -4,7 +4,6 @@ using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Security.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
 namespace Dicom.Edge.Node.Configuration;
 
 /// <summary>
@@ -29,26 +28,29 @@ public sealed class HubSyncClient(
     /// </summary>
     internal void SetApiKey(string apiKey) => _apiKey = apiKey;
 
-    public async Task<string?> RegisterAsync(CancellationToken ct = default)
+    public async Task<RegistrationResult> RegisterAsync(CancellationToken ct = default)
     {
         try
         {
             var payload = new NodeRegistrationRequest
             {
-                Name = _opts.NodeName,
-                AeTitle = _opts.AeTitle,
-                IpAddress = _opts.IpAddress,
-                Port = _opts.Port,
-                ApiEndpoint = _opts.ApiEndpoint,
-                Location = _opts.Location,
+                Name         = !string.IsNullOrWhiteSpace(_opts.NodeName) ? _opts.NodeName : Environment.MachineName,
+                AeTitle      = _opts.AeTitle,
+                IpAddress    = _opts.IpAddress,
+                Port         = _opts.Port,
+                ApiEndpoint  = _opts.ApiEndpoint,
+                Location     = _opts.Location,
                 FacilityName = _opts.FacilityName,
-                Version = _opts.Version
+                Version      = _opts.Version
             };
 
-            // Use bootstrap token for registration
+            // Resolve bootstrap token:
+            // 1. Use appsettings/env var if provided (admin-issued, multi-use within expiry)
+            // 2. Otherwise, request a self-service short-lived token from the Hub
             var bootstrapToken = !string.IsNullOrEmpty(_opts.BootstrapToken)
                 ? _opts.BootstrapToken
-                : Environment.GetEnvironmentVariable(ApiKeyAuthenticationOptions.BootstrapTokenEnvVar);
+                : Environment.GetEnvironmentVariable(ApiKeyAuthenticationOptions.BootstrapTokenEnvVar)
+                  ?? await RequestBootstrapTokenAsync(ct);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, HubApiRoutes.Register);
             request.Content = JsonContent.Create(payload);
@@ -69,22 +71,51 @@ public sealed class HubSyncClient(
                     logger.LogInformation(
                         "Registered with Hub (NodeId={NodeId}) — API key received and will be persisted",
                         _registeredNodeId);
-                    return body.ApiKey;
+                    return new RegistrationResult(true, body.ApiKey, body.NodeId);
                 }
 
-                // Re-registration: API key unchanged, use existing
+                // Re-registration: accepted but API key unchanged
                 logger.LogInformation(
                     "Re-registered with Hub (NodeId={NodeId}) — using existing API key",
                     _registeredNodeId);
-                return null;
+                return new RegistrationResult(true, null, body?.NodeId);
             }
 
             logger.LogWarning("Hub registration failed: {Status}", response.StatusCode);
-            return null;
+            return new RegistrationResult(false, null, null);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Hub registration error");
+            return new RegistrationResult(false, null, null);
+        }
+    }
+
+    /// <summary>
+    /// Requests a self-service short-lived bootstrap token from the Hub.
+    /// Called automatically when no token is pre-configured.
+    /// </summary>
+    private async Task<string?> RequestBootstrapTokenAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, HubApiRoutes.RequestToken);
+            var response = await httpClient.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Failed to obtain bootstrap token from Hub: {Status}", response.StatusCode);
+                return null;
+            }
+
+            var body = await response.Content.ReadFromJsonAsync<BootstrapTokenResponse>(ct);
+            logger.LogInformation(
+                "Bootstrap token obtained from Hub — expires {ExpiresAt}", body?.ExpiresAt);
+            return body?.Token;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not obtain bootstrap token from Hub");
             return null;
         }
     }

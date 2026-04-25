@@ -31,8 +31,4 @@
     <ProjectReference Include="..\..\shared\Dicom.Edge.Abstractions\Dicom.Edge.Abstractions.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Migrations\" />
-  </ItemGroup>
-
 </Project>
