@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\shared\Dicom.Edge.Common\Dicom.Edge.Common.csproj" />
     <ProjectReference Include="..\..\shared\Dicom.Edge.Models\Dicom.Edge.Models.csproj" />
     <ProjectReference Include="..\..\shared\Dicom.Edge.Security\Dicom.Edge.Security.csproj" />

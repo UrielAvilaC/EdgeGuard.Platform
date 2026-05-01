@@ -7,6 +7,7 @@ import {
   faSpinner,
   faPaperPlane,
   faDownload,
+  faCalendarAlt,
 } from '@fortawesome/free-solid-svg-icons';
 
 import { StudyStatus } from '../../models/study.models';
@@ -19,6 +20,7 @@ interface TimelineStep {
 }
 
 const TIMELINE_STEPS: TimelineStep[] = [
+  { status: 'Scheduled', label: 'Agendado', icon: faCalendarAlt, colorClass: 'text-indigo-500' },
   { status: 'Receiving', label: 'Recibiendo', icon: faDownload, colorClass: 'text-sky-500' },
   { status: 'Completed', label: 'Completado', icon: faCircleCheck, colorClass: 'text-emerald-500' },
   { status: 'QueuedForSend', label: 'En cola PACS', icon: faClockRotateLeft, colorClass: 'text-amber-500' },
@@ -27,11 +29,12 @@ const TIMELINE_STEPS: TimelineStep[] = [
 ];
 
 const STATUS_ORDER: Record<StudyStatus, number> = {
-  Receiving: 0,
-  Completed: 1,
-  QueuedForSend: 2,
-  Sending: 3,
-  SentToPacs: 4,
+  Scheduled: 0,
+  Receiving: 1,
+  Completed: 2,
+  QueuedForSend: 3,
+  Sending: 4,
+  SentToPacs: 5,
   Failed: -1,
 };
 

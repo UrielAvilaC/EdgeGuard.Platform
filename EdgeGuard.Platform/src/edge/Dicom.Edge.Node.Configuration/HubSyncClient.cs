@@ -32,13 +32,17 @@ public sealed class HubSyncClient(
     {
         try
         {
+            var resolvedApiEndpoint = !string.IsNullOrWhiteSpace(_opts.ApiEndpoint)
+                ? _opts.ApiEndpoint
+                : $"http://{_opts.IpAddress}:{_opts.ApiPort}/api";
+
             var payload = new NodeRegistrationRequest
             {
                 Name         = !string.IsNullOrWhiteSpace(_opts.NodeName) ? _opts.NodeName : Environment.MachineName,
                 AeTitle      = _opts.AeTitle,
                 IpAddress    = _opts.IpAddress,
                 Port         = _opts.Port,
-                ApiEndpoint  = _opts.ApiEndpoint,
+                ApiEndpoint  = resolvedApiEndpoint,
                 Location     = _opts.Location,
                 FacilityName = _opts.FacilityName,
                 Version      = _opts.Version

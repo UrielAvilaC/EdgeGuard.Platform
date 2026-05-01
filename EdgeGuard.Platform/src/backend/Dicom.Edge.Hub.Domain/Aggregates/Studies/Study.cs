@@ -105,6 +105,54 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         return study;
     }
 
+    /// <summary>
+    /// Creates a study from an HL7 worklist message (ORM/SIU).
+    /// Generates a synthetic DICOM UID — will be replaced when real images arrive.
+    /// Status is set to <see cref="StudyStatus.Scheduled"/>.
+    /// </summary>
+    public static Study CreateFromWorklist(
+        string accessionNumber,
+        string? patientId = null,
+        string? patientName = null,
+        string? sendingFacility = null,
+        DateTime? studyDate = null,
+        string? studyDescription = null,
+        string? referringPhysician = null)
+    {
+        // Generate a synthetic UID: 2.25.<128-bit number from GUID>
+        var uid = DicomUid.Create($"2.25.{BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0)}{BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0)}");
+
+        var study = new Study
+        {
+            Id = IdGenerator.NewId(),
+            StudyInstanceUid = uid,
+            AccessionNumber = accessionNumber.Trim(),
+            PatientId = patientId,
+            PatientName = patientName?.Trim(),
+            SourceNodeId = sendingFacility,
+            StudyDate = studyDate,
+            StudyDescription = studyDescription?.Trim(),
+            ReferringPhysician = referringPhysician?.Trim(),
+            Status = StudyStatus.Scheduled,
+            CurrentStatusSince = DateTime.UtcNow,
+            Priority = 5,
+            MaxRetries = 3
+        };
+
+        study.RecordStatusChange(null, StudyStatus.Scheduled, sendingFacility, "Scheduled from HL7 worklist");
+
+        return study;
+    }
+
+    public void MarkAsScheduled()
+    {
+        var old = Status;
+        Status = StudyStatus.Scheduled;
+        CurrentStatusSince = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+        RecordStatusChange(old, Status, null, "Re-scheduled");
+    }
+
     public void RecordImagesReceived(int count, long sizeBytes, string? modalityAeTitle = null)
     {
         if (count <= 0) return;

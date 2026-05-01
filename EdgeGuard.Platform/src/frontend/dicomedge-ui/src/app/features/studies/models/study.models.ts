@@ -1,6 +1,7 @@
 import { BaseFilter } from '../../../shared/models/filter.model';
 
 export type StudyStatus =
+  | 'Scheduled'
   | 'Receiving'
   | 'Completed'
   | 'QueuedForSend'
@@ -60,6 +61,7 @@ export interface UpdateStudyStatusRequest {
 }
 
 export const STUDY_STATUS_OPTIONS: { value: StudyStatus; label: string }[] = [
+  { value: 'Scheduled', label: 'Agendado' },
   { value: 'Receiving', label: 'Recibiendo' },
   { value: 'Completed', label: 'Completado' },
   { value: 'QueuedForSend', label: 'En cola PACS' },

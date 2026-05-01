@@ -27,6 +27,10 @@ public class StudyRepository : IStudyRepository
             .Include(s => s.StatusAudits)
             .FirstOrDefaultAsync(s => s.StudyInstanceUid.Value == studyInstanceUid, ct);
 
+    public async Task<Study?> GetByAccessionNumberAsync(string accessionNumber, CancellationToken ct = default) =>
+        await _context.Studies
+            .FirstOrDefaultAsync(s => s.AccessionNumber == accessionNumber && !s.IsDeleted, ct);
+
     public async Task<IReadOnlyList<Study>> GetByPatientIdAsync(string patientId, CancellationToken ct = default) =>
         await _context.Studies
             .AsNoTracking()

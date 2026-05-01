@@ -15,7 +15,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 /// All endpoints except /edge/register require API key authentication.
 /// /edge/register is protected by bootstrap token middleware.
 /// </summary>
-[Route("edge")]
+[Route("api/edge")]
 [ApiController]
 [Authorize(AuthenticationSchemes = ApiKeyAuthenticationOptions.Scheme)]
 public class EdgeController : ControllerBase
@@ -69,7 +69,7 @@ public class EdgeController : ControllerBase
     }
 
     /// <summary>POST /edge/heartbeat — Periodic heartbeat from a node.</summary>
-    [HttpPost("/edge/heartbeat")]
+    [HttpPost("/api/edge/heartbeat")]
     public async Task<IActionResult> Heartbeat([FromBody] NodeHeartbeatRequest request, CancellationToken ct)
     {
         var result = await _edgeService.ProcessHeartbeatAsync(request, ct);
@@ -121,7 +121,7 @@ public class EdgeController : ControllerBase
     }
 
     /// <summary>GET /info — Hub version and capability info.</summary>
-    [HttpGet("/info")]
+    [HttpGet("/api/info")]
     [AllowAnonymous]
     public IActionResult GetInfo()
     {

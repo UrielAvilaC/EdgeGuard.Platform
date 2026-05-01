@@ -277,7 +277,7 @@ public sealed class UpdatePatientRequest
     [StringLength(256)]
     public string? PatientName { get; init; }
 
-    public DateTime? BirthDate { get; init; }
+    public DateOnly? BirthDate { get; init; }
 
     [StringLength(10)]
     public string? Sex { get; init; }

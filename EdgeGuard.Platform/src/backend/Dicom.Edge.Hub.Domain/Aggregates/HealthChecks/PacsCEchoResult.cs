@@ -15,6 +15,8 @@ public sealed class PacsCEchoResult : Entity<string>
     public string? ErrorMessage { get; private set; }
     public DateTime CheckedAt { get; private set; }
 
+    public  HealthCheckRecord HealthCheckRecord { get; private set; } = default!;
+
     private PacsCEchoResult() { }
 
     public static PacsCEchoResult Create(

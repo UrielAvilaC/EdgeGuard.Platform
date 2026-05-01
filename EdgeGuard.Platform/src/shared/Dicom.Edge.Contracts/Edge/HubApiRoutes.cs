@@ -42,23 +42,23 @@ public static class HubApiRoutes
 public static class NodeApiRoutes
 {
     /// <summary>POST — Hub pushes an HL7 worklist item to the node.</summary>
-    public const string Hl7WorklistPush = "/api/hl7/worklist";
+    public const string Hl7WorklistPush = "/hl7/worklist";
 
     /// <summary>GET — Health check endpoint on the node.</summary>
-    public const string HealthCheck = "/api/health";
+    public const string HealthCheck = "/health";
 
     /// <summary>GET — Active worklist items on the node.</summary>
-    public const string WorklistItems = "/api/dicom/worklist";
+    public const string WorklistItems = "/dicom/worklist";
 
     /// <summary>GET — Active worklist item count.</summary>
-    public const string WorklistCount = "/api/dicom/worklist/count";
+    public const string WorklistCount = "/dicom/worklist/count";
 
     /// <summary>GET — PACS C-ECHO connectivity status.</summary>
-    public const string PacsStatus = "/api/dicom/pacs/status";
+    public const string PacsStatus = "/dicom/pacs/status";
 
     /// <summary>POST — Hub pushes a full configuration snapshot to the node.</summary>
-    public const string ConfigurationApply = "/api/configuration/apply";
+    public const string ConfigurationApply = "/configuration/apply";
 
     /// <summary>GET — Returns the node's current config version hash.</summary>
-    public const string ConfigurationVersion = "/api/configuration/version";
+    public const string ConfigurationVersion = "/configuration/version";
 }

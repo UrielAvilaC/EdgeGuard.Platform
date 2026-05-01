@@ -22,7 +22,13 @@ public sealed class HubConnectionOptions
     public string NodeName { get; set; } = Environment.MachineName;
     public string AeTitle { get; set; } = "EDGE_NODE";
     public string IpAddress { get; set; } = "127.0.0.1";
+    /// <summary>DICOM server port (C-STORE, C-ECHO, MWL). Sent to Hub during registration.</summary>
     public int Port { get; set; } = 11112;
+    /// <summary>
+    /// HTTP API port of this node. Used to build ApiEndpoint when not explicitly configured.
+    /// When 0 (default), it is auto-filled from <c>NodeApi:Port</c> at startup.
+    /// </summary>
+    public int ApiPort { get; set; } = 0;
     public string? ApiEndpoint { get; set; }
     public string? Location { get; set; }
     public string? FacilityName { get; set; }
