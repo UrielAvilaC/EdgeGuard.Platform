@@ -1,0 +1,52 @@
+<header class="header-bar">
+      <div class="header-left">
+        <button
+          mat-icon-button
+          (click)="toggleSidenav.emit()"
+          aria-label="Alternar menú lateral"
+          class="hamburger-btn"
+        >
+          <fa-icon icon="bars"></fa-icon>
+        </button>
+      </div>
+
+      <div class="header-right">
+        <button
+          mat-icon-button
+          (click)="toggleDarkMode()"
+          [matTooltip]="darkMode() ? 'Modo claro' : 'Modo oscuro'"
+          [attr.aria-label]="darkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+          class="action-btn"
+        >
+          <fa-icon [icon]="darkMode() ? 'sun' : 'moon'"></fa-icon>
+        </button>
+
+        <div class="header-divider"></div>
+
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="userMenu"
+          aria-label="Menú de usuario"
+          class="user-avatar-btn"
+        >
+          <div class="user-avatar">
+            {{ initials() }}
+          </div>
+        </button>
+
+        <mat-menu #userMenu="matMenu" xPosition="before">
+          <div class="user-menu-header">
+            <div class="user-menu-avatar">{{ initials() }}</div>
+            <div class="user-menu-info">
+              <p class="user-menu-name">{{ authStore.user()?.fullName }}</p>
+              <p class="user-menu-email">{{ authStore.user()?.userName }}</p>
+            </div>
+          </div>
+          <mat-divider></mat-divider>
+          <button mat-menu-item (click)="authService.logout()">
+            <fa-icon icon="sign-out-alt" class="mr-3 text-[var(--eg-text-muted)]"></fa-icon>
+            <span>Cerrar sesión</span>
+          </button>
+        </mat-menu>
+      </div>
+    </header>

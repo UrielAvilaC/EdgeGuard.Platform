@@ -29,6 +29,7 @@ public class HubDbContext : DbContext
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Node> Nodes => Set<Node>();
     public DbSet<NodePacsAssignment> NodePacsAssignments => Set<NodePacsAssignment>();
+    public DbSet<NodeBootstrapToken> NodeBootstrapTokens => Set<NodeBootstrapToken>();
     public DbSet<PacsServer> PacsServers => Set<PacsServer>();
     public DbSet<Study> Studies => Set<Study>();
     public DbSet<StudySeries> StudySeries => Set<StudySeries>();

@@ -1,54 +1,56 @@
+using Dicom.Edge.Hub.Application.Edge;
 using Dicom.Edge.Security.Authentication;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Api.Middleware;
 
 /// <summary>
-/// Middleware that validates the bootstrap token for the /edge/register endpoint.
-/// The bootstrap token is read from the environment variable EDGE_BOOTSTRAP_TOKEN.
-/// All other /edge/* endpoints are protected by API key authentication.
+/// Validates the bootstrap token for POST /edge/register.
+/// Tokens are one-time use, stored as SHA-256 hashes in the database.
+/// Generated via POST /api/nodes/bootstrap-tokens (admin endpoint).
 /// </summary>
 public sealed class BootstrapTokenMiddleware(
     RequestDelegate next,
     ILogger<BootstrapTokenMiddleware> logger)
 {
-    private static readonly string? BootstrapToken =
-        Environment.GetEnvironmentVariable(ApiKeyAuthenticationOptions.BootstrapTokenEnvVar);
-
     public async Task InvokeAsync(HttpContext context)
     {
-        var path = context.Request.Path.Value;
-
-        // Only intercept POST /edge/register
-        if (path is "/edge/register" && HttpMethods.IsPost(context.Request.Method))
+        if (context.Request.Path.Value is "/edge/register"
+            && HttpMethods.IsPost(context.Request.Method))
         {
-            if (string.IsNullOrEmpty(BootstrapToken))
+            if (!context.Request.Headers.TryGetValue(
+                    ApiKeyAuthenticationOptions.BootstrapHeaderName, out var tokenHeader)
+                || string.IsNullOrWhiteSpace(tokenHeader))
             {
-                logger.LogError(
-                    "Bootstrap token not configured. Set environment variable {EnvVar} to enable node registration.",
-                    ApiKeyAuthenticationOptions.BootstrapTokenEnvVar);
-
-                context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-                await context.Response.WriteAsJsonAsync(new { error = "Node registration is not configured." });
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsJsonAsync(new { error = "Bootstrap token required." });
                 return;
             }
 
-            if (!context.Request.Headers.TryGetValue(
-                    ApiKeyAuthenticationOptions.BootstrapHeaderName, out var tokenHeader)
-                || tokenHeader.ToString() != BootstrapToken)
+            var tokenService = context.RequestServices
+                .GetRequiredService<IBootstrapTokenService>();
+
+            var token = await tokenService.ValidateAsync(tokenHeader.ToString(), context.RequestAborted);
+
+            if (token is null)
             {
                 logger.LogWarning(
-                    "Invalid or missing bootstrap token from {RemoteIp}",
+                    "Invalid or expired bootstrap token from {RemoteIp}",
                     context.Connection.RemoteIpAddress);
 
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsJsonAsync(new { error = "Invalid bootstrap token." });
+                await context.Response.WriteAsJsonAsync(new { error = "Invalid or expired bootstrap token." });
                 return;
             }
 
-            logger.LogInformation("Bootstrap token validated for registration from {RemoteIp}",
-                context.Connection.RemoteIpAddress);
+            // Store validated token so EdgeController can consume it after registration
+            context.Items["ValidatedBootstrapToken"] = token;
+
+            logger.LogInformation(
+                "Bootstrap token {TokenId} validated from {RemoteIp}",
+                token.Id, context.Connection.RemoteIpAddress);
         }
 
         await next(context);

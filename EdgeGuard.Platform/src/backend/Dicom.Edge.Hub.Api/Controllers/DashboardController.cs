@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/dashboard")]
 [Authorize(Policy = Policies.ViewMetrics)]
 public class DashboardController(IDashboardService dashboardService) : ControllerBase
 {

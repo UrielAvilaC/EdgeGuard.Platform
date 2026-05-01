@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/patients")]
 [Authorize(Policy = Policies.ViewStudies)]
 public class PatientsController : ControllerBase
 {

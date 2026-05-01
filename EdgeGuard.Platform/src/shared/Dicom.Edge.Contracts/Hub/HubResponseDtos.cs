@@ -7,7 +7,7 @@ public sealed record PatientDto
     public required string Id { get; init; }
     public required string PatientDicomId { get; init; }
     public required string PatientName { get; init; }
-    public DateTime? BirthDate { get; init; }
+    public DateOnly? BirthDate { get; init; }
     public string? Sex { get; init; }
     public string? PhoneNumber { get; init; }
     public string? Email { get; init; }

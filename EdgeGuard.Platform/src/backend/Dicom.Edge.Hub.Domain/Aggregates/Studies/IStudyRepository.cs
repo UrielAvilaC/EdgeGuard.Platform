@@ -11,6 +11,7 @@ public interface IStudyRepository
 {
     Task<Study?> GetByIdAsync(string id, CancellationToken ct = default);
     Task<Study?> GetByStudyInstanceUidAsync(string studyInstanceUid, CancellationToken ct = default);
+    Task<Study?> GetByAccessionNumberAsync(string accessionNumber, CancellationToken ct = default);
     Task<IReadOnlyList<Study>> GetByPatientIdAsync(string patientId, CancellationToken ct = default);
     Task<IReadOnlyList<Study>> GetByNodeAsync(string nodeId, CancellationToken ct = default);
     Task<IReadOnlyList<Study>> GetByStatusAsync(StudyStatus status, CancellationToken ct = default);

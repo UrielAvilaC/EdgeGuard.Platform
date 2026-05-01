@@ -1,0 +1,57 @@
+<div class="space-y-6">
+      <ui-page-header title="Configuración de Nodos" description="Configuración específica por nodo Edge." />
+
+      <div class="flex items-center gap-4">
+        <div class="w-64">
+          <ui-dropdown
+            label="Nodo"
+            [options]="nodeOptions()"
+            [ngModel]="selectedNodeId()"
+            (ngModelChange)="onNodeSelect($event)"
+            placeholder="Seleccionar nodo"
+          />
+        </div>
+        @if (selectedNodeId()) {
+          <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="loadNodeConfig()">
+            Actualizar
+          </ui-button>
+          <ui-button size="sm" [icon]="faUpload" (clicked)="pushConfig()">
+            Push configuración
+          </ui-button>
+        }
+      </div>
+
+      @if (error(); as err) {
+        <ui-alert type="error" [title]="err" [dismissible]="true" />
+      }
+
+      @if (selectedNodeId() && configs().length > 0) {
+        @for (category of categories(); track category) {
+          <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-5 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+              <span class="font-semibold text-sm text-gray-900 dark:text-white">{{ category }}</span>
+            </div>
+            @for (cfg of configsByCategory(category); track cfg.settingKey) {
+              <div class="flex items-center gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0">
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ cfg.displayName }}</div>
+                  <div class="text-xs text-gray-400 font-mono">{{ cfg.settingKey }}</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <code class="text-sm px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    {{ cfg.value }}
+                  </code>
+                  @if (cfg.isOverridden) {
+                    <ui-chip color="warning">Personalizado</ui-chip>
+                    <ui-icon-button [icon]="faUndo" tooltip="Restablecer" ariaLabel="Restablecer a valor por defecto"
+                      (clicked)="resetSetting(cfg.settingKey)" />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      } @else if (selectedNodeId() && !loading()) {
+        <p class="text-gray-400 text-center py-8">No hay configuraciones para este nodo.</p>
+      }
+    </div>

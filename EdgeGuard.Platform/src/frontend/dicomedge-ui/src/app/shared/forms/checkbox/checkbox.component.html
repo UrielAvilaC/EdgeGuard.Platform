@@ -1,0 +1,9 @@
+<mat-checkbox
+      [ngModel]="value"
+      (ngModelChange)="onValueChange($event)"
+      [disabled]="isDisabled"
+      (blur)="onTouched()"
+      [attr.aria-label]="ariaLabel() || label()"
+    >
+      {{ label() }}
+    </mat-checkbox>

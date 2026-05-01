@@ -17,7 +17,7 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.6")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -792,6 +792,70 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.ToTable("nodes", (string)null);
                 });
 
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Nodes.NodeBootstrapToken", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<string>("ConsumedByNodeId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("consumed_by_node_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsConsumed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_consumed");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_node_bootstrap_tokens");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_node_bootstrap_tokens_expires_at");
+
+                    b.HasIndex("IsConsumed")
+                        .HasDatabaseName("ix_node_bootstrap_tokens_is_consumed");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_node_bootstrap_tokens_token_hash");
+
+                    b.ToTable("node_bootstrap_tokens", (string)null);
+                });
+
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Nodes.NodePacsAssignment", b =>
                 {
                     b.Property<string>("Id")
@@ -1261,13 +1325,16 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("id");
 
-                    b.Property<DateTime?>("BirthDate")
-                        .HasColumnType("timestamp with time zone")
+                    b.Property<string>("BirthDate")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
                         .HasColumnName("birth_date");
 
                     b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("NOW()");
 
                     b.Property<string>("CreatedByNodeId")
                         .HasMaxLength(50)
@@ -1872,12 +1939,14 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.PacsCEchoResult", b =>
                 {
-                    b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.HealthCheckRecord", null)
+                    b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.HealthCheckRecord", "HealthCheckRecord")
                         .WithMany("PacsResults")
                         .HasForeignKey("HealthCheckRecordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_pacs_cecho_results_health_check_records_health_check_record~");
+
+                    b.Navigation("HealthCheckRecord");
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Identity.RefreshToken", b =>

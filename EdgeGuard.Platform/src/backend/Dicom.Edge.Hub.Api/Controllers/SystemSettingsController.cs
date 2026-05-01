@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/system-settings")]
 [Authorize(Policy = Policies.ViewConfiguration)]
 public class SystemSettingsController : ControllerBase
 {

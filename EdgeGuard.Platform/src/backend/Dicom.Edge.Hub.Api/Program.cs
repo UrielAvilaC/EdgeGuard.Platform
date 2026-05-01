@@ -10,6 +10,7 @@ using Dicom.Edge.Hub.Diagnostics.Extensions;
 using Dicom.Edge.Hub.Infrastructure.Extensions;
 using Dicom.Edge.Hub.Persistence.Configuration;
 using Dicom.Edge.Hub.Persistence.Extensions;
+using Dicom.Edge.Hub.Api.Extensions;
 using Dicom.Edge.Hub.Api.Hubs;
 using Dicom.Edge.Security.Extensions;
 
@@ -32,7 +33,7 @@ try
         options.AddDefaultPolicy(policy =>
         {
             var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                ?? ["http://localhost:3000", "http://localhost:5173"];
+                ?? ["http://localhost:4200", "http://localhost:5173"];
             policy.WithOrigins(origins)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
@@ -86,6 +87,7 @@ try
     builder.Services.AddHubPersistence(builder.Configuration);
     builder.Services.AddHubDomainServices();
     builder.Services.AddHubApplication(builder.Configuration);
+    builder.Services.AddWhatsAppServices();
     builder.Services.AddHl7Infrastructure();
     builder.Services.AddHubHostedServices(builder.Configuration);
 
@@ -119,9 +121,14 @@ try
         });
     }
 
-    app.UseHttpsRedirection();
     app.UseCors();
+    //app.UseHttpsRedirection();
     app.UseRateLimiter();
+
+    // Serve Angular SPA from wwwroot only in non-Development environments.
+    // In development the Angular CLI dev-server runs separately (ng serve).
+    if (!app.Environment.IsDevelopment())
+        app.UseSpaStaticFiles();
 
     // Bootstrap token validation for /edge/register (before auth pipeline)
     app.UseMiddleware<BootstrapTokenMiddleware>();
@@ -130,6 +137,10 @@ try
     app.UseAuthorization();
     app.MapControllers();
     app.MapHub<EdgeHubNotificationHub>("/hubs/notifications");
+
+    // SPA client-side routing fallback — must be last, only in production.
+    if (!app.Environment.IsDevelopment())
+        app.MapSpaFallback();
 
     app.Run();
 }

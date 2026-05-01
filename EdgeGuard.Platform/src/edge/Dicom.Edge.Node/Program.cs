@@ -15,12 +15,23 @@ using Dicom.Edge.Node.Storage.Extensions;
 using Dicom.Edge.Node.Worklist;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 BootstrapLogger.Initialize(NodeConstants.BootstrapLogPath);
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // ── Windows Service support (Production only) ────────────────────────
+    if (builder.Environment.IsProduction())
+    {
+        builder.Host.UseWindowsService(options =>
+        {
+            options.ServiceName = "EdgeGuardNode";
+        });
+    }
+
     builder.Configuration.AddJsonFile(NodeConstants.DiagnosticsSettingsFile, optional: true, reloadOnChange: true);
 
     // ── Resolve SQLite connection string (env var → ConnectionStrings → default) ─

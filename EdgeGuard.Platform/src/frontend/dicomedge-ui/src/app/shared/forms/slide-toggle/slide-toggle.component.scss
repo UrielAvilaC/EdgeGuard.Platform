@@ -1,0 +1,13 @@
+:host {
+      display: block;
+    }
+    mat-slide-toggle {
+      --mdc-switch-selected-track-color: #0078d4;
+      --mdc-switch-selected-handle-color: #fff;
+      --mdc-switch-selected-hover-track-color: #106ebe;
+      --mdc-switch-selected-hover-handle-color: #fff;
+      --mdc-switch-selected-focus-track-color: #0078d4;
+      --mdc-switch-selected-focus-handle-color: #fff;
+      --mdc-switch-selected-pressed-track-color: #0078d4;
+      --mdc-switch-selected-pressed-handle-color: #fff;
+    }

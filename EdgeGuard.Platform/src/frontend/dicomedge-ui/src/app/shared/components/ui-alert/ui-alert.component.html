@@ -1,0 +1,25 @@
+<div
+      [class]="containerClasses()"
+      role="alert"
+      class="alert-container"
+    >
+      <fa-icon [icon]="config().icon" class="alert-icon" />
+      <div class="alert-body">
+        @if (title()) {
+          <p class="alert-title">{{ title() }}</p>
+        }
+        <div class="alert-content">
+          <ng-content />
+        </div>
+      </div>
+      @if (dismissible()) {
+        <button
+          type="button"
+          class="alert-dismiss"
+          aria-label="Cerrar"
+          (click)="dismissed.emit()"
+        >
+          &times;
+        </button>
+      }
+    </div>

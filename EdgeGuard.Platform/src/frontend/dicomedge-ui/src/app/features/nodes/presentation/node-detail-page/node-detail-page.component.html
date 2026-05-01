@@ -1,0 +1,194 @@
+<div class="space-y-6">
+      <ui-page-header [title]="pageTitle()">
+        <ui-button variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
+          Volver a nodos
+        </ui-button>
+        @if (facade.selectedNode(); as n) {
+          <ui-button variant="secondary" size="sm" [icon]="faPen" (clicked)="openEditDialog()">
+            Editar
+          </ui-button>
+          @if (n.isEnabled) {
+            <ui-button variant="secondary" size="sm" [icon]="faToggleOff" (clicked)="confirmDisable()">
+              Deshabilitar
+            </ui-button>
+          } @else {
+            <ui-button variant="secondary" size="sm" [icon]="faToggleOn" (clicked)="confirmEnable()">
+              Habilitar
+            </ui-button>
+          }
+        }
+      </ui-page-header>
+
+      @if (facade.selectedLoading()) {
+        <ui-loading-spinner [overlay]="true" />
+      }
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" />
+      }
+
+      @if (facade.selectedNode(); as n) {
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <!-- Main Info -->
+          <div class="xl:col-span-2 space-y-6">
+            <!-- Node Details -->
+            <mat-card class="!p-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                Información del Nodo
+              </h3>
+              <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Nombre</dt>
+                  <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    {{ n.name }}
+                    @if (!n.isEnabled) {
+                      <ui-chip color="default">Deshabilitado</ui-chip>
+                    }
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faServer" class="mr-1" /> AE Title
+                  </dt>
+                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ n.aeTitle }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faNetworkWired" class="mr-1" /> Dirección
+                  </dt>
+                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ n.ipAddress }}:{{ n.port }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">API Endpoint</dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white break-all">{{ n.apiEndpoint ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faLocationDot" class="mr-1" /> Ubicación
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ n.location ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faHospital" class="mr-1" /> Facility
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ n.facilityName ?? '—' }}</dd>
+                </div>
+              </dl>
+            </mat-card>
+
+            <!-- PACS Assignments -->
+            <mat-card class="!p-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Asignaciones PACS
+              </h3>
+              @if (n.pacsAssignments.length === 0) {
+                <ui-empty-state title="Sin asignaciones" description="Este nodo no tiene servidores PACS asignados." />
+              } @else {
+                <div class="space-y-2">
+                  @for (pa of n.pacsAssignments; track pa.pacsId) {
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div class="flex items-center gap-3">
+                        <fa-icon [icon]="faServer" class="text-gray-400" />
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ pa.pacsId }}</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        @if (pa.inheritedFromHub) {
+                          <ui-chip color="info">Hub</ui-chip>
+                        }
+                        <ui-chip [color]="pa.isActive ? 'success' : 'default'">
+                          {{ pa.isActive ? 'Activo' : 'Inactivo' }}
+                        </ui-chip>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </mat-card>
+
+            <!-- Node Studies -->
+            <mat-card class="!p-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Estudios Recientes
+              </h3>
+              @if (studiesLoading()) {
+                <ui-loading-spinner [diameter]="32" />
+              } @else if (nodeStudies().length === 0) {
+                <ui-empty-state title="Sin estudios" description="No hay estudios registrados para este nodo." />
+              } @else {
+                <ui-data-table
+                  [columns]="studyColumns"
+                  [data]="nodeStudies()"
+                  emptyMessage="Sin estudios."
+                  (rowClick)="goToStudy($event)"
+                >
+                  <ng-template [uiCellDef]="'status'" let-value="value">
+                    <ui-status-badge [status]="value" />
+                  </ng-template>
+
+                  <ng-template [uiCellDef]="'totalSizeBytes'" let-value="value">
+                    {{ value | fileSize }}
+                  </ng-template>
+
+                  <ng-template [uiCellDef]="'createdAt'" let-value="value">
+                    {{ value | relativeTime }}
+                  </ng-template>
+                </ui-data-table>
+              }
+            </mat-card>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="space-y-6">
+            <!-- Status -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Estado
+              </h3>
+              <div class="flex items-center gap-3 mb-4">
+                <ui-status-badge [status]="n.status" />
+              </div>
+              <dl class="space-y-3">
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faClock" class="mr-1" /> Último Heartbeat
+                  </dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">
+                    {{ n.lastHeartbeatAt ? (n.lastHeartbeatAt | relativeTime) : '—' }}
+                  </dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Health Check</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ n.healthCheckIntervalSeconds }}s</dd>
+                </div>
+              </dl>
+            </mat-card>
+
+            <!-- Health Card -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Salud
+              </h3>
+              <app-node-health-card [node]="n" />
+            </mat-card>
+
+            <!-- Timestamps -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Timestamps
+              </h3>
+              <dl class="space-y-3">
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Creado</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ n.createdAt | relativeTime }}</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Actualizado</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ n.updatedAt ? (n.updatedAt | relativeTime) : '—' }}</dd>
+                </div>
+              </dl>
+            </mat-card>
+          </div>
+        </div>
+      }
+    </div>

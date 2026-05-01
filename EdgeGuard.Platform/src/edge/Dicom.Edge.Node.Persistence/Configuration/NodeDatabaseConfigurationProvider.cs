@@ -72,15 +72,18 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string> db,
         Dictionary<string, string?> cfg)
     {
-        Map(db, cfg, NodeSettingKeys.Hub.Enabled,               ConfigPaths.HubEnabled);
+        // Hub.Enabled is intentionally NOT mapped from the database.
+        // It is an infrastructure decision controlled exclusively via appsettings
+        // so the Hub cannot remotely disable its own connection channel.
         Map(db, cfg, NodeSettingKeys.Hub.ApiKey,                ConfigPaths.HubApiKey);
         Map(db, cfg, NodeSettingKeys.Hub.TimeoutSeconds,        ConfigPaths.HubTimeoutSeconds);
         Map(db, cfg, NodeSettingKeys.Hub.HeartbeatIntervalSec,  ConfigPaths.HubHeartbeatIntervalSeconds);
         Map(db, cfg, NodeSettingKeys.Hub.RegisterOnStartup,     ConfigPaths.HubRegisterOnStartup);
-        Map(db, cfg, NodeSettingKeys.Hub.MaxReconnectAttempts,   ConfigPaths.HubMaxReconnectAttempts);
-        Map(db, cfg, NodeSettingKeys.Hub.ReconnectDelaySeconds,  ConfigPaths.HubReconnectDelaySeconds);
+        Map(db, cfg, NodeSettingKeys.Hub.MaxReconnectAttempts,  ConfigPaths.HubMaxReconnectAttempts);
+        Map(db, cfg, NodeSettingKeys.Hub.ReconnectDelaySeconds, ConfigPaths.HubReconnectDelaySeconds);
 
-        // Compose HubBaseUrl from individual DB keys
+        // Compose HubBaseUrl from individual DB keys only when Hostname is configured.
+        // If Hostname is empty the appsettings value is preserved (higher precedence wins).
         if (db.TryGetValue(NodeSettingKeys.Hub.Protocol, out var protocol) &&
             db.TryGetValue(NodeSettingKeys.Hub.Hostname, out var hostname) &&
             !string.IsNullOrWhiteSpace(hostname))

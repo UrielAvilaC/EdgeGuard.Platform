@@ -58,6 +58,7 @@ public static class HubPersistenceServiceCollectionExtensions
         // Repositories
         services.AddScoped<IPatientRepository, PatientRepository>();
         services.AddScoped<INodeRepository, NodeRepository>();
+        services.AddScoped<INodeBootstrapTokenRepository, NodeBootstrapTokenRepository>();
         services.AddScoped<IPacsServerRepository, PacsServerRepository>();
         services.AddScoped<IStudyRepository, StudyRepository>();
         services.AddScoped<IStudyStatusAuditRepository, StudyStatusAuditRepository>();

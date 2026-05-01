@@ -15,7 +15,7 @@ public class HealthCheckRecordConfiguration : IEntityTypeConfiguration<HealthChe
         builder.Property(h => h.ReportedNodeStatus).HasConversion<string>().HasMaxLength(32);
 
         builder.HasMany(h => h.PacsResults)
-               .WithOne()
+               .WithOne(r => r.HealthCheckRecord)
                .HasForeignKey(r => r.HealthCheckRecordId)
                .OnDelete(DeleteBehavior.Cascade);
 

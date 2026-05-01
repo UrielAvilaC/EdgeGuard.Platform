@@ -61,8 +61,8 @@ public sealed class CsvImportService(
                     continue;
                 }
 
-                DateTime? birthDate = null;
-                if (fields.Length > 2 && DateTime.TryParse(fields[2].Trim(), out var bd))
+                DateOnly? birthDate = null;
+                if (fields.Length > 2 && DateOnly.TryParseExact(fields[2].Trim(), "yyyyMMdd", out var bd))
                     birthDate = bd;
 
                 var sex = fields.Length > 3 ? fields[3].Trim() : null;

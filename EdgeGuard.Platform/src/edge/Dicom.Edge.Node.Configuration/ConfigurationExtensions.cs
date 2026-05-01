@@ -13,6 +13,14 @@ public static class ConfigurationExtensions
         services.Configure<HubConnectionOptions>(
             configuration.GetSection(HubConnectionOptions.SectionName));
 
+        // When ApiPort is not explicitly set (0), inherit from NodeApi:Port so that
+        // the ApiEndpoint fallback uses the same port Kestrel actually listens on.
+        services.PostConfigure<HubConnectionOptions>(opts =>
+        {
+            if (opts.ApiPort == 0)
+                opts.ApiPort = configuration.GetValue("NodeApi:Port", 5120);
+        });
+
         // HttpClient base address and timeout only — API key is added per-request
         // by HubSyncClient (loaded from DB or received during registration)
         services.AddHttpClient<IHubSyncClient, HubSyncClient>((sp, client) =>

@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.6">
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -23,6 +23,10 @@
     <ProjectReference Include="..\Dicom.Edge.Hub.Infrastructure\Dicom.Edge.Hub.Infrastructure.csproj" />
     <ProjectReference Include="..\Dicom.Edge.Hub.Diagnostics\Dicom.Edge.Hub.Diagnostics.csproj" />
     <ProjectReference Include="..\..\shared\Dicom.Edge.Security\Dicom.Edge.Security.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,62 @@
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <button
+        type="button"
+        class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        (click)="expanded.set(!expanded())"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-controls]="'panel-' + category()"
+      >
+        <div class="flex items-center gap-3">
+          <fa-icon [icon]="expanded() ? faChevronDown : faChevronRight" class="text-gray-400 text-xs" />
+          <span class="font-semibold text-gray-900 dark:text-white">{{ label() }}</span>
+          <ui-chip color="default">{{ settings().length }}</ui-chip>
+        </div>
+      </button>
+
+      @if (expanded()) {
+        <div [id]="'panel-' + category()" class="border-t border-gray-200 dark:border-gray-700">
+          @for (setting of settings(); track setting.key) {
+            <div class="flex items-center gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ setting.displayName }}</div>
+                @if (setting.description) {
+                  <div class="text-xs text-gray-500 mt-0.5">{{ setting.description }}</div>
+                }
+                <div class="text-xs text-gray-400 font-mono mt-0.5">{{ setting.key }}</div>
+              </div>
+
+              <div class="flex items-center gap-2 flex-shrink-0">
+                @if (editingKey() === setting.key) {
+                  @if (setting.valueType === 'bool') {
+                    <select
+                      class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      [ngModel]="editValue()"
+                      (ngModelChange)="editValue.set($event)"
+                    >
+                      <option value="true">true</option>
+                      <option value="false">false</option>
+                    </select>
+                  } @else {
+                    <input
+                      class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-40"
+                      [type]="setting.valueType === 'int' ? 'number' : 'text'"
+                      [ngModel]="editValue()"
+                      (ngModelChange)="editValue.set($event)"
+                    />
+                  }
+                  <ui-icon-button [icon]="faCheck" tooltip="Guardar" ariaLabel="Guardar" (clicked)="save(setting)" />
+                  <ui-icon-button [icon]="faTimes" tooltip="Cancelar" ariaLabel="Cancelar" (clicked)="cancelEdit()" />
+                } @else {
+                  <code class="text-sm px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 max-w-[200px] truncate">
+                    {{ setting.value }}
+                  </code>
+                  @if (!setting.isReadOnly) {
+                    <ui-icon-button [icon]="faPen" tooltip="Editar" ariaLabel="Editar" (clicked)="startEdit(setting)" />
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>

@@ -71,14 +71,16 @@ public sealed class Hl7PatientSyncService(
         }
     }
 
-    private static DateTime? ParseBirthDate(string? hl7Date)
+    private static DateOnly? ParseBirthDate(string? hl7Date)
     {
         if (string.IsNullOrWhiteSpace(hl7Date) || hl7Date.Length < 8)
             return null;
 
-        return DateTime.TryParseExact(hl7Date[..8], "yyyyMMdd",
+         DateOnly.TryParseExact(hl7Date[..8], "yyyyMMdd",
             System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None,
-            out var result) ? result : null;
+            out var result);
+        
+            return result;
     }
 }

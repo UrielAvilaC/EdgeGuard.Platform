@@ -47,7 +47,8 @@ public class DomainEventDispatchInterceptor : SaveChangesInterceptor
         if (entitiesWithEvents.Count == 0)
             return;
 
-        var handlers = _serviceProvider.GetServices<IDomainEventHandler>().ToList();
+        using var scope = _serviceProvider.CreateScope();
+        var handlers = scope.ServiceProvider.GetServices<IDomainEventHandler>().ToList();
 
         foreach (var entity in entitiesWithEvents)
         {

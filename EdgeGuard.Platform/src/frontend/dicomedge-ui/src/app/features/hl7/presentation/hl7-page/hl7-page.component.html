@@ -1,0 +1,76 @@
+<div class="space-y-6">
+      <ui-page-header
+        title="Integración HL7"
+        description="Monitoreo del listener, reglas de enrutamiento y cola de mensajes."
+      >
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="refreshCurrentTab()">
+          Actualizar
+        </ui-button>
+      </ui-page-header>
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" [dismissible]="true" />
+      }
+
+      <!-- Tabs -->
+      <div class="border-b border-gray-200 dark:border-gray-700" role="tablist" aria-label="Secciones HL7">
+        @for (tab of tabs; track tab.key) {
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="facade.activeTab() === tab.key"
+            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors"
+            [class]="facade.activeTab() === tab.key
+              ? 'border-azure-600 text-azure-600 dark:text-azure-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'"
+            (click)="onTabChange(tab.key)"
+          >
+            <fa-icon [icon]="tab.icon" />
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+
+      <!-- Tab Content -->
+      @switch (facade.activeTab()) {
+        @case ('listener') {
+          <div class="space-y-6">
+            <app-hl7-listener-status [status]="facade.listenerStatus()" />
+            <div>
+              <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Mensajes recientes</h3>
+              <app-hl7-message-list
+                [messages]="facade.recentMessages()"
+                (viewDetail)="openMessageDetail($event)"
+              />
+            </div>
+          </div>
+        }
+        @case ('routing') {
+          <app-routing-rules-list
+            [rules]="facade.rules()"
+            [pagination]="facade.rulesPagination()"
+            [sort]="facade.rulesSort()"
+            [filter]="facade.rulesFilter()"
+            [loading]="facade.loading()"
+            [activeFilterCount]="facade.activeRulesFilterCount()"
+            (create)="openCreateRuleDialog()"
+            (edit)="openEditRuleDialog($event)"
+            (enable)="facade.enableRule($event)"
+            (disable)="facade.disableRule($event)"
+            (deleteRule)="confirmDeleteRule($event)"
+            (searchChange)="facade.updateRulesFilter({ search: $event })"
+            (clearFilters)="facade.clearRulesFilters()"
+            (pageChange)="facade.changeRulesPage($event.page, $event.pageSize)"
+            (sortChange)="facade.changeRulesSort($event)"
+          />
+        }
+        @case ('queue') {
+          <app-queue-monitor
+            [summary]="facade.queueSummary()"
+            [queuedMessages]="facade.queuedMessages()"
+            [selectedStatus]="facade.selectedDispatchStatus()"
+            (selectStatus)="onSelectDispatchStatus($event)"
+          />
+        }
+      }
+    </div>

@@ -20,19 +20,16 @@ public sealed class DashboardService(
 {
     public async Task<DashboardSummaryDto> GetSummaryAsync(CancellationToken ct = default)
     {
-        var studyCountTask = studyRepository.CountAsync(ct);
-        var patientCountTask = patientRepository.CountAsync(ct);
-        var nodeCountTask = nodeRepository.CountAsync(ct);
-        var nodesTask = nodeRepository.GetAllAsync(ct);
-        var pendingTask = studyRepository.GetPendingForPacsAsync(ct);
-        var failedTask = studyRepository.GetByStatusAsync(StudyStatus.Failed, ct);
-        var recentTask = studyRepository.GetPagedAsync(new Common.Pagination.PaginationRequest { Page = 1, PageSize = 10 }, ct);
-        var queueTask = hl7MonitoringService.GetQueueSummaryAsync(ct);
+        // Await each DbContext call sequentially to avoid concurrent access on the same DbContext instance.
+        var studyCount = await studyRepository.CountAsync(ct);
+        var patientCount = await patientRepository.CountAsync(ct);
+        var nodeCount = await nodeRepository.CountAsync(ct);
+        var nodes = await nodeRepository.GetAllAsync(ct);
+        var pending = await studyRepository.GetPendingForPacsAsync(ct);
+        var failed = await studyRepository.GetByStatusAsync(StudyStatus.Failed, ct);
+        var recent = await studyRepository.GetPagedAsync(new Common.Pagination.PaginationRequest { Page = 1, PageSize = 10 }, ct);
+        var queueSummary = await hl7MonitoringService.GetQueueSummaryAsync(ct);
 
-        await Task.WhenAll(studyCountTask, patientCountTask, nodeCountTask, nodesTask,
-            pendingTask, failedTask, recentTask, queueTask);
-
-        var nodes = await nodesTask;
         var activeNodes = nodes.Count(n => n.IsEnabled && n.Status != NodeStatus.Offline);
 
         Hl7ListenerStatusDto? hl7Status = null;
@@ -40,15 +37,15 @@ public sealed class DashboardService(
 
         return new DashboardSummaryDto
         {
-            TotalStudies = await studyCountTask,
-            TotalPatients = await patientCountTask,
-            TotalNodes = await nodeCountTask,
+            TotalStudies = studyCount,
+            TotalPatients = patientCount,
+            TotalNodes = nodeCount,
             ActiveNodes = activeNodes,
-            PendingPacsStudies = (await pendingTask).Count,
-            FailedStudies = (await failedTask).Count,
-            QueueSummary = await queueTask,
+            PendingPacsStudies = pending.Count,
+            FailedStudies = failed.Count,
+            QueueSummary = queueSummary,
             Hl7Status = hl7Status,
-            RecentStudies = (await recentTask).Items.Select(s => new StudyDto
+            RecentStudies = recent.Items.Select(s => new StudyDto
             {
                 Id = s.Id,
                 StudyInstanceUid = s.StudyInstanceUid.Value,

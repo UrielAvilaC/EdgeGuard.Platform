@@ -2,6 +2,7 @@ using Dicom.Edge.Common.Filters;
 using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Mapping;
+using Dicom.Edge.Hub.Application.Edge;
 using Dicom.Edge.Hub.Application.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authorization;
@@ -11,22 +12,25 @@ using Microsoft.AspNetCore.Mvc;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/nodes")]
 [Authorize(Policy = Policies.ViewNodes)]
 public class NodesController : ControllerBase
 {
     private readonly INodeRepository _nodeRepository;
     private readonly INodeService _nodeService;
+    private readonly IBootstrapTokenService _bootstrapTokenService;
     private readonly ILogger<NodesController> _logger;
 
     public NodesController(
         INodeRepository nodeRepository,
         INodeService nodeService,
+        IBootstrapTokenService bootstrapTokenService,
         ILogger<NodesController> logger)
     {
-        _nodeRepository = nodeRepository;
-        _nodeService = nodeService;
-        _logger = logger;
+        _nodeRepository       = nodeRepository;
+        _nodeService          = nodeService;
+        _bootstrapTokenService = bootstrapTokenService;
+        _logger               = logger;
     }
 
     [HttpGet]
@@ -103,5 +107,21 @@ public class NodesController : ControllerBase
     {
         var count = await _nodeRepository.CountAsync(ct);
         return Ok(new CountDto { Count = count });
+    }
+
+    // ── Bootstrap Tokens ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// POST /api/nodes/bootstrap-tokens — Generates a one-time bootstrap token.
+    /// The raw token is returned once. The admin copies it to the node's appsettings.
+    /// </summary>
+    [HttpPost("bootstrap-tokens")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> CreateBootstrapToken(
+        [FromBody] CreateBootstrapTokenRequest request, CancellationToken ct)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var result = await _bootstrapTokenService.GenerateAsync(request, userId, ct);
+        return Ok(result);
     }
 }

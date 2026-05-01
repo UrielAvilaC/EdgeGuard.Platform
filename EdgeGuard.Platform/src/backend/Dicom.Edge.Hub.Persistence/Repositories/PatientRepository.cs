@@ -57,6 +57,7 @@ public class PatientRepository : IPatientRepository
     public async Task<Patient> AddAsync(Patient patient, CancellationToken ct = default)
     {
         await _context.Patients.AddAsync(patient, ct);
+        await _context.SaveChangesAsync();
         return patient;
     }
 

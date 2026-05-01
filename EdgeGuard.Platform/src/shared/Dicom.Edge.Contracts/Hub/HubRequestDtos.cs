@@ -277,7 +277,7 @@ public sealed class UpdatePatientRequest
     [StringLength(256)]
     public string? PatientName { get; init; }
 
-    public DateTime? BirthDate { get; init; }
+    public DateOnly? BirthDate { get; init; }
 
     [StringLength(10)]
     public string? Sex { get; init; }
@@ -325,4 +325,25 @@ public sealed class UpdateNodeSettingRequest
 {
     [Required]
     public required string Value { get; init; }
+}
+
+// ── Node Bootstrap Tokens ─────────────────────────────────────────────────────
+
+public sealed class CreateBootstrapTokenRequest
+{
+    [StringLength(200)]
+    public string? Note { get; init; }
+
+    /// <summary>Token validity in hours. Defaults to 24.</summary>
+    [Range(1, 720)]
+    public int ExpiresInHours { get; init; } = 24;
+}
+
+public sealed class BootstrapTokenResponse
+{
+    /// <summary>Raw token — shown once. Store it securely.</summary>
+    public required string Token { get; init; }
+    public required string TokenId { get; init; }
+    public required DateTime ExpiresAt { get; init; }
+    public string? Note { get; init; }
 }

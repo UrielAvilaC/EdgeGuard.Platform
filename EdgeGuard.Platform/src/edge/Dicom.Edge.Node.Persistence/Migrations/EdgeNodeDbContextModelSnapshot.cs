@@ -15,7 +15,7 @@ namespace Dicom.Edge.Node.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.6");
 
             modelBuilder.Entity("Dicom.Edge.Models.Audit.AuditLog", b =>
                 {
@@ -841,6 +841,9 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("comments");
 
+                    b.Property<string>("Email")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("InstitutionName")
                         .HasMaxLength(128)
                         .HasColumnType("TEXT")
@@ -869,6 +872,9 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                     b.Property<double?>("PatientWeightKg")
                         .HasColumnType("REAL")
                         .HasColumnName("patient_weight_kg");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ReferringPhysician")
                         .HasMaxLength(256)

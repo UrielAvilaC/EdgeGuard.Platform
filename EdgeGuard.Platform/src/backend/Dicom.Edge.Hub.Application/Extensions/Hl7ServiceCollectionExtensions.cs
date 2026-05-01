@@ -38,6 +38,8 @@ public static class HubApplicationServiceCollectionExtensions
         services.AddScoped<IHl7MonitoringService, Hl7MonitoringService>();
         services.AddScoped<IHl7ValidationService, Hl7ValidationService>();
         services.AddScoped<IHl7RoutingEngine, Hl7RoutingEngine>();
+        services.AddScoped<IHl7PatientSyncService, Hl7PatientSyncService>();
+        services.AddScoped<IHl7StudySyncService, Hl7StudySyncService>();
 
         // Configuration services
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
@@ -51,6 +53,7 @@ public static class HubApplicationServiceCollectionExtensions
 
         // Edge node-facing orchestration service
         services.AddScoped<IEdgeNodeService, EdgeNodeService>();
+        services.AddScoped<IBootstrapTokenService, BootstrapTokenService>();
 
         // Identity services
         services.AddScoped<IAuthenticationService, AuthenticationService>();

@@ -1,0 +1,154 @@
+<div class="space-y-6">
+  <ui-page-header
+    title="Reglas de Ruteo"
+    description="Configuración de reglas de ruteo HL7 para enrutamiento automático de mensajes a nodos."
+  >
+    <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="facade.loadRules()">
+      Actualizar
+    </ui-button>
+    <ui-button size="sm" [icon]="faPlus" (clicked)="openCreateDialog()">
+      Nueva regla
+    </ui-button>
+  </ui-page-header>
+
+  @if (facade.error(); as error) {
+    <ui-alert type="error" [title]="error" [dismissible]="true" />
+  }
+
+  <!-- Filters -->
+  <div class="space-y-4">
+    <div class="flex items-center gap-4 flex-wrap">
+      <div class="flex-1 min-w-[280px]">
+        <ui-search-bar
+          placeholder="Buscar por nombre, tipo de mensaje, facility..."
+          (searchChange)="onSearchChange($event)"
+        />
+      </div>
+
+      <ui-button
+        variant="secondary"
+        size="sm"
+        [icon]="faFilter"
+        (clicked)="filtersExpanded = !filtersExpanded"
+      >
+        Filtros
+        @if (facade.activeFilterCount() > 0) {
+          <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-azure-600 text-white">
+            {{ facade.activeFilterCount() }}
+          </span>
+        }
+      </ui-button>
+
+      @if (facade.activeFilterCount() > 0) {
+        <ui-button variant="ghost" size="sm" [icon]="faXmark" (clicked)="facade.clearFilters()">
+          Limpiar
+        </ui-button>
+      }
+    </div>
+
+    @if (filtersExpanded) {
+      <div class="flex items-center gap-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+           role="group" aria-label="Filtros avanzados">
+        <ui-slide-toggle
+          label="Solo habilitadas"
+          [ngModel]="facade.filter().isEnabled ?? false"
+          (ngModelChange)="onEnabledChange($event)"
+        />
+      </div>
+    }
+  </div>
+
+  <ui-data-table
+    [columns]="columns"
+    [data]="facade.rules()"
+    [pagination]="facade.pagination()"
+    [sort]="facade.sort()"
+    [loading]="facade.loading()"
+    emptyMessage="No se encontraron reglas de ruteo."
+    (pageChange)="facade.changePage($event.page, $event.pageSize)"
+    (sortChange)="facade.changeSort($event)"
+  >
+    <ng-template [uiCellDef]="'priority'" let-value="value">
+      <span class="inline-flex items-center justify-center w-8 h-6 rounded text-xs font-bold bg-azure-100 text-azure-700 dark:bg-azure-900/30 dark:text-azure-300">
+        {{ value }}
+      </span>
+    </ng-template>
+
+    <ng-template [uiCellDef]="'name'" let-row let-value="value">
+      <div class="flex items-center gap-2">
+        <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+        @if (!row.isEnabled) {
+          <ui-chip color="default">Deshabilitada</ui-chip>
+        }
+      </div>
+    </ng-template>
+
+    <ng-template [uiCellDef]="'matchMessageType'" let-value="value">
+      @if (value) {
+        <ui-chip color="info">{{ value }}</ui-chip>
+      } @else {
+        <span class="text-gray-400">Cualquiera</span>
+      }
+    </ng-template>
+
+    <ng-template [uiCellDef]="'matchTriggerEvent'" let-value="value">
+      @if (value) {
+        <ui-chip color="info">{{ value }}</ui-chip>
+      } @else {
+        <span class="text-gray-400">Cualquiera</span>
+      }
+    </ng-template>
+
+    <ng-template [uiCellDef]="'matchSendingFacility'" let-value="value">
+      @if (value) {
+        <span class="text-sm">{{ value }}</span>
+      } @else {
+        <span class="text-gray-400">Cualquiera</span>
+      }
+    </ng-template>
+
+    <ng-template [uiCellDef]="'targetNodeId'" let-value="value">
+      <span class="text-sm font-medium">{{ getNodeName(value) }}</span>
+    </ng-template>
+
+    <ng-template [uiCellDef]="'matchCount'" let-value="value">
+      <span class="font-mono text-sm">{{ value }}</span>
+    </ng-template>
+
+    <ng-template [uiCellDef]="'lastMatchedAt'" let-value="value">
+      {{ value ? (value | relativeTime) : '—' }}
+    </ng-template>
+
+    <ng-template [uiCellDef]="'actions'" let-row>
+      <div class="flex items-center gap-1" (click)="$event.stopPropagation()">
+        <ui-icon-button
+          [icon]="faPen"
+          tooltip="Editar"
+          ariaLabel="Editar regla"
+          (clicked)="openEditDialog(row)"
+        />
+        @if (row.isEnabled) {
+          <ui-icon-button
+            [icon]="faToggleOff"
+            tooltip="Deshabilitar"
+            ariaLabel="Deshabilitar regla"
+            (clicked)="facade.disableRule(row.id)"
+          />
+        } @else {
+          <ui-icon-button
+            [icon]="faToggleOn"
+            tooltip="Habilitar"
+            ariaLabel="Habilitar regla"
+            (clicked)="facade.enableRule(row.id)"
+          />
+        }
+        <ui-icon-button
+          [icon]="faTrash"
+          tooltip="Eliminar"
+          ariaLabel="Eliminar regla"
+          (clicked)="confirmDelete(row)"
+        />
+      </div>
+    </ng-template>
+  </ui-data-table>
+</div>

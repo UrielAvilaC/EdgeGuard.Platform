@@ -11,7 +11,7 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
 {
     public PatientIdentifier PatientDicomId { get; private set; } = default!;
     public string PatientName { get; private set; } = default!;
-    public DateTime? BirthDate { get; private set; }
+    public DateOnly? BirthDate { get; private set; }
     public string? Sex { get; private set; }
     public string? PhoneNumber { get; private set; }
     public string? Email { get; private set; }
@@ -31,7 +31,7 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
     public static Patient Create(
         PatientIdentifier patientDicomId,
         string patientName,
-        DateTime? birthDate = null,
+        DateOnly? birthDate = null,
         string? sex = null,
         string? issuerOfPatientId = null,
         string? facilitySource = null,
@@ -55,7 +55,8 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
             PhoneNumber = phoneNumber?.Trim(),
             Email = email?.Trim(),
             LastUpdatedAt = DateTime.UtcNow,
-            IsActive = true
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
 
         patient.AddDomainEvent(new PatientRegisteredEvent(
@@ -66,7 +67,7 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
 
     public void UpdateDemographics(
         string patientName,
-        DateTime? birthDate = null,
+        DateOnly? birthDate = null,
         string? sex = null,
         string? issuerOfPatientId = null)
     {

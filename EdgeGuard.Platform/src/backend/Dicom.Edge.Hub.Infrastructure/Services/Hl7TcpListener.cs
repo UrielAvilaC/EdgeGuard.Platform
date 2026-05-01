@@ -155,7 +155,7 @@ public class Hl7TcpListener : IHl7Listener
 
                     // Persistir mensaje
                     await repository.AddAsync(message, linkedCts.Token);
-
+                    
                     _logger.LogInformation(
                         "Message {MessageId} received from {Endpoint}, Type: {MessageType}",
                         message.Id,

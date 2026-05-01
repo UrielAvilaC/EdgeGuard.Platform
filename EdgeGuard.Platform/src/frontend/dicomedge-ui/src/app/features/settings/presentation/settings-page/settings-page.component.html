@@ -1,0 +1,27 @@
+<div class="space-y-6">
+      <ui-page-header title="Configuración" description="Configuración global del sistema EdgeGuard.">
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="loadSettings()">Actualizar</ui-button>
+        <a routerLink="/settings/node-config">
+          <ui-button variant="secondary" size="sm" [icon]="faServer">Config. de nodos</ui-button>
+        </a>
+      </ui-page-header>
+
+      @if (error(); as err) {
+        <ui-alert type="error" [title]="err" [dismissible]="true" />
+      }
+
+      @for (cat of categories; track cat.key) {
+        @if (settingsByCategory(cat.key).length > 0) {
+          <app-setting-category-panel
+            [category]="cat.key"
+            [label]="cat.label"
+            [settings]="settingsByCategory(cat.key)"
+            (settingUpdated)="onSettingUpdated($event)"
+          />
+        }
+      }
+
+      @if (!loading() && allSettings().length === 0) {
+        <p style="color: var(--eg-text-muted); text-align: center; padding: 32px 0">No hay configuraciones disponibles.</p>
+      }
+    </div>

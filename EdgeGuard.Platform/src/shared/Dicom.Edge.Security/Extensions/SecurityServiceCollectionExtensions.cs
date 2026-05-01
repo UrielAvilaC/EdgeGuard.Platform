@@ -115,7 +115,7 @@ namespace Dicom.Edge.Security.Extensions
             })
             .AddJwtBearer(options =>
             {
-                options.RequireHttpsMetadata = !IsDevEnvironment(configuration);
+                //options.RequireHttpsMetadata = !IsDevEnvironment(configuration);
                 options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
