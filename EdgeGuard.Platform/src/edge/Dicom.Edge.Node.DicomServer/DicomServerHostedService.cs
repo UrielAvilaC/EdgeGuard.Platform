@@ -7,19 +7,24 @@ namespace Dicom.Edge.Node.DicomServer;
 /// <summary>
 /// Background service that starts and manages the fo-dicom SCP server.
 /// Supports both C-STORE (image reception) and C-FIND MWL (worklist queries).
+/// The listen port is fixed at startup (fo-dicom requires it). AeTitle and MwlEnabled
+/// are read via <see cref="IOptionsMonitor{T}"/> so Hub config pushes take effect
+/// without a service restart.
 /// </summary>
 public sealed class DicomServerHostedService(
     IDicomInstanceHandler instanceHandler,
     IWorklistCFindHandler mwlHandler,
-    IOptions<DicomServerOptions> options,
+    IOptionsMonitor<DicomServerOptions> optionsMonitor,
     ILogger<DicomServerHostedService> logger) : BackgroundService
 {
-    private readonly DicomServerOptions _opts = options.Value;
     private FellowOakDicom.Network.IDicomServer? _server;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_opts.Enabled)
+        // Snapshot options at startup — port cannot change while running
+        var startupOpts = optionsMonitor.CurrentValue;
+
+        if (!startupOpts.Enabled)
         {
             logger.LogInformation("DICOM server is disabled via configuration");
             return;
@@ -27,15 +32,15 @@ public sealed class DicomServerHostedService(
 
         logger.LogInformation(
             "Starting DICOM SCP on port {Port}, AE Title={AeTitle}, MWL={MwlEnabled}",
-            _opts.Port, _opts.AeTitle, _opts.MwlEnabled);
+            startupOpts.Port, startupOpts.AeTitle, startupOpts.MwlEnabled);
 
         _server = FellowOakDicom.Network.DicomServerFactory.Create<CStoreScp>(
-            _opts.Port,
-            userState: new DicomScpDependencies(instanceHandler, mwlHandler, _opts));
+            startupOpts.Port,
+            userState: new DicomScpDependencies(instanceHandler, mwlHandler, optionsMonitor));
 
         logger.LogInformation(
             "DICOM server listening on port {Port} — C-STORE=enabled, MWL={MwlEnabled}",
-            _opts.Port, _opts.MwlEnabled);
+            startupOpts.Port, startupOpts.MwlEnabled);
 
         // Keep alive until cancellation
         try
@@ -61,9 +66,13 @@ public sealed class DicomServerHostedService(
 
 /// <summary>
 /// Passes all custom dependencies to <see cref="CStoreScp"/> via fo-dicom's user state mechanism.
-/// The SCP resolves these lazily from <see cref="FellowOakDicom.Network.DicomService.UserState"/>.
+/// Uses <see cref="IOptionsMonitor{T}"/> so AeTitle and MwlEnabled changes pushed from the
+/// Hub are reflected in subsequent associations without a service restart.
 /// </summary>
 public sealed record DicomScpDependencies(
     IDicomInstanceHandler InstanceHandler,
     IWorklistCFindHandler MwlHandler,
-    DicomServerOptions Options);
+    IOptionsMonitor<DicomServerOptions> OptionsMonitor)
+{
+    public DicomServerOptions Options => OptionsMonitor.CurrentValue;
+}

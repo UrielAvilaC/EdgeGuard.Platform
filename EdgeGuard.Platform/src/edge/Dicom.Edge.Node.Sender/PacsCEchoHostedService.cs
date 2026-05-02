@@ -11,42 +11,56 @@ namespace Dicom.Edge.Node.Sender;
 /// <summary>
 /// Periodic BackgroundService that runs DICOM C-ECHO against all configured
 /// PACS destinations and exposes results via <see cref="IPacsCEchoMonitor"/>.
+/// Uses <see cref="IOptionsMonitor{T}"/> so that destinations pushed from the Hub
+/// via configuration apply are picked up without restarting the service.
 /// </summary>
 public sealed class PacsCEchoHostedService(
     IPacsSender pacsSender,
-    IOptions<PacsCEchoOptions> options,
+    IOptionsMonitor<PacsCEchoOptions> optionsMonitor,
     ILogger<PacsCEchoHostedService> logger) : BackgroundService, IPacsCEchoMonitor
 {
-    private readonly PacsCEchoOptions _opts = options.Value;
     private readonly ConcurrentDictionary<string, PacsCEchoResultDto> _results = new();
+
+    /// <summary>Always reads the latest options snapshot — reflects Hub config pushes.</summary>
+    private PacsCEchoOptions Opts => optionsMonitor.CurrentValue;
 
     public IReadOnlyList<PacsCEchoResultDto> GetLatestResults() =>
         _results.Values.ToList().AsReadOnly();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_opts.Enabled || _opts.Destinations.Length == 0)
-        {
-            logger.LogInformation("PACS C-ECHO monitor is disabled or has no destinations configured");
-            return;
-        }
-
-        logger.LogInformation(
-            "PACS C-ECHO monitor started — checking {Count} destination(s) every {Interval}s",
-            _opts.Destinations.Length, _opts.IntervalSeconds);
-
-        var interval = TimeSpan.FromSeconds(_opts.IntervalSeconds);
+        logger.LogInformation("PACS C-ECHO monitor started — waiting for destinations");
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await RunAllChecksAsync(stoppingToken);
-            await Task.Delay(interval, stoppingToken);
+            var opts = Opts;
+
+            if (!opts.Enabled)
+            {
+                logger.LogDebug("PACS C-ECHO monitor disabled — sleeping 60s");
+                await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
+                continue;
+            }
+
+            if (opts.Destinations.Length == 0)
+            {
+                logger.LogDebug("PACS C-ECHO — no destinations configured yet, retrying in 30s");
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                continue;
+            }
+
+            logger.LogInformation(
+                "PACS C-ECHO checking {Count} destination(s) — next check in {Interval}s",
+                opts.Destinations.Length, opts.IntervalSeconds);
+
+            await RunAllChecksAsync(opts, stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(opts.IntervalSeconds), stoppingToken);
         }
     }
 
-    private async Task RunAllChecksAsync(CancellationToken ct)
+    private async Task RunAllChecksAsync(PacsCEchoOptions opts, CancellationToken ct)
     {
-        foreach (var destination in _opts.Destinations)
+        foreach (var destination in opts.Destinations)
         {
             try
             {
@@ -67,17 +81,13 @@ public sealed class PacsCEchoHostedService(
                 _results[destination.AeTitle] = result;
 
                 if (success)
-                {
                     logger.LogDebug(
                         "C-ECHO to {AeTitle}@{Host}:{Port} succeeded in {Latency:N1}ms",
                         destination.AeTitle, destination.Host, destination.Port, sw.Elapsed.TotalMilliseconds);
-                }
                 else
-                {
                     logger.LogWarning(
                         "C-ECHO to {AeTitle}@{Host}:{Port} failed (no DICOM success status)",
                         destination.AeTitle, destination.Host, destination.Port);
-                }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -85,7 +95,7 @@ public sealed class PacsCEchoHostedService(
             }
             catch (Exception ex)
             {
-                var errorResult = new PacsCEchoResultDto
+                _results[destination.AeTitle] = new PacsCEchoResultDto
                 {
                     DestinationAeTitle = destination.AeTitle,
                     Host = destination.Host,
@@ -94,8 +104,6 @@ public sealed class PacsCEchoHostedService(
                     CheckedAtUtc = DateTime.UtcNow,
                     Error = ex.Message
                 };
-
-                _results[destination.AeTitle] = errorResult;
 
                 logger.LogWarning(ex,
                     "C-ECHO check failed for {AeTitle}@{Host}:{Port}",

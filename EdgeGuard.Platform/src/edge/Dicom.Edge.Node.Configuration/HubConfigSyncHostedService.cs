@@ -8,27 +8,28 @@ namespace Dicom.Edge.Node.Configuration;
 
 /// <summary>
 /// Background service that maintains the connection with the Hub:
-/// registration on startup, periodic heartbeats, and configuration pulls.
-/// On first registration, persists the API key to the node_settings SQLite table.
-/// On subsequent startups, loads the API key from the database.
+/// registration on startup, one-time pull on startup, periodic heartbeats,
+/// and pull fallback every configPullInterval (in case a push was missed).
+/// Config is primarily delivered via Hub → Node push (POST /api/configuration/apply).
+/// The periodic pull is a safety net only.
 /// </summary>
 public sealed class HubConfigSyncHostedService(
     IHubSyncClient hubClient,
     IServiceScopeFactory scopeFactory,
-    IOptions<HubConnectionOptions> options,
+    IOptionsMonitor<HubConnectionOptions> optionsMonitor,
     ILogger<HubConfigSyncHostedService> logger) : BackgroundService
 {
-    private readonly HubConnectionOptions _opts = options.Value;
+    private HubConnectionOptions Opts => optionsMonitor.CurrentValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_opts.Enabled)
+        if (!Opts.Enabled)
         {
             logger.LogInformation("Hub configuration sync is disabled");
             return;
         }
 
-        logger.LogInformation("Hub config sync service started — hub={HubUrl}", _opts.HubBaseUrl);
+        logger.LogInformation("Hub config sync service started — hub={HubUrl}", Opts.HubBaseUrl);
 
         // Sync appsettings → DB for any identity field that is still at its seed default (empty)
         await SyncAppsettingsToDatabase(stoppingToken);
@@ -36,7 +37,7 @@ public sealed class HubConfigSyncHostedService(
         // Load API key from DB if it exists (restart scenario)
         var hasExistingKey = await LoadApiKeyFromDatabaseAsync(stoppingToken);
 
-        if (!hasExistingKey && _opts.RegisterOnStartup)
+        if (!hasExistingKey && Opts.RegisterOnStartup)
         {
             // First time — no API key in DB, must register to obtain one
             await RegisterWithRetryAsync(stoppingToken);
@@ -46,27 +47,26 @@ public sealed class HubConfigSyncHostedService(
             logger.LogInformation("API key found in database — skipping registration, starting sync loop");
         }
 
-        var heartbeatInterval = TimeSpan.FromSeconds(_opts.HeartbeatIntervalSeconds);
-        var configPullInterval = TimeSpan.FromSeconds(_opts.ConfigPullIntervalSeconds);
-        var lastConfigPull = DateTime.MinValue;
+        // ── Pull once on startup to apply any Hub changes made while node was offline ──
+        await PullAndApplyConfigAsync(stoppingToken);
+
+        var lastConfigPull = DateTime.UtcNow;
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
+                var heartbeatInterval = TimeSpan.FromSeconds(Opts.HeartbeatIntervalSeconds);
+                await Task.Delay(heartbeatInterval, stoppingToken);
+
                 await hubClient.SendHeartbeatAsync(stoppingToken);
 
+                // Fallback pull — safety net in case a Hub push was missed
+                var configPullInterval = TimeSpan.FromSeconds(Opts.ConfigPullIntervalSeconds);
                 if (DateTime.UtcNow - lastConfigPull > configPullInterval)
                 {
-                    var config = await hubClient.PullConfigurationAsync(stoppingToken);
-                    if (config is { Count: > 0 })
-                    {
-                        using var scope = scopeFactory.CreateScope();
-                        var settingsService = scope.ServiceProvider
-                            .GetRequiredService<INodeSettingsService>();
-                        await settingsService.ApplyBatchAsync(config, stoppingToken);
-                        logger.LogInformation("Applied {Count} config entries from Hub", config.Count);
-                    }
+                    logger.LogDebug("Fallback config pull triggered (interval={Interval}s)", configPullInterval.TotalSeconds);
+                    await PullAndApplyConfigAsync(stoppingToken);
                     lastConfigPull = DateTime.UtcNow;
                 }
             }
@@ -78,11 +78,28 @@ public sealed class HubConfigSyncHostedService(
             {
                 logger.LogWarning(ex, "Hub sync cycle error — retrying next interval");
             }
-
-            await Task.Delay(heartbeatInterval, stoppingToken);
         }
 
         await hubClient.DeregisterAsync(CancellationToken.None);
+    }
+
+    private async Task PullAndApplyConfigAsync(CancellationToken ct)
+    {
+        try
+        {
+            var config = await hubClient.PullConfigurationAsync(ct);
+            if (config is { Count: > 0 })
+            {
+                using var scope = scopeFactory.CreateScope();
+                var settingsService = scope.ServiceProvider.GetRequiredService<INodeSettingsService>();
+                await settingsService.ApplyBatchAsync(config, ct);
+                logger.LogInformation("Applied {Count} config entries from Hub pull", config.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Config pull from Hub failed — will retry on next cycle");
+        }
     }
 
     /// <summary>
@@ -97,13 +114,13 @@ public sealed class HubConfigSyncHostedService(
             using var scope = scopeFactory.CreateScope();
             var settings = scope.ServiceProvider.GetRequiredService<INodeSettingsService>();
 
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.NodeName,  _opts.NodeName,    ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.AeTitle,   _opts.AeTitle,     ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.IpAddress, _opts.IpAddress,   ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Version,   _opts.Version,     ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Location,  _opts.Location,    ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.FacilityName, _opts.FacilityName, ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.ApiEndpoint,  _opts.ApiEndpoint,  ct);
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.NodeName,  Opts.NodeName,    ct);
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.AeTitle,   Opts.AeTitle,     ct);
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.IpAddress, Opts.IpAddress,   ct);
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Version,   Opts.Version,     ct);
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Location,  Opts.Location,    ct);
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.FacilityName, Opts.FacilityName, ct);
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.ApiEndpoint,  Opts.ApiEndpoint,  ct);
 
             logger.LogDebug("Appsettings → DB identity sync complete");
         }
@@ -153,7 +170,7 @@ public sealed class HubConfigSyncHostedService(
 
     private async Task RegisterWithRetryAsync(CancellationToken ct)
     {
-        for (var attempt = 1; attempt <= _opts.MaxReconnectAttempts; attempt++)
+        for (var attempt = 1; attempt <= Opts.MaxReconnectAttempts; attempt++)
         {
             var result = await hubClient.RegisterAsync(ct);
 
@@ -174,13 +191,13 @@ public sealed class HubConfigSyncHostedService(
             }
 
             logger.LogWarning("Registration attempt {Attempt}/{Max} failed",
-                attempt, _opts.MaxReconnectAttempts);
+                attempt, Opts.MaxReconnectAttempts);
 
             await Task.Delay(
-                TimeSpan.FromSeconds(_opts.ReconnectDelaySeconds * attempt), ct);
+                TimeSpan.FromSeconds(Opts.ReconnectDelaySeconds * attempt), ct);
         }
 
-        logger.LogError("Failed to register with Hub after {Max} attempts", _opts.MaxReconnectAttempts);
+        logger.LogError("Failed to register with Hub after {Max} attempts", Opts.MaxReconnectAttempts);
     }
 
     private async Task PersistApiKeyAsync(string apiKey, CancellationToken ct)

@@ -3,12 +3,14 @@ using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
+using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Security.Authentication;
 using Dicom.Edge.Security.Cryptography;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Dicom.Edge.Hub.Application.Edge;
 
@@ -20,6 +22,7 @@ public sealed class EdgeNodeService(
     INodeRepository nodeRepository,
     IStudyRepository studyRepository,
     IHealthCheckRepository healthCheckRepository,
+    IPacsServerRepository pacsRepository,
     INodeConfigurationService configService,
     IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,
@@ -168,13 +171,46 @@ public sealed class EdgeNodeService(
     {
         if (string.IsNullOrWhiteSpace(nodeId)) return null;
 
-        var node = await nodeRepository.GetByIdAsync(nodeId, ct);
+        var node = await nodeRepository.GetWithPacsAssignmentsAsync(nodeId, ct);
         if (node is null) return null;
 
         var config = await configService.GetNodeConfigAsync(nodeId, ct);
         var dict = config.ToDictionary(c => c.SettingKey, c => c.Value);
 
-        logger.LogInformation("Config pull by node {NodeId}: {Count} entries", nodeId, dict.Count);
+        // Inject active PACS assignments as a JSON array under cecho.destinations
+        var activePacsIds = node.PacsAssignments
+            .Where(a => a.IsActive)
+            .Select(a => a.PacsId)
+            .ToList();
+
+        if (activePacsIds.Count > 0)
+        {
+            var pacsServers = await pacsRepository.GetAllAsync(ct);
+            var destinations = pacsServers
+                .Where(p => p.IsEnabled && activePacsIds.Contains(p.Id))
+                .Select(p => new
+                {
+                    Id      = p.Id,
+                    AeTitle = p.AeTitle.Value,
+                    Host    = p.HostName,
+                    Port    = p.Port,
+                    UseTls  = false
+                })
+                .ToArray();
+
+            dict["cecho.destinations"] = JsonSerializer.Serialize(destinations);
+
+            // Also set single-destination sender keys to the first active PACS
+            var primary = destinations[0];
+            dict["pacs_dest.host"]     = primary.Host;
+            dict["pacs_dest.port"]     = primary.Port.ToString();
+            dict["pacs_dest.ae_title"] = primary.AeTitle;
+        }
+
+        logger.LogInformation(
+            "Config pull by node {NodeId}: {Count} entries, {PacsCount} PACS destination(s)",
+            nodeId, dict.Count, activePacsIds.Count);
+
         return dict;
     }
 }

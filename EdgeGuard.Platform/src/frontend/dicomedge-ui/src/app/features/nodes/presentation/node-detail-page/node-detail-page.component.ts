@@ -13,6 +13,12 @@ import {
   faClock,
   faToggleOn,
   faToggleOff,
+  faPlug,
+  faTrash,
+  faCheckCircle,
+  faTimesCircle,
+  faLock,
+  faCircleQuestion,
 } from '@fortawesome/free-solid-svg-icons';
 
 import { UiPageHeader } from '../../../../shared/components/ui-page-header/ui-page-header.component';
@@ -35,6 +41,9 @@ import { NodeFormDialog, NodeFormDialogData } from '../node-form-dialog/node-for
 
 import { StudiesApiService } from '../../../studies/infrastructure/studies-api.service';
 import { Study } from '../../../studies/models/study.models';
+import { PacsApiService } from '../../../pacs/infrastructure/pacs-api.service';
+import { PacsServer } from '../../../pacs/models/pacs.models';
+import { PacsAssignDialog, PacsAssignDialogData } from '../pacs-assign-dialog/pacs-assign-dialog.component';
 
 @Component({
   selector: 'app-node-detail-page',
@@ -65,6 +74,7 @@ export default class NodeDetailPage {
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
   private readonly studiesApi = inject(StudiesApiService);
+  private readonly pacsApi = inject(PacsApiService);
 
   protected readonly faArrowLeft = faArrowLeft;
   protected readonly faPen = faPen;
@@ -75,9 +85,20 @@ export default class NodeDetailPage {
   protected readonly faClock = faClock;
   protected readonly faToggleOn = faToggleOn;
   protected readonly faToggleOff = faToggleOff;
+  protected readonly faPlug = faPlug;
+  protected readonly faTrash = faTrash;
+  protected readonly faCheckCircle = faCheckCircle;
+  protected readonly faTimesCircle = faTimesCircle;
+  protected readonly faLock = faLock;
+  protected readonly faCircleQuestion = faCircleQuestion;
 
   protected readonly nodeStudies = signal<Study[]>([]);
   protected readonly studiesLoading = signal(false);
+  protected readonly allPacsServers = signal<PacsServer[]>([]);
+
+  protected readonly pacsMap = computed(() =>
+    new Map(this.allPacsServers().map((p) => [p.id, p])),
+  );
 
   protected readonly pageTitle = computed(() => {
     const n = this.facade.selectedNode();
@@ -99,6 +120,7 @@ export default class NodeDetailPage {
       this.facade.loadNodeById(this.nodeId);
       this.loadNodeStudies(this.nodeId);
     }
+    this.loadAllPacsServers();
   }
 
   protected goBack(): void {
@@ -166,5 +188,55 @@ export default class NodeDetailPage {
       },
       error: () => this.studiesLoading.set(false),
     });
+  }
+
+  private loadAllPacsServers(): void {
+    this.pacsApi.getPacsServers({ page: 1, pageSize: 100 }).subscribe({
+      next: (result) => this.allPacsServers.set(result.items),
+      error: () => {},
+    });
+  }
+
+  protected openPacsAssignDialog(): void {
+    const node = this.facade.selectedNode();
+    if (!node) return;
+
+    this.dialog
+      .open(PacsAssignDialog, {
+        data: {
+          nodeId: node.id,
+          nodeName: node.name,
+          currentAssignments: node.pacsAssignments,
+        } satisfies PacsAssignDialogData,
+        autoFocus: false,
+      })
+      .afterClosed()
+      .subscribe((changed: boolean) => {
+        if (changed) {
+          this.facade.loadNodeById(node.id);
+        }
+      });
+  }
+
+  protected confirmUnassignPacs(pacsId: string): void {
+    const node = this.facade.selectedNode();
+    if (!node) return;
+
+    const pacsName = this.pacsMap().get(pacsId)?.name ?? pacsId;
+    this.dialog
+      .open(UiConfirmDialog, {
+        data: {
+          title: 'Desvincular PACS',
+          message: `¿Desvincular el servidor PACS "${pacsName}" del nodo "${node.name}"?`,
+          confirmText: 'Desvincular',
+          confirmColor: 'warn',
+        } satisfies ConfirmDialogData,
+      })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) {
+          this.facade.unassignPacs(node.id, pacsId);
+        }
+      });
   }
 }

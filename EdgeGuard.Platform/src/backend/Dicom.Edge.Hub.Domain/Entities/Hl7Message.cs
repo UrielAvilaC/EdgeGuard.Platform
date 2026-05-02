@@ -32,6 +32,10 @@ public class Hl7Message
     public string? PatientEmail { get; private set; }
     public string? PatientSex { get; private set; }
     public string? PatientBirthDate { get; private set; }
+    public string? StudyDate { get; private set; }
+    public string? Modality { get; private set; }
+    public string? ProcedureDescription { get; private set; }
+    public string? ProcedureId { get; private set; }
 
     // ── Dispatch lifecycle ────────────────────────────────────────────────────
     public Hl7DispatchStatus DispatchStatus { get; private set; }
@@ -68,6 +72,10 @@ public class Hl7Message
             PatientId = ExtractField(cleanContent, "PID", 3),
             PatientName = ExtractField(cleanContent, "PID", 5),
             AccessionNumber = ExtractField(cleanContent, "OBR", 18),
+            StudyDate = ExtractField(cleanContent, "OBR", 7),
+            Modality = ExtractField(cleanContent, "OBR", 24),
+            ProcedureDescription = ExtractSubField(cleanContent, "OBR", 4, componentIndex: 1),
+            ProcedureId = ExtractSubField(cleanContent, "OBR", 4, componentIndex: 0),
             PatientPhone = ExtractPhoneFromPid(cleanContent),
             PatientEmail = ExtractEmailFromPid(cleanContent),
             PatientSex = ExtractField(cleanContent, "PID", 8),

@@ -3,6 +3,7 @@ using System;
 using Dicom.Edge.Hub.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dicom.Edge.Hub.Persistence.Migrations
 {
     [DbContext(typeof(HubDbContext))]
-    partial class HubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260502050441_AddHl7MessageStudyDate")]
+    partial class AddHl7MessageStudyDate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1827,11 +1830,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("message_type");
 
-                    b.Property<string>("Modality")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("modality");
-
                     b.Property<string>("PatientBirthDate")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
@@ -1865,16 +1863,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("integer")
                         .HasColumnName("priority");
-
-                    b.Property<string>("ProcedureDescription")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
-                        .HasColumnName("procedure_description");
-
-                    b.Property<string>("ProcedureId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("procedure_id");
 
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("timestamp with time zone")

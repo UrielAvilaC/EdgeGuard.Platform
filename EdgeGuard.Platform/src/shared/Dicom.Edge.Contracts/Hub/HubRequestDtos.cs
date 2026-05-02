@@ -161,6 +161,14 @@ public sealed class CreatePacsServerRequest
     public int TimeoutSeconds { get; init; } = 30;
 }
 
+// ── Node PACS Assignments ─────────────────────────────────────────────────────
+
+public sealed class AssignPacsRequest
+{
+    [Range(5, 86400)]
+    public int CEchoIntervalSeconds { get; init; } = 300;
+}
+
 // ── Routing Rules ────────────────────────────────────────────────────────────
 
 public sealed class CreateRoutingRuleRequest
@@ -325,6 +333,25 @@ public sealed class UpdateNodeSettingRequest
 {
     [Required]
     public required string Value { get; init; }
+}
+
+/// <summary>Saves multiple node settings in a single Hub call.</summary>
+public sealed class BatchUpdateNodeSettingsRequest
+{
+    [Required, MinLength(1)]
+    public required List<NodeSettingUpdateItem> Settings { get; init; }
+}
+
+public sealed record NodeSettingUpdateItem(
+    [property: Required] string Key,
+    [property: Required] string Value);
+
+/// <summary>Result of a batch update operation.</summary>
+public sealed class BatchUpdateNodeSettingsResponse
+{
+    public int Updated { get; init; }
+    public int NotFound { get; init; }
+    public List<string> FailedKeys { get; init; } = [];
 }
 
 // ── Node Bootstrap Tokens ─────────────────────────────────────────────────────

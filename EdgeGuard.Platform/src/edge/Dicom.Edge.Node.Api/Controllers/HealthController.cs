@@ -21,15 +21,23 @@ public sealed class HealthController(
     [HttpGet("health")]
     public async Task<IActionResult> GetHealth(CancellationToken ct)
     {
-        var activeItems = await worklistManager.GetActiveCountAsync(ct);
+        var activeItems = await worklistManager.GetActiveItemsAsync(ct);
 
         var response = new NodeHealthResponse
         {
             Status = StatusHealthy,
             TimestampUtc = DateTime.UtcNow,
             NodeName = Environment.MachineName,
-            ActiveWorklistItems = activeItems,
-            DicomServerRunning = true
+            ActiveWorklistItems = activeItems.Count,
+            DicomServerRunning = true,
+            WorklistItems = activeItems.Select(i => new WorklistItemSummary
+            {
+                AccessionNumber = i.AccessionNumber,
+                ProcedureDescription = i.ProcedureDescription,
+                Modality = i.Modality,
+                PatientName = i.PatientName,
+                ScheduledDateTime = i.ScheduledDateTime
+            }).ToList()
         };
 
         return Ok(response);

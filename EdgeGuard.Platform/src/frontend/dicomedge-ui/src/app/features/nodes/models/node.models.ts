@@ -12,6 +12,14 @@ export interface NodePacsAssignment {
   pacsId: string;
   isActive: boolean;
   inheritedFromHub: boolean;
+  assignedAt: string;
+  lastCEchoAt: string | null;
+  lastCEchoSuccess: boolean | null;
+  cEchoIntervalSeconds: number;
+}
+
+export interface AssignPacsRequest {
+  cEchoIntervalSeconds: number;
 }
 
 export interface Node {

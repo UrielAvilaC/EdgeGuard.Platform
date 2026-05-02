@@ -102,6 +102,27 @@ public class NodesController : ControllerBase
         return found ? NoContent() : NotFound();
     }
 
+    // ── PACS Assignments ──────────────────────────────────────────────────────
+
+    /// <summary>PUT /api/nodes/{id}/pacs/{pacsId} — Assigns a PACS server to a node.</summary>
+    [HttpPut("{id}/pacs/{pacsId}")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> AssignPacs(
+        string id, string pacsId, [FromBody] AssignPacsRequest request, CancellationToken ct)
+    {
+        var found = await _nodeService.AssignPacsAsync(id, pacsId, request, ct);
+        return found ? NoContent() : NotFound();
+    }
+
+    /// <summary>DELETE /api/nodes/{id}/pacs/{pacsId} — Removes a PACS assignment from a node.</summary>
+    [HttpDelete("{id}/pacs/{pacsId}")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> UnassignPacs(string id, string pacsId, CancellationToken ct)
+    {
+        var found = await _nodeService.UnassignPacsAsync(id, pacsId, ct);
+        return found ? NoContent() : NotFound();
+    }
+
     [HttpGet("count")]
     public async Task<IActionResult> Count(CancellationToken ct)
     {

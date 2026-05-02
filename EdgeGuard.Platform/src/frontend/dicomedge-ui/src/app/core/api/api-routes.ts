@@ -37,6 +37,8 @@ export const API_ROUTES = {
     ENABLE: (id: string) => `/nodes/${id}/enable`,
     DISABLE: (id: string) => `/nodes/${id}/disable`,
     COUNT: '/nodes/count',
+    ASSIGN_PACS: (nodeId: string, pacsId: string) => `/nodes/${nodeId}/pacs/${pacsId}`,
+    UNASSIGN_PACS: (nodeId: string, pacsId: string) => `/nodes/${nodeId}/pacs/${pacsId}`,
   },
   PACS_SERVERS: {
     LIST: '/pacs-servers',

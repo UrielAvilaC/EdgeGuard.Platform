@@ -8,31 +8,31 @@ namespace Dicom.Edge.Contracts.Edge;
 public static class HubApiRoutes
 {
     /// <summary>POST — Node registration. Returns <c>NodeRegistrationResponse</c>.</summary>
-    public const string Register = "/edge/register";
+    public const string Register = "/api/edge/register";
 
     /// <summary>DELETE — Node deregistration.</summary>
-    public const string Deregister = "/edge/deregister";
+    public const string Deregister = "/api/edge/deregister";
 
     /// <summary>POST — Periodic heartbeat. Returns optional <c>HeartbeatResponse</c>.</summary>
-    public const string Heartbeat = "/edge/heartbeat";
+    public const string Heartbeat = "/api/edge/heartbeat";
 
     /// <summary>GET — Pull latest configuration for this node. Returns <c>NodeConfigurationDto</c>.</summary>
-    public const string ConfigurationPull = "/edge/configuration";
+    public const string ConfigurationPull = "/api/edge/configuration";
 
     /// <summary>POST — Notify Hub a study was received. Returns acknowledgment.</summary>
-    public const string StudyNotify = "/edge/studies";
+    public const string StudyNotify = "/api/edge/studies";
 
     /// <summary>POST — Report node health metrics. Returns acknowledgment.</summary>
-    public const string HealthReport = "/edge/health";
+    public const string HealthReport = "/api/edge/health";
 
     /// <summary>GET — Hub version and capability info.</summary>
-    public const string HubInfo = "/info";
+    public const string HubInfo = "/api/info";
 
     /// <summary>
     /// POST — Request a self-service bootstrap token (no auth required).
     /// Returns a short-lived one-time token the node uses to call <see cref="Register"/>.
     /// </summary>
-    public const string RequestToken = "/edge/token";
+    public const string RequestToken = "/api/edge/token";
 }
 
 /// <summary>

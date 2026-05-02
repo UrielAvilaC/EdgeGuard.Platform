@@ -5,6 +5,7 @@ import { catchError, throwError } from 'rxjs';
 
 import { ToastService } from '../services/toast.service';
 import { isApiError } from '../api/api-error.model';
+import { API_ROUTES } from '../api/api-routes';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
@@ -17,7 +18,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
-      if (error.status === 401) {
+      // Auth endpoints handle their own 401 responses (wrong credentials, expired token).
+      // Only redirect to /login for 401s from protected endpoints.
+      const isAuthEndpoint = req.url.includes(API_ROUTES.AUTH.LOGIN)
+        || req.url.includes(API_ROUTES.AUTH.REFRESH);
+
+      if (error.status === 401 && !isAuthEndpoint) {
         router.navigate(['/login']);
         return throwError(() => error);
       }

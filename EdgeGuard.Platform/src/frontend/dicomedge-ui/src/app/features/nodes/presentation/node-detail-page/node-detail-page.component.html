@@ -79,30 +79,92 @@
 
             <!-- PACS Assignments -->
             <mat-card class="!p-6">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Asignaciones PACS
-              </h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Servidores PACS asignados
+                </h3>
+                <ui-button
+                  variant="secondary"
+                  size="sm"
+                  [icon]="faPlug"
+                  (clicked)="openPacsAssignDialog()"
+                >
+                  Gestionar
+                </ui-button>
+              </div>
               @if (n.pacsAssignments.length === 0) {
-                <ui-empty-state title="Sin asignaciones" description="Este nodo no tiene servidores PACS asignados." />
+                <ui-empty-state
+                  title="Sin asignaciones"
+                  description="Este nodo no tiene servidores PACS asignados."
+                />
               } @else {
-                <div class="space-y-2">
+                <ul class="space-y-2" role="list" aria-label="PACS asignados">
                   @for (pa of n.pacsAssignments; track pa.pacsId) {
-                    <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div class="flex items-center gap-3">
-                        <fa-icon [icon]="faServer" class="text-gray-400" />
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ pa.pacsId }}</span>
+                    <li class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <!-- Status dot -->
+                      <span
+                        class="w-2.5 h-2.5 rounded-full shrink-0"
+                        [class]="pa.isActive ? 'bg-emerald-500' : 'bg-gray-400'"
+                        [attr.aria-label]="pa.isActive ? 'Activo' : 'Inactivo'"
+                      ></span>
+
+                      <!-- Server info -->
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {{ pacsMap().get(pa.pacsId)?.name ?? pa.pacsId }}
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
+                          {{ pacsMap().get(pa.pacsId)?.aeTitle ?? '' }}
+                          @if (pacsMap().get(pa.pacsId); as s) {
+                            · {{ s.hostName }}:{{ s.port }}
+                          }
+                        </p>
                       </div>
-                      <div class="flex items-center gap-2">
-                        @if (pa.inheritedFromHub) {
-                          <ui-chip color="info">Hub</ui-chip>
+
+                      <!-- C-ECHO badge -->
+                      <div class="shrink-0 text-right">
+                        @if (pa.lastCEchoAt) {
+                          <p
+                            class="flex items-center gap-1 text-xs"
+                            [class]="pa.lastCEchoSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'"
+                          >
+                            <fa-icon [icon]="pa.lastCEchoSuccess ? faCheckCircle : faTimesCircle" />
+                            {{ pa.lastCEchoAt | relativeTime }}
+                          </p>
+                        } @else {
+                          <p class="flex items-center gap-1 text-xs text-gray-400">
+                            <fa-icon [icon]="faCircleQuestion" />
+                            Sin C-ECHO
+                          </p>
                         }
-                        <ui-chip [color]="pa.isActive ? 'success' : 'default'">
-                          {{ pa.isActive ? 'Activo' : 'Inactivo' }}
-                        </ui-chip>
                       </div>
-                    </div>
+
+                      <!-- Badges + action -->
+                      <div class="flex items-center gap-2 shrink-0">
+                        @if (pa.inheritedFromHub) {
+                          <ui-chip color="info">
+                            <fa-icon [icon]="faLock" class="mr-1 text-xs" />Hub
+                          </ui-chip>
+                        } @else {
+                          <ui-chip [color]="pa.isActive ? 'success' : 'default'">
+                            {{ pa.isActive ? 'Activo' : 'Inactivo' }}
+                          </ui-chip>
+                          <button
+                            type="button"
+                            class="p-1.5 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400
+                                   hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-red-400"
+                            (click)="confirmUnassignPacs(pa.pacsId)"
+                            [attr.aria-label]="'Desvincular ' + (pacsMap().get(pa.pacsId)?.name ?? pa.pacsId)"
+                            title="Desvincular"
+                          >
+                            <fa-icon [icon]="faTrash" class="text-sm" />
+                          </button>
+                        }
+                      </div>
+                    </li>
                   }
-                </div>
+                </ul>
               }
             </mat-card>
 

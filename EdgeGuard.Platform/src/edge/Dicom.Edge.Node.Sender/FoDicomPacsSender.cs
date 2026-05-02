@@ -11,13 +11,15 @@ namespace Dicom.Edge.Node.Sender;
 /// <summary>
 /// fo-dicom C-STORE SCU implementation. Reads DICOM files from local storage
 /// and sends them to the target PACS via C-STORE association.
+/// Uses <see cref="IOptionsMonitor{T}"/> so that sender settings pushed from the Hub
+/// (timeouts, retries) are picked up without restarting the service.
 /// </summary>
 public sealed class FoDicomPacsSender(
     IStorageProvider storageProvider,
-    IOptions<PacsSenderOptions> options,
+    IOptionsMonitor<PacsSenderOptions> optionsMonitor,
     ILogger<FoDicomPacsSender> logger) : IPacsSender
 {
-    private readonly PacsSenderOptions _opts = options.Value;
+    private PacsSenderOptions Opts => optionsMonitor.CurrentValue;
 
     public async Task<PacsSendResult> SendStudyAsync(
         string studyInstanceUid,
@@ -46,9 +48,9 @@ public sealed class FoDicomPacsSender(
         {
             var client = DicomClientFactory.Create(
                 destination.Host, destination.Port,
-                destination.UseTls, _opts.LocalAeTitle, destination.AeTitle);
+                destination.UseTls, Opts.LocalAeTitle, destination.AeTitle);
 
-            client.ClientOptions.AssociationRequestTimeoutInMs = _opts.TimeoutSeconds * 1000;
+            client.ClientOptions.AssociationRequestTimeoutInMs = Opts.TimeoutSeconds * 1000;
 
             var sent = 0;
             var failed = 0;
@@ -98,9 +100,9 @@ public sealed class FoDicomPacsSender(
         {
             var client = DicomClientFactory.Create(
                 destination.Host, destination.Port,
-                destination.UseTls, _opts.LocalAeTitle, destination.AeTitle);
+                destination.UseTls, Opts.LocalAeTitle, destination.AeTitle);
 
-            client.ClientOptions.AssociationRequestTimeoutInMs = _opts.TimeoutSeconds * 1000;
+            client.ClientOptions.AssociationRequestTimeoutInMs = Opts.TimeoutSeconds * 1000;
 
             var echoRequest = new DicomCEchoRequest();
             var success = false;

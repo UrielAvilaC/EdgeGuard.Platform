@@ -52,16 +52,16 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 DicomRejectReason.CalledAENotRecognized);
         }
 
-        if (options.AllowedCallingAeTitles.Length > 0 &&
-            !options.AllowedCallingAeTitles.Contains(association.CallingAE, StringComparer.OrdinalIgnoreCase))
-        {
-            _logger.LogWarning("Rejected: CallingAE {CallingAe} not in allowed list",
-                association.CallingAE);
-            return SendAssociationRejectAsync(
-                DicomRejectResult.Permanent,
-                DicomRejectSource.ServiceUser,
-                DicomRejectReason.CallingAENotRecognized);
-        }
+        //if (options.AllowedCallingAeTitles.Length > 0 &&
+        //    !options.AllowedCallingAeTitles.Contains(association.CallingAE, StringComparer.OrdinalIgnoreCase))
+        //{
+        //    _logger.LogWarning("Rejected: CallingAE {CallingAe} not in allowed list",
+        //        association.CallingAE);
+        //    return SendAssociationRejectAsync(
+        //        DicomRejectResult.Permanent,
+        //        DicomRejectSource.ServiceUser,
+        //        DicomRejectReason.CallingAENotRecognized);
+        //}
 
         foreach (var ctx in association.PresentationContexts)
         {
