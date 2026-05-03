@@ -24,9 +24,10 @@ public sealed class DicomServerHostedService(
     IWorklistCFindHandler mwlHandler,
     IStudyCompletionTrigger completionTrigger,
     IOptionsMonitor<DicomServerOptions> optionsMonitor,
+    IDicomServerFactory dicomServerFactory,
     ILogger<DicomServerHostedService> logger) : IHostedService, IDisposable
 {
-    private FellowOakDicom.Network.IDicomServer? _server;
+    private IDicomServer? _server;
     private bool _disposed;
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -43,7 +44,7 @@ public sealed class DicomServerHostedService(
             "Starting DICOM SCP on port {Port} AeTitle={AeTitle} MWL={MwlEnabled} CEcho={CEchoEnabled} ValidateCallingAe={ValidateCallingAe}",
             opts.Port, opts.AeTitle, opts.MwlEnabled, opts.CEchoEnabled, opts.ValidateCallingAe);
 
-        _server = DicomServerFactory.Create<CStoreScp>(ipAddress: "*",
+        _server = dicomServerFactory.Create<CStoreScp>(ipAddress: "*",
             opts.Port,
             userState: new DicomScpDependencies(instanceHandler, mwlHandler, completionTrigger, optionsMonitor, logger));
 
