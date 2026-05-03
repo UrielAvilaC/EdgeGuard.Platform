@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faArrowLeft,
+  faCog,
   faPen,
   faServer,
   faNetworkWired,
@@ -50,6 +51,7 @@ import { PacsAssignDialog, PacsAssignDialogData } from '../pacs-assign-dialog/pa
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [NodesStore, NodesFacade],
   imports: [
+    RouterLink,
     MatCardModule,
     FontAwesomeModule,
     UiPageHeader,
@@ -77,6 +79,7 @@ export default class NodeDetailPage {
   private readonly pacsApi = inject(PacsApiService);
 
   protected readonly faArrowLeft = faArrowLeft;
+  protected readonly faCog = faCog;
   protected readonly faPen = faPen;
   protected readonly faServer = faServer;
   protected readonly faNetworkWired = faNetworkWired;

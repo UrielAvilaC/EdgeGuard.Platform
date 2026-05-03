@@ -4,6 +4,9 @@
           Volver a nodos
         </ui-button>
         @if (facade.selectedNode(); as n) {
+          <ui-button variant="secondary" size="sm" [icon]="faCog" [routerLink]="['/nodes', n.id, 'config']">
+            Configuración
+          </ui-button>
           <ui-button variant="secondary" size="sm" [icon]="faPen" (clicked)="openEditDialog()">
             Editar
           </ui-button>

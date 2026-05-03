@@ -116,8 +116,14 @@ public sealed class NodeSettingsService(
         await using var ctx = await factory.CreateDbContextAsync(ct);
         var keys = values.Keys.ToList();
 
+        // hub.api_key is node-owned — never let a Hub config push overwrite it.
+        var protectedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            NodeSettingKeys.Hub.ApiKey
+        };
+
         var entities = await ctx.NodeSettings
-            .Where(s => keys.Contains(s.Key) && !s.IsReadOnly)
+            .Where(s => keys.Contains(s.Key) && !s.IsReadOnly && !protectedKeys.Contains(s.Key))
             .ToListAsync(ct);
 
         var updated = 0;

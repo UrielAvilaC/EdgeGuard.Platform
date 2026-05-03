@@ -200,7 +200,12 @@ public sealed class NodeConfigurationService(
         string nodeId, CancellationToken ct = default)
     {
         var profiles = await repository.GetByNodeIdAsync(nodeId, ct);
-        var settings = profiles.ToDictionary(p => p.SettingKey, p => p.Value);
+
+        // hub.api_key is never included in sync payloads — the hub only stores the hash,
+        // not the raw key, so pushing an empty value would overwrite the node's stored key.
+        var settings = profiles
+            .Where(p => !p.SettingKey.Equals(SharedNodeSettingKeys.Hub.ApiKey, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(p => p.SettingKey, p => p.Value);
         var version = ComputeHash(profiles);
 
         return new NodeConfigSyncDto
