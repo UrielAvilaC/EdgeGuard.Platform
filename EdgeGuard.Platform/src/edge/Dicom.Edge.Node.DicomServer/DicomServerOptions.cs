@@ -21,4 +21,17 @@ public sealed class DicomServerOptions
     /// When <c>false</c>, MWL presentation contexts are rejected.
     /// </summary>
     public bool MwlEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Enables C-ECHO (Verification SCP) on the same DICOM port.
+    /// When <c>true</c>, remote systems can ping the node with a DICOM echo.
+    /// </summary>
+    public bool CEchoEnabled { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, only CallingAE titles listed in
+    /// <see cref="AllowedCallingAeTitles"/> are accepted.
+    /// Has no effect when <see cref="AllowedCallingAeTitles"/> is empty.
+    /// </summary>
+    public bool ValidateCallingAe { get; set; } = false;
 }

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faXmark, faCopy } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faCopy, faRotateRight } from '@fortawesome/free-solid-svg-icons';
 import { Clipboard } from '@angular/cdk/clipboard';
 
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
@@ -36,6 +36,7 @@ export class Hl7MessageDetailDialog {
 
   protected readonly faXmark = faXmark;
   protected readonly faCopy = faCopy;
+  protected readonly faRotateRight = faRotateRight;
 
   protected readonly statusLabel: string;
   protected readonly statusColor: ChipColor;
@@ -48,6 +49,10 @@ export class Hl7MessageDetailDialog {
 
   protected copyContent(): void {
     this.clipboard.copy(this.message.content);
+  }
+
+  protected onReprocess(): void {
+    this.dialogRef.close({ action: 'reprocess', id: this.message.id });
   }
 
   protected onClose(): void {

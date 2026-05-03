@@ -142,6 +142,9 @@ try
     if (!app.Environment.IsDevelopment())
         app.MapSpaFallback();
 
+    // ── Startup diagnostics — called AFTER all Map* so endpoint list is complete ──
+    app.LogStartupDiagnostics();
+
     app.Run();
 }
 catch (Exception ex)

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dicom.Edge.Node.Persistence.Configuration;
 
@@ -8,15 +9,18 @@ namespace Dicom.Edge.Node.Persistence.Configuration;
 public static class NodeDatabaseConfigurationExtensions
 {
     /// <summary>
-    /// Adds the Node <c>node_settings</c> table as an <see cref="IConfigurationSource"/>.
-    /// Settings loaded from the database override values from appsettings.json
-    /// and are mapped to <c>IOptions&lt;T&gt;</c> section paths.
+    /// Adds the Node <c>node_settings</c> table as an <see cref="IConfigurationSource"/>
+    /// and registers <see cref="INodeConfigurationReloader"/> in <paramref name="services"/>
+    /// so application services can trigger hot-reloads after writing to the DB.
     /// </summary>
     public static IConfigurationBuilder AddNodeDatabaseConfiguration(
         this IConfigurationBuilder builder,
-        string connectionString)
+        string connectionString,
+        IServiceCollection services)
     {
-        builder.Add(new NodeDatabaseConfigurationSource(connectionString));
+        var reloader = new NodeConfigurationReloader();
+        services.AddSingleton<INodeConfigurationReloader>(reloader);
+        builder.Add(new NodeDatabaseConfigurationSource(connectionString, reloader));
         return builder;
     }
 }

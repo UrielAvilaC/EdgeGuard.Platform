@@ -343,8 +343,8 @@ public sealed class BatchUpdateNodeSettingsRequest
 }
 
 public sealed record NodeSettingUpdateItem(
-    [property: Required] string Key,
-    [property: Required] string Value);
+    [Required] string Key,
+    [Required] string Value);
 
 /// <summary>Result of a batch update operation.</summary>
 public sealed class BatchUpdateNodeSettingsResponse

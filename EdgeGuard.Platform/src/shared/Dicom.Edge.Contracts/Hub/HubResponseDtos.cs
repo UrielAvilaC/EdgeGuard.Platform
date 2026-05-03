@@ -258,7 +258,8 @@ public sealed record Hl7MessageSummaryDto(
     string? ClientEndpoint,
     string Status,
     DateTime? ProcessedAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool CanReprocess);
 
 public sealed record Hl7MessageDetailDto(
     Guid Id,
@@ -270,7 +271,8 @@ public sealed record Hl7MessageDetailDto(
     string? ClientEndpoint,
     string Status,
     DateTime? ProcessedAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool CanReprocess);
 
 // ── Generic ──────────────────────────────────────────────────────────────────
 

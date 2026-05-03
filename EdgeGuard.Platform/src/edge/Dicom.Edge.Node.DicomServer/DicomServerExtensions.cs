@@ -1,3 +1,4 @@
+using FellowOakDicom;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,9 @@ public static class DicomServerExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+      
+        services.AddFellowOakDicom();
+
         services.Configure<DicomServerOptions>(
             configuration.GetSection(DicomServerOptions.SectionName));
 

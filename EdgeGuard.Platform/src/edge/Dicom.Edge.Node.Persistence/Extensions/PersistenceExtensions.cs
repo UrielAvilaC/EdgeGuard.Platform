@@ -125,7 +125,13 @@ public static class PersistenceExtensions
     private static void RegisterBackgroundServices(IServiceCollection services)
     {
         services.AddHostedService<PersistenceInitializerService>();
-        services.AddHostedService<StudyCompletionWatcherService>();
+        // Register as singleton so IStudyCompletionTrigger can be injected elsewhere
+        // (e.g., CStoreScp via DicomScpDependencies), then reuse the same instance as hosted service.
+        services.AddSingleton<StudyCompletionWatcherService>();
+        services.AddSingleton<IStudyCompletionTrigger>(sp =>
+            sp.GetRequiredService<StudyCompletionWatcherService>());
+        services.AddHostedService(sp =>
+            sp.GetRequiredService<StudyCompletionWatcherService>());
         services.AddHostedService<StudyCleanupService>();
         services.AddHostedService<RoutingRuleLoaderService>();
     }

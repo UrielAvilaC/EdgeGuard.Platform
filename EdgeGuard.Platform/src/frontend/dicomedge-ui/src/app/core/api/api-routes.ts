@@ -57,6 +57,7 @@ export const API_ROUTES = {
     STATUS: '/hl7-status/status',
     RECENT_MESSAGES: '/hl7-status/recent-messages',
     MESSAGE_DETAIL: (id: string) => `/hl7-status/messages/${id}`,
+    REPROCESS: (id: string) => `/hl7-status/messages/${id}/reprocess`,
   },
   QUEUE_MONITORING: {
     SUMMARY: '/queue-monitoring/summary',

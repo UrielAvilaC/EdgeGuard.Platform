@@ -22,4 +22,8 @@ export class Hl7StatusApiService {
   getMessageDetail(id: string): Observable<Hl7MessageDetail> {
     return this.api.get<Hl7MessageDetail>(API_ROUTES.HL7_STATUS.MESSAGE_DETAIL(id));
   }
+
+  reprocessMessage(id: string): Observable<void> {
+    return this.api.post<void>(API_ROUTES.HL7_STATUS.REPROCESS(id), {});
+  }
 }

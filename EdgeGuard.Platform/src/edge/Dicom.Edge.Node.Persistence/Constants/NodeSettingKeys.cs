@@ -57,9 +57,10 @@ public static class NodeSettingKeys
         public const string DimseTimeoutSec           = SharedNodeSettingKeys.Dicom.DimseTimeoutSec;
         public const string MaxPduLength              = SharedNodeSettingKeys.Dicom.MaxPduLength;
         public const string MwlEnabled                = SharedNodeSettingKeys.Dicom.MwlEnabled;
+        public const string CEchoEnabled              = SharedNodeSettingKeys.Dicom.CEchoEnabled;
     }
 
-    // ── Cleanup ───────────────────────────────────────────────────────────────────
+    // ── Cleanup
     public static class Cleanup
     {
         public const string Enabled            = SharedNodeSettingKeys.Cleanup.Enabled;

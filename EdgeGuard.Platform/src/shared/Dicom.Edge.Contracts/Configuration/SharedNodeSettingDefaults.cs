@@ -59,6 +59,7 @@ public static class SharedNodeSettingDefaults
             E(K.Dicom.DimseTimeoutSec,           "600",       C.Dicom, "DIMSE Timeout (sec)",              V.Int),
             E(K.Dicom.MaxPduLength,              "262144",    C.Dicom, "Max PDU Length (bytes)",            V.Int),
             E(K.Dicom.MwlEnabled,                "true",      C.Dicom, "MWL C-FIND SCP Enabled",           V.Bool),
+            E(K.Dicom.CEchoEnabled,              "true",      C.Dicom, "C-ECHO (Verification) SCP Enabled", V.Bool),
 
             // ── Cleanup ─────────────────────────────────────────────────────
             E(K.Cleanup.Enabled,            "true",  C.Cleanup, "Auto-Cleanup Enabled",          V.Bool),
@@ -159,6 +160,7 @@ public static class SharedNodeSettingDefaults
             public const string DimseTimeoutSec           = SharedNodeSettingKeys.Dicom.DimseTimeoutSec;
             public const string MaxPduLength              = SharedNodeSettingKeys.Dicom.MaxPduLength;
             public const string MwlEnabled                = SharedNodeSettingKeys.Dicom.MwlEnabled;
+            public const string CEchoEnabled              = SharedNodeSettingKeys.Dicom.CEchoEnabled;
         }
         public static class Cleanup
         {

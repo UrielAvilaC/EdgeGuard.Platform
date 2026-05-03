@@ -9,12 +9,18 @@ namespace Dicom.Edge.Node.Persistence.Configuration;
 internal sealed class NodeDatabaseConfigurationSource : IConfigurationSource
 {
     private readonly string _connectionString;
+    private readonly NodeConfigurationReloader _reloader;
 
-    public NodeDatabaseConfigurationSource(string connectionString)
+    public NodeDatabaseConfigurationSource(string connectionString, NodeConfigurationReloader reloader)
     {
         _connectionString = connectionString;
+        _reloader         = reloader;
     }
 
     public IConfigurationProvider Build(IConfigurationBuilder builder)
-        => new NodeDatabaseConfigurationProvider(_connectionString);
+    {
+        var provider = new NodeDatabaseConfigurationProvider(_connectionString);
+        _reloader.Register(provider);
+        return provider;
+    }
 }

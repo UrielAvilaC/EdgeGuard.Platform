@@ -18,6 +18,16 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         _connectionString = connectionString;
     }
 
+    /// <summary>
+    /// Re-reads SQLite and fires <see cref="IOptionsMonitor{T}"/> change tokens.
+    /// Called by <see cref="INodeConfigurationReloader"/> after every DB write.
+    /// </summary>
+    internal void TriggerReload()
+    {
+        Load();
+        OnReload();
+    }
+
     public override void Load()
     {
         var data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -132,6 +142,8 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Map(db, cfg, NodeSettingKeys.Dicom.DimseTimeoutSec,      ConfigPaths.DicomDimseTimeout);
         Map(db, cfg, NodeSettingKeys.Dicom.MaxPduLength,         ConfigPaths.DicomMaxPduLength);
         Map(db, cfg, NodeSettingKeys.Dicom.MwlEnabled,           ConfigPaths.DicomMwlEnabled);
+        Map(db, cfg, NodeSettingKeys.Dicom.CEchoEnabled,         ConfigPaths.DicomCEchoEnabled);
+        Map(db, cfg, NodeSettingKeys.Dicom.ValidateCallingAe,    ConfigPaths.DicomValidateCallingAe);
 
         // AllowedCallingAeTitles is stored as JSON array — map to indexed IConfiguration keys
         if (db.TryGetValue(NodeSettingKeys.Dicom.AllowedAeTitles, out var aeTitlesJson) &&

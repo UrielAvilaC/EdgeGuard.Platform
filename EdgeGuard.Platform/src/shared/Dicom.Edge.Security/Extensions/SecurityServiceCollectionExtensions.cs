@@ -38,9 +38,23 @@ namespace Dicom.Edge.Security.Extensions
             // Register authorization service
             services.AddSingleton<Dicom.Edge.Security.Authorization.IAuthorizationService, AuthorizationService>();
 
-            // Data Protection + setting encryption
-            services.AddDataProtection()
+            // Data Protection + setting encryption.
+            // Persist keys to a configurable directory so they survive IIS app-pool
+            // recycles and process restarts. Falls back to the default ephemeral store
+            // only if no path is configured (e.g. unit-test environments).
+            var dpBuilder = services.AddDataProtection()
                 .SetApplicationName("EdgeGuard.Platform");
+
+            var keyPath = configuration["DataProtection:KeyPath"]
+                       ?? configuration["DataProtection:KeyRingPath"];
+
+            if (!string.IsNullOrWhiteSpace(keyPath))
+            {
+                var dir = new System.IO.DirectoryInfo(keyPath);
+                if (!dir.Exists) dir.Create();
+                dpBuilder.PersistKeysToFileSystem(dir);
+            }
+
             services.AddSingleton<ISettingEncryptionService, DataProtectionSettingEncryptionService>();
 
             return services;

@@ -42,7 +42,7 @@ try
           ?? NodeConstants.DefaultConnectionString;
 
     // ── Load operational settings from SQLite database ────────────────────
-    builder.Configuration.AddNodeDatabaseConfiguration(sqliteConnectionString);
+    builder.Configuration.AddNodeDatabaseConfiguration(sqliteConnectionString, builder.Services);
 
     // ── Kestrel configuration for Node API endpoints ─────────────────────
     var nodeApiPort = builder.Configuration.GetValue(NodeConstants.NodeApiPortKey, NodeConstants.DefaultNodeApiPort);

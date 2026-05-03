@@ -55,6 +55,7 @@ public static class SharedNodeSettingKeys
         public const string DimseTimeoutSec           = "dicom.dimse_timeout_sec";
         public const string MaxPduLength              = "dicom.max_pdu_length";
         public const string MwlEnabled                = "dicom.mwl_enabled";
+        public const string CEchoEnabled              = "dicom.cecho_enabled";
     }
 
     // ── Cleanup ───────────────────────────────────────────────────────────────────

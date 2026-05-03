@@ -86,6 +86,20 @@ export class Hl7Facade {
     this.store.setSelectedMessage(null);
   }
 
+  reprocessMessage(id: string): void {
+    this.store.setLoading(true);
+    this.statusApi.reprocessMessage(id).pipe(
+      finalize(() => this.store.setLoading(false)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.toast.success('Mensaje reencolado para reprocesamiento');
+        this.loadRecentMessages();
+      },
+      error: () => this.toast.error('No se pudo reprocesar el mensaje'),
+    });
+  }
+
   // ── Queue ──
   loadQueueSummary(): void {
     this.store.setLoading(true);

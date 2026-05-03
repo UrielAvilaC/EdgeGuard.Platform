@@ -91,6 +91,7 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Dicom.DimseTimeoutSec,           "600",       Cat.Dicom, "DIMSE Timeout (sec)",              VT.Int),
         Row(NodeSettingKeys.Dicom.MaxPduLength,              "262144",    Cat.Dicom, "Max PDU Length (bytes)",            VT.Int),
         Row(NodeSettingKeys.Dicom.MwlEnabled,                "true",      Cat.Dicom, "MWL C-FIND SCP Enabled",           VT.Bool),
+        Row(NodeSettingKeys.Dicom.CEchoEnabled,              "true",      Cat.Dicom, "C-ECHO (Verification) SCP Enabled", VT.Bool),
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Cleanup.Enabled,            "true",  Cat.Cleanup, "Auto-Cleanup Enabled",          VT.Bool),

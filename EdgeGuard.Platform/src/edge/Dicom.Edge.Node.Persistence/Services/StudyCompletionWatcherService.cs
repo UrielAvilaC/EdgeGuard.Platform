@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Threading.Channels;
 using Dicom.Edge.Abstractions.Context;
 using Dicom.Edge.Abstractions.Events;
 using Dicom.Edge.Abstractions.Metrics;
@@ -16,6 +17,8 @@ namespace Dicom.Edge.Node.Persistence.Services;
 /// <para>
 /// Polling interval = timeout / 2 (capped to a minimum of 5 s) to ensure timely detection
 /// without excessive DB queries.
+/// An immediate check can also be triggered via <see cref="IStudyCompletionTrigger.RequestImmediateCheck"/>
+/// (e.g., on DICOM association release) to reduce latency for the common single-association case.
 /// </para>
 /// </summary>
 public sealed class StudyCompletionWatcherService(
@@ -23,8 +26,16 @@ public sealed class StudyCompletionWatcherService(
     INodeSettingsService settings,
     IEventBus eventBus,
     IMetricsCollector metrics,
-    ILogger<StudyCompletionWatcherService> logger) : BackgroundService
+    ILogger<StudyCompletionWatcherService> logger) : BackgroundService, IStudyCompletionTrigger
 {
+    // Bounded to 1: multiple rapid triggers (e.g., concurrent associations releasing)
+    // collapse into a single scan instead of queuing redundant checks.
+    private readonly Channel<bool> _triggerChannel = Channel.CreateBounded<bool>(
+        new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
+
+    /// <inheritdoc />
+    public void RequestImmediateCheck() => _triggerChannel.Writer.TryWrite(true);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("StudyCompletionWatcher started");
@@ -38,7 +49,14 @@ public sealed class StudyCompletionWatcherService(
                 var pollInterval = TimeSpan.FromSeconds(Math.Max(5, dicom.StudyCompletionTimeoutSec / 2));
 
                 await DetectCompletedStudiesAsync(stoppingToken);
-                await Task.Delay(pollInterval, stoppingToken);
+
+                // Wait for the next poll interval OR an early trigger from association release
+                await Task.WhenAny(
+                    Task.Delay(pollInterval, stoppingToken),
+                    _triggerChannel.Reader.WaitToReadAsync(stoppingToken).AsTask());
+
+                // Drain any pending signals to avoid back-to-back redundant scans
+                while (_triggerChannel.Reader.TryRead(out _)) { }
             }
             catch (OperationCanceledException)
             {

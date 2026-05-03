@@ -100,6 +100,10 @@ export default class Hl7Page {
         clearInterval(sub);
         this.dialog.open(Hl7MessageDetailDialog, {
           data: { message: msg } satisfies Hl7MessageDetailDialogData,
+        }).afterClosed().subscribe((result?: { action: string; id: string }) => {
+          if (result?.action === 'reprocess') {
+            this.facade.reprocessMessage(result.id);
+          }
         });
       }
     }, 100);

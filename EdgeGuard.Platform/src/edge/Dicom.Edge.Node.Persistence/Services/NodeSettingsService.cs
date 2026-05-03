@@ -1,3 +1,4 @@
+using Dicom.Edge.Node.Persistence.Configuration;
 using Dicom.Edge.Node.Persistence.Constants;
 using Dicom.Edge.Node.Persistence.Diagnostics;
 
@@ -11,6 +12,7 @@ namespace Dicom.Edge.Node.Persistence.Services;
 /// </summary>
 public sealed class NodeSettingsService(
     IDbContextFactory<EdgeNodeDbContext> factory,
+    INodeConfigurationReloader configReloader,
     ILogger<NodeSettingsService> logger) : INodeSettingsService, IDisposable
 {
     private ConcurrentDictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
@@ -83,6 +85,9 @@ public sealed class NodeSettingsService(
 
         _cache[key] = entity.Value;
         logger.LogDebug("Setting {Key} updated: {Previous} → {New}", key, previousValue, entity.Value);
+
+        // Hot-reload: notify IOptionsMonitor<T> subscribers immediately
+        configReloader.Reload();
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetCategoryAsync(
@@ -153,6 +158,10 @@ public sealed class NodeSettingsService(
         logger.LogInformation(
             "Batch applied {Applied}/{Requested} settings from Hub push (skipped={Skipped} validation failures)",
             updated, values.Count, skipped);
+
+        // Hot-reload: notify IOptionsMonitor<T> subscribers immediately
+        if (updated > 0)
+            configReloader.Reload();
     }
 
     public async Task ReloadAsync(CancellationToken ct = default)
