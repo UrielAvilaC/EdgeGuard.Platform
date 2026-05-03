@@ -1,5 +1,4 @@
 using Dicom.Edge.Abstractions.Events;
-using FellowOakDicom;
 using FellowOakDicom.Network;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -43,8 +42,6 @@ public sealed class DicomServerHostedService(
         logger.LogInformation(
             "Starting DICOM SCP on port {Port} AeTitle={AeTitle} MWL={MwlEnabled} CEcho={CEchoEnabled} ValidateCallingAe={ValidateCallingAe}",
             opts.Port, opts.AeTitle, opts.MwlEnabled, opts.CEchoEnabled, opts.ValidateCallingAe);
-
-        new DicomSetupBuilder().RegisterServices(s => s.AddFellowOakDicom()).Build();
 
         _server = DicomServerFactory.Create<CStoreScp>(ipAddress: "*",
             opts.Port,
