@@ -1,0 +1,1 @@
+import"./chunk-HIUAR4UN.js";var o=[{path:"",loadComponent:()=>import("./chunk-EB2J54NC.js")},{path:":id",loadComponent:()=>import("./chunk-NHPXO75X.js")},{path:":id/config",loadComponent:()=>import("./chunk-IWCOFKQZ.js")},{path:":id/telemetry",loadComponent:()=>import("./chunk-M7SQUFY2.js")}];export{o as nodesRoutes};

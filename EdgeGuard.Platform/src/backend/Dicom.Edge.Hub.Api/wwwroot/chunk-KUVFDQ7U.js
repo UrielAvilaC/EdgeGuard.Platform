@@ -1,1 +1,0 @@
-import"./chunk-HIUAR4UN.js";var o=[{path:"",loadComponent:()=>import("./chunk-SM5SXDDO.js")},{path:":id",loadComponent:()=>import("./chunk-CUUAZTC6.js")},{path:":id/config",loadComponent:()=>import("./chunk-EYKEM23B.js")},{path:":id/telemetry",loadComponent:()=>import("./chunk-VI55YDUK.js")}];export{o as nodesRoutes};

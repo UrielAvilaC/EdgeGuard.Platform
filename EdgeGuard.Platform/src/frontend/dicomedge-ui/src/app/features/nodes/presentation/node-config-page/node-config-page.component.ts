@@ -156,10 +156,13 @@ export default class NodeConfigPage {
         next: (result) => {
           this.saving.set(false);
           this.pendingChanges.set(new Map());
-          const msg = result.notFound > 0
-            ? `Guardado: ${result.updated}. No encontrados: ${result.notFound}.`
-            : `${result.updated} configuración(es) guardadas`;
-          this.toast.success(msg);
+          if ((result.failedKeys?.length ?? 0) > 0) {
+            this.toast.error(`Guardado parcial. Claves con error: ${result.failedKeys.join(', ')}`);
+          } else if (result.notFound > 0) {
+            this.toast.success(`Guardado: ${result.updated}. Claves no encontradas: ${result.notFound}.`);
+          } else {
+            this.toast.success(`${result.updated} configuración(es) guardadas`);
+          }
           this.loadConfig();
         },
         error: () => {
@@ -183,10 +186,16 @@ export default class NodeConfigPage {
       .batchUpdate(this.nodeId, { settings })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (result) => {
           this.saving.set(false);
           this.pendingChanges.set(new Map());
-          this.loadConfig();
+
+          if ((result.failedKeys?.length ?? 0) > 0) {
+            this.toast.error(`Guardado parcial. Claves con error: ${result.failedKeys.join(', ')}. No se aplicará la configuración.`);
+            this.loadConfig();
+            return;
+          }
+
           this.pushConfig();
         },
         error: () => {
@@ -254,12 +263,23 @@ export default class NodeConfigPage {
       .subscribe({
         next: (result) => {
           this.pushing.set(false);
-          if (result.success) this.toast.success('Configuración aplicada al nodo');
-          else this.toast.error(result.message ?? 'Error al aplicar la configuración');
+          // Guard against 204 No Content (result === null) — treat as success
+          if (!result || result.success) {
+            this.toast.success('Configuración aplicada al nodo');
+          } else {
+            this.toast.error(
+              result.message
+                ? `Configuración guardada. El nodo respondió: ${result.message}`
+                : 'Configuración guardada en el servidor, pero no se pudo confirmar la aplicación al nodo.',
+            );
+          }
+          this.loadConfig();
         },
         error: () => {
           this.pushing.set(false);
-          this.toast.error('Error al enviar la configuración al nodo');
+          // Config was already saved — push notification to node failed
+          this.toast.error('Configuración guardada en el servidor. No se pudo notificar al nodo en este momento.');
+          this.loadConfig();
         },
       });
   }
