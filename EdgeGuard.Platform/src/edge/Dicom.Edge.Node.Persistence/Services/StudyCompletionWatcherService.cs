@@ -98,6 +98,27 @@ public sealed class StudyCompletionWatcherService(
             study.Status = StudyStatus.Completed;
             ctx.Entry(study).Property<DateTime>("updated_at").CurrentValue = now;
 
+            // ── Persist study metrics (one record per study, guarded by unique index) ──
+            var metricsExist = await ctx.Metrics
+                .AnyAsync(m => m.StudyInstanceUid == study.StudyInstanceUid, ct);
+
+            if (!metricsExist)
+            {
+                ctx.Metrics.Add(new StudyMetrics
+                {
+                    StudyInstanceUid  = study.StudyInstanceUid,
+                    TotalSizeBytes    = study.TotalSizeBytes,
+                    InstancesReceived = study.InstanceCount,
+                    InstancesFailed   = 0,
+                    FirstImageAt      = study.ReceivedAt,
+                    LastImageAt       = study.LastImageReceivedAt,
+                    ReceptionDuration = study.LastImageReceivedAt - study.ReceivedAt,
+                    AverageImageSize  = study.InstanceCount > 0
+                        ? (double)study.TotalSizeBytes / study.InstanceCount
+                        : 0,
+                });
+            }
+
             await eventBus.PublishAsync(new StudyCompletedEvent(
                 new StudyContext
                 {

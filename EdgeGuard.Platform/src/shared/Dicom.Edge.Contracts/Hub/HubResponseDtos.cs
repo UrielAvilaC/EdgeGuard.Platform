@@ -52,6 +52,32 @@ public sealed record NodePacsAssignmentDto
     public bool InheritedFromHub { get; init; }
 }
 
+// ── Telemetry ────────────────────────────────────────────────────────────────
+
+public sealed record NodeTelemetryDto
+{
+    public required string Id        { get; init; }
+    public required string NodeId    { get; init; }
+    public DateTime ReportedAt       { get; init; }
+    public DateTime PeriodStart      { get; init; }
+    public DateTime PeriodEnd        { get; init; }
+    public int  TotalAssociations    { get; init; }
+    public int  AcceptedAssociations { get; init; }
+    public int  RejectedAssociations { get; init; }
+    public int  AbortedAssociations  { get; init; }
+    public int  TotalImagesReceived  { get; init; }
+    public int  CompletedStudies     { get; init; }
+    public long TotalBytesReceived   { get; init; }
+    public double? AverageReceptionDurationMs { get; init; }
+    public double? AverageThroughputMbps      { get; init; }
+}
+
+public sealed record NodeTelemetryAckDto
+{
+    public bool     Acknowledged  { get; init; }
+    public DateTime ServerTimeUtc { get; init; }
+}
+
 // ── Studies ──────────────────────────────────────────────────────────────────
 
 public sealed record StudyDto

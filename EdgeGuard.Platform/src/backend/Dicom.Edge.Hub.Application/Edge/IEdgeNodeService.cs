@@ -21,6 +21,9 @@ public interface IEdgeNodeService
     /// <summary>Processes a health report from a node. Returns null if node not found.</summary>
     Task<EdgeOperationResult?> ProcessHealthReportAsync(NodeHealthReportRequest request, CancellationToken ct = default);
 
+    /// <summary>Persists a telemetry snapshot from a node. Returns null if node not found.</summary>
+    Task<EdgeOperationResult?> ProcessTelemetryAsync(NodeTelemetryRequest request, CancellationToken ct = default);
+
     /// <summary>
     /// Returns the configuration dictionary for a node, or null if node not found.
     /// Empty string nodeId returns null.

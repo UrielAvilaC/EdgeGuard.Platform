@@ -63,6 +63,7 @@ public static class HubPersistenceServiceCollectionExtensions
         services.AddScoped<IStudyRepository, StudyRepository>();
         services.AddScoped<IStudyStatusAuditRepository, StudyStatusAuditRepository>();
         services.AddScoped<IHealthCheckRepository, HealthCheckRepository>();
+        services.AddScoped<INodeTelemetryRepository, NodeTelemetryRepository>();
         services.AddScoped<IStudyCleanupPolicyRepository, StudyCleanupPolicyRepository>();
 
         // HL7 / Configuration / Routing repositories

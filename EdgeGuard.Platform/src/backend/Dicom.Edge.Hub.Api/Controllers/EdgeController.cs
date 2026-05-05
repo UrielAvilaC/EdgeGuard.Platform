@@ -106,6 +106,17 @@ public class EdgeController : ControllerBase
         return Ok(new HealthReportAckDto { Acknowledged = result.Acknowledged });
     }
 
+    /// <summary>POST /edge/telemetry — Node reports periodic association + study-metrics telemetry.</summary>
+    [HttpPost("telemetry")]
+    public async Task<IActionResult> Telemetry([FromBody] NodeTelemetryRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessTelemetryAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new NodeTelemetryAckDto { Acknowledged = result.Acknowledged, ServerTimeUtc = result.ServerTimeUtc });
+    }
+
     /// <summary>GET /edge/configuration — Node pulls its config as key-value pairs.</summary>
     [HttpGet("configuration")]
     public async Task<IActionResult> PullConfiguration([FromQuery] string nodeId, CancellationToken ct)

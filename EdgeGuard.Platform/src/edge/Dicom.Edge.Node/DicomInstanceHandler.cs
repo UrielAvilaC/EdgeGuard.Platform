@@ -1,6 +1,7 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Models.Core;
 using Dicom.Edge.Models.Enums;
+using Dicom.Edge.Models.Patient;
 using Dicom.Edge.Node.DicomServer;
 using Dicom.Edge.Node.Persistence.Context;
 using FellowOakDicom;
@@ -73,6 +74,57 @@ internal sealed class DicomInstanceHandler(
         await using var scope = scopeFactory.CreateAsyncScope();
         var ctx = scope.ServiceProvider.GetRequiredService<EdgeNodeDbContext>();
 
+        // ── Upsert Patient ───────────────────────────────────────────────
+        var patientId   = dataset.GetSingleValueOrDefault(DicomTag.PatientID,   NodeConstants.DefaultPatientId);
+        var patientName = dataset.GetSingleValueOrDefault(DicomTag.PatientName, string.Empty);
+
+        // Extract all available DICOM patient demographics
+        var birthDate         = dataset.TryGetSingleValue(DicomTag.PatientBirthDate, out DateTime bd) ? bd : (DateTime?)null;
+        var sex               = dataset.GetSingleValueOrDefault<string?>(DicomTag.PatientSex,            null);
+        var patientAge        = dataset.GetSingleValueOrDefault<string?>(DicomTag.PatientAge,            null);
+        var patientWeightKg   = dataset.TryGetSingleValue(DicomTag.PatientWeight, out double wt)         ? wt : (double?)null;
+        var patientHeightM    = dataset.TryGetSingleValue(DicomTag.PatientSize,   out double ht)         ? ht : (double?)null;
+        var accessionNumber   = dataset.GetSingleValueOrDefault<string?>(DicomTag.AccessionNumber,       null);
+        var referringPhysician= dataset.GetSingleValueOrDefault<string?>(DicomTag.ReferringPhysicianName,null);
+        var institutionName   = dataset.GetSingleValueOrDefault<string?>(DicomTag.InstitutionName,       null);
+
+        var patient = await ctx.Patients.FirstOrDefaultAsync(p => p.PatientId == patientId, ct);
+
+        if (patient is null)
+        {
+            patient = new DicomPatient
+            {
+                PatientId          = patientId,
+                PatientName        = patientName,
+                BirthDate          = birthDate,
+                Sex                = sex ?? string.Empty,
+                PatientAge         = patientAge,
+                PatientWeightKg    = patientWeightKg,
+                PatientHeightM     = patientHeightM,
+                AccessionNumber    = accessionNumber,
+                ReferringPhysician = referringPhysician,
+                InstitutionName    = institutionName,
+            };
+
+            ctx.Patients.Add                      (patient);
+            await ctx.SaveChangesAsync(ct);
+
+            logger.LogDebug("Created new patient record PatientId={PatientId}", patientId);
+        }
+        else
+        {
+            // Update fields that may have changed or been absent in earlier instances
+            if (!string.IsNullOrWhiteSpace(patientName))        patient.PatientName        = patientName;
+            if (birthDate.HasValue)                             patient.BirthDate          = birthDate;
+            if (!string.IsNullOrWhiteSpace(sex))               patient.Sex                = sex!;
+            if (!string.IsNullOrWhiteSpace(patientAge))        patient.PatientAge         = patientAge;
+            if (patientWeightKg.HasValue)                      patient.PatientWeightKg    = patientWeightKg;
+            if (patientHeightM.HasValue)                       patient.PatientHeightM     = patientHeightM;
+            if (!string.IsNullOrWhiteSpace(accessionNumber))   patient.AccessionNumber    = accessionNumber;
+            if (!string.IsNullOrWhiteSpace(referringPhysician))patient.ReferringPhysician = referringPhysician;
+            if (!string.IsNullOrWhiteSpace(institutionName))   patient.InstitutionName    = institutionName;
+        }
+
         // ── Upsert Study ─────────────────────────────────────────────────
         var study = await ctx.Studies
             .IgnoreQueryFilters()
@@ -85,8 +137,8 @@ internal sealed class DicomInstanceHandler(
             study = new DicomStudy
             {
                 StudyInstanceUid = studyUid,
-                PatientId = dataset.GetSingleValueOrDefault(DicomTag.PatientID, NodeConstants.DefaultPatientId),
-                PatientName = dataset.GetSingleValueOrDefault(DicomTag.PatientName, string.Empty),
+                PatientId = patientId,
+                PatientName = patientName,
                 StudyDate = dataset.GetSingleValueOrDefault(DicomTag.StudyDate, now),
                 Status = StudyStatus.Receiving,
                 InstanceCount = 1,

@@ -4,6 +4,7 @@ using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Api.Mapping;
 using Dicom.Edge.Hub.Application.Edge;
 using Dicom.Edge.Hub.Application.Nodes;
+using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -19,18 +20,21 @@ public class NodesController : ControllerBase
     private readonly INodeRepository _nodeRepository;
     private readonly INodeService _nodeService;
     private readonly IBootstrapTokenService _bootstrapTokenService;
+    private readonly INodeTelemetryRepository _telemetryRepository;
     private readonly ILogger<NodesController> _logger;
 
     public NodesController(
         INodeRepository nodeRepository,
         INodeService nodeService,
         IBootstrapTokenService bootstrapTokenService,
+        INodeTelemetryRepository telemetryRepository,
         ILogger<NodesController> logger)
     {
-        _nodeRepository       = nodeRepository;
-        _nodeService          = nodeService;
+        _nodeRepository        = nodeRepository;
+        _nodeService           = nodeService;
         _bootstrapTokenService = bootstrapTokenService;
-        _logger               = logger;
+        _telemetryRepository   = telemetryRepository;
+        _logger                = logger;
     }
 
     [HttpGet]
@@ -130,7 +134,20 @@ public class NodesController : ControllerBase
         return Ok(new CountDto { Count = count });
     }
 
-    // ── Bootstrap Tokens ──────────────────────────────────────────────────────
+    // ── Telemetry ────────────────────────────────────────────────────────────
+
+    /// <summary>GET /api/nodes/{id}/telemetry — Returns the last N telemetry records for a node.</summary>
+    [HttpGet("{id}/telemetry")]
+    public async Task<IActionResult> GetTelemetry(
+        string id,
+        [FromQuery] int limit = 50,
+        CancellationToken ct = default)
+    {
+        var records = await _telemetryRepository.GetByNodeAsync(id, limit, ct);
+        return Ok(records.Select(r => r.ToDto()));
+    }
+
+    // ── Bootstrap Tokens ─────────────────────────────────────────────
 
     /// <summary>
     /// POST /api/nodes/bootstrap-tokens — Generates a one-time bootstrap token.

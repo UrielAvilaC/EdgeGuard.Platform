@@ -76,6 +76,9 @@ try
     // ── DICOM Instance Handler (C-STORE callback → save + enqueue) ─────
     builder.Services.AddSingleton<IDicomInstanceHandler, DicomInstanceHandler>();
 
+    // ── DICOM Association Tracker (per-association audit + metrics) ──────
+    builder.Services.AddSingleton<IDicomAssociationTracker, DicomAssociationTracker>();
+
     // ── DICOM Server (C-STORE SCP + MWL C-FIND SCP) ─────────────────────
     builder.Services.AddNodeDicomServer(builder.Configuration);
 

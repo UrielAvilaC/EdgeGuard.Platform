@@ -25,6 +25,9 @@ public static class HubApiRoutes
     /// <summary>POST — Report node health metrics. Returns acknowledgment.</summary>
     public const string HealthReport = "/api/edge/health";
 
+    /// <summary>POST — Node reports telemetry (associations + study metrics). Returns acknowledgment.</summary>
+    public const string Telemetry = "/api/edge/telemetry";
+
     /// <summary>GET — Hub version and capability info.</summary>
     public const string HubInfo = "/api/info";
 

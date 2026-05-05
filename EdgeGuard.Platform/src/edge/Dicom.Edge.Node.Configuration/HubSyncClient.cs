@@ -16,6 +16,9 @@ public sealed class HubSyncClient(
     private string? _registeredNodeId;
     private string? _apiKey;
 
+    /// <inheritdoc />
+    public string? RegisteredNodeId => _registeredNodeId;
+
     internal void SetApiKey(string apiKey) => _apiKey = apiKey;
 
     public async Task<RegistrationResult> RegisterAsync(CancellationToken ct = default)
@@ -176,6 +179,27 @@ public sealed class HubSyncClient(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Deregistration error -- NodeId={NodeId} Url={Url}", _registeredNodeId, deregisterUrl);
+            return false;
+        }
+    }
+
+    public async Task<bool> SendTelemetryAsync(NodeTelemetryRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping telemetry -- node not yet registered"); return false; }
+        var url = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Telemetry}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("Telemetry send failed -- StatusCode={StatusCode} NodeId={NodeId}", (int)response.StatusCode, _registeredNodeId);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Telemetry send error -- NodeId={NodeId} Url={Url}", _registeredNodeId, url);
             return false;
         }
     }

@@ -19,6 +19,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
 {
     
     private DicomScpDependencies? _deps;
+    private IAssociationSession? _session;
 
     /// <summary>Lazily resolves the dependencies record set as UserState by the server.</summary>
     private DicomScpDependencies Deps => _deps ??= (DicomScpDependencies)UserState;
@@ -36,7 +37,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
 
     // ── Association lifecycle ────────────────────────────────────────────────
 
-    public Task OnReceiveAssociationRequestAsync(DicomAssociation association)
+    public async Task OnReceiveAssociationRequestAsync(DicomAssociation association)
     {
         var options = Deps.Options;
 
@@ -56,10 +57,16 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 "The remote SCU must use the correct AE Title. " +
                 "Check DicomServer:AeTitle in appsettings or the value pushed from the Hub (dicom.ae_title in DB).",
                 calledAe, localAe);
-            return SendAssociationRejectAsync(
+            await Deps.AssociationTracker.RecordRejectionAsync(
+                callingAe, calledAe,
+                association.RemoteHost ?? string.Empty,
+                association.RemotePort,
+                $"CalledAE '{calledAe}' not recognized (local='{localAe}')");
+            await SendAssociationRejectAsync(
                 DicomRejectResult.Permanent,
                 DicomRejectSource.ServiceUser,
                 DicomRejectReason.CalledAENotRecognized);
+            return;
         }
 
         // ── CallingAE whitelist validation ────────────────────────────────────
@@ -71,15 +78,22 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 "Association REJECTED — CallingAE '{CallingAe}' is not in the allowed list ({Allowed})",
                 callingAe,
                 string.Join(", ", options.AllowedCallingAeTitles));
-            return SendAssociationRejectAsync(
+            await Deps.AssociationTracker.RecordRejectionAsync(
+                callingAe, calledAe,
+                association.RemoteHost ?? string.Empty,
+                association.RemotePort,
+                $"CallingAE '{callingAe}' not in allowed list");
+            await SendAssociationRejectAsync(
                 DicomRejectResult.Permanent,
                 DicomRejectSource.ServiceUser,
                 DicomRejectReason.CallingAENotRecognized);
+            return;
         }
 
         // ── Presentation context negotiation ─────────────────────────────────
         var accepted = 0;
         var rejected = 0;
+        var acceptedUids = new System.Text.StringBuilder();
 
         foreach (var ctx in association.PresentationContexts)
         {
@@ -92,6 +106,8 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 {
                     ctx.SetResult(DicomPresentationContextResult.Accept);
                     accepted++;
+                    if (acceptedUids.Length > 0) acceptedUids.Append(", ");
+                    acceptedUids.Append(uid.UID);
                     Deps.Logger.LogInformation(
                         "Presentation context ACCEPTED — C-ECHO (Verification) ID={Id} CallingAE={CallingAe}",
                         ctx.ID, callingAe);
@@ -113,8 +129,10 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 if (options.MwlEnabled)
                 {
                     ctx.SetResult(DicomPresentationContextResult.Accept);
-                    accepted++;
-                    Deps.Logger.LogDebug("Presentation context ACCEPTED — MWL C-FIND ID={Id}", ctx.ID);
+                        accepted++;
+                        if (acceptedUids.Length > 0) acceptedUids.Append(", ");
+                        acceptedUids.Append(uid.UID);
+                        Deps.Logger.LogDebug("Presentation context ACCEPTED — MWL C-FIND ID={Id}", ctx.ID);
                 }
                 else
                 {
@@ -128,29 +146,46 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
             // C-STORE — accept all storage SOP classes
             ctx.SetResult(DicomPresentationContextResult.Accept);
             accepted++;
+            if (acceptedUids.Length > 0) acceptedUids.Append(", ");
+            acceptedUids.Append(uid.UID);
         }
 
         Deps.Logger.LogInformation(
             "Association negotiation complete — CallingAE={CallingAe} Accepted={Accepted} Rejected={Rejected}",
             callingAe, accepted, rejected);
 
-        return SendAssociationAcceptAsync(association);
+        _session = await Deps.AssociationTracker.BeginAsync(
+            callingAe, calledAe,
+            association.RemoteHost ?? string.Empty,
+            association.RemotePort,
+            acceptedUids.Length > 0 ? acceptedUids.ToString() : null);
+
+        await SendAssociationAcceptAsync(association);
     }
 
-    public Task OnReceiveAssociationReleaseRequestAsync()
+    public async Task OnReceiveAssociationReleaseRequestAsync()
     {
         Deps.Logger.LogDebug("Association released — requesting immediate completion check");
         Deps.CompletionTrigger.RequestImmediateCheck();
-        return SendAssociationReleaseResponseAsync();
+        if (_session is not null) await _session.CompleteAsync();
+        await SendAssociationReleaseResponseAsync();
     }
 
-    public void OnReceiveAbort(DicomAbortSource source, DicomAbortReason reason) =>
+    public void OnReceiveAbort(DicomAbortSource source, DicomAbortReason reason)
+    {
         Deps.Logger.LogWarning("Association aborted: source={Source}, reason={Reason}", source, reason);
+        if (_session is not null)
+            _ = _session.AbortAsync($"Aborted — source={source}, reason={reason}");
+    }
 
     public void OnConnectionClosed(Exception? exception)
     {
         if (exception is not null)
+        {
             Deps.Logger.LogWarning(exception, "DICOM connection closed with error");
+            if (_session is not null)
+                _ = _session.AbortAsync(exception.Message);
+        }
     }
 
     // ── C-STORE (image reception) ───────────────────────────────────────────
@@ -164,6 +199,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 Association.CallingAE,
                 CancellationToken.None);
 
+            _session?.RecordImage();
             return new DicomCStoreResponse(request, DicomStatus.Success);
         }
         catch (Exception ex)

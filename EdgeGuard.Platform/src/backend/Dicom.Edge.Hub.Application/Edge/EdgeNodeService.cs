@@ -22,6 +22,7 @@ public sealed class EdgeNodeService(
     INodeRepository nodeRepository,
     IStudyRepository studyRepository,
     IHealthCheckRepository healthCheckRepository,
+    INodeTelemetryRepository telemetryRepository,
     IPacsServerRepository pacsRepository,
     INodeConfigurationService configService,
     IPasswordHasher passwordHasher,
@@ -162,6 +163,37 @@ public sealed class EdgeNodeService(
         logger.LogInformation(
             "Health report persisted from node {NodeId}: Storage={AvailMb}MB, CPU={Cpu}%, Mem={Mem}%",
             request.NodeId, request.AvailableStorageMb, request.CpuPercent, request.MemoryPercent);
+
+        return new EdgeOperationResult(true, DateTime.UtcNow);
+    }
+
+    public async Task<EdgeOperationResult?> ProcessTelemetryAsync(
+        NodeTelemetryRequest request, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
+        if (node is null) return null;
+
+        var record = NodeTelemetryRecord.Create(
+            request.NodeId,
+            DateTime.UtcNow,
+            request.PeriodStart,
+            request.PeriodEnd,
+            request.TotalAssociations,
+            request.AcceptedAssociations,
+            request.RejectedAssociations,
+            request.AbortedAssociations,
+            request.TotalImagesReceived,
+            request.CompletedStudies,
+            request.TotalBytesReceived,
+            request.AverageReceptionDurationMs,
+            request.AverageThroughputMbps);
+
+        await telemetryRepository.AddAsync(record, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Telemetry received from node {NodeId}: Associations={Total} Images={Images} Studies={Studies}",
+            request.NodeId, request.TotalAssociations, request.TotalImagesReceived, request.CompletedStudies);
 
         return new EdgeOperationResult(true, DateTime.UtcNow);
     }

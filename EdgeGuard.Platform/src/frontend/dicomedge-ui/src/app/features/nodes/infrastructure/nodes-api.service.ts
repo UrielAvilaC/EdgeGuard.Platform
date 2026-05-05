@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../../../core/api/api-client';
 import { API_ROUTES } from '../../../core/api/api-routes';
 import { PagedResult } from '../../../shared/models/pagination.model';
-import { AssignPacsRequest, Node, NodeFilter, CreateNodeRequest, UpdateNodeRequest } from '../models/node.models';
+import { AssignPacsRequest, Node, NodeFilter, CreateNodeRequest, UpdateNodeRequest, NodeTelemetry } from '../models/node.models';
 
 @Injectable({ providedIn: 'root' })
 export class NodesApiService {
@@ -54,5 +54,11 @@ export class NodesApiService {
 
   unassignPacs(nodeId: string, pacsId: string): Observable<void> {
     return this.api.delete<void>(API_ROUTES.NODES.UNASSIGN_PACS(nodeId, pacsId));
+  }
+
+  getTelemetry(nodeId: string, limit = 50): Observable<NodeTelemetry[]> {
+    return this.api.get<NodeTelemetry[]>(API_ROUTES.NODES.TELEMETRY(nodeId), {
+      params: { limit } as Record<string, string | number | boolean | undefined>,
+    });
   }
 }

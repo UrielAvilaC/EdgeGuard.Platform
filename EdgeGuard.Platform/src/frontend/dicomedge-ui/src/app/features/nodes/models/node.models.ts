@@ -77,3 +77,24 @@ export const NODE_STATUS_OPTIONS: { value: NodeStatus; label: string }[] = [
   { value: 'Starting', label: 'Iniciando' },
   { value: 'Stopping', label: 'Deteniendo' },
 ];
+
+// ── Telemetría ────────────────────────────────────────────────────────────────
+
+export interface NodeTelemetry {
+  id: string;
+  nodeId: string;
+  reportedAt: string;
+  periodStart: string;
+  periodEnd: string;
+  // Associations
+  totalAssociations: number;
+  acceptedAssociations: number;
+  rejectedAssociations: number;
+  abortedAssociations: number;
+  totalImagesReceived: number;
+  // Studies
+  completedStudies: number;
+  totalBytesReceived: number;
+  averageReceptionDurationMs: number | null;
+  averageThroughputMbps: number | null;
+}

@@ -1,5 +1,11 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Configuration;
+using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Models.Dicom;
+using Dicom.Edge.Models.Enums;
+using Dicom.Edge.Models.Metrics;
+using Dicom.Edge.Node.Persistence.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -51,6 +57,7 @@ public sealed class HubConfigSyncHostedService(
         await PullAndApplyConfigAsync(stoppingToken);
 
         var lastConfigPull = DateTime.UtcNow;
+        var lastTelemetry  = DateTime.UtcNow;
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -68,6 +75,13 @@ public sealed class HubConfigSyncHostedService(
                     logger.LogDebug("Fallback config pull triggered (interval={Interval}s)", configPullInterval.TotalSeconds);
                     await PullAndApplyConfigAsync(stoppingToken);
                     lastConfigPull = DateTime.UtcNow;
+                }
+
+                // Telemetry push — same cadence as config pull
+                if (DateTime.UtcNow - lastTelemetry > configPullInterval)
+                {
+                    await PushTelemetryAsync(lastTelemetry, stoppingToken);
+                    lastTelemetry = DateTime.UtcNow;
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -213,6 +227,67 @@ public sealed class HubConfigSyncHostedService(
         {
             logger.LogError(ex, "CRITICAL: Failed to persist API key to database. " +
                 "The node will need to be re-registered manually.");
+        }
+    }
+
+    // ── Telemetry ─────────────────────────────────────────────────────────────
+
+    private async Task PushTelemetryAsync(DateTime periodStart, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(hubClient.RegisteredNodeId)) return;
+
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var ctx = scope.ServiceProvider.GetRequiredService<IDbContextFactory<EdgeNodeDbContext>>()
+                          .CreateDbContext();
+
+            var periodEnd = DateTime.UtcNow;
+
+            // ── Association aggregates ────────────────────────────────────
+            var assocs = await ctx.Associations
+                .AsNoTracking()
+                .Where(a => a.ConnectedAt >= periodStart && a.ConnectedAt <= periodEnd)
+                .ToListAsync(ct);
+
+            // ── Study-metrics aggregates ──────────────────────────────────
+            var metrics = await ctx.Metrics
+                .AsNoTracking()
+                .Where(m => m.FirstImageAt >= periodStart && m.FirstImageAt <= periodEnd)
+                .ToListAsync(ct);
+
+            var avgDuration = metrics.Count > 0
+                ? metrics.Average(m => m.ReceptionDuration.TotalMilliseconds)
+                : (double?)null;
+
+            var avgThroughput = metrics.Count > 0
+                ? metrics.Average(m => m.ReceptionThroughputMbps)
+                : (double?)null;
+
+            var request = new NodeTelemetryRequest
+            {
+                NodeId                    = hubClient.RegisteredNodeId,
+                PeriodStart               = periodStart,
+                PeriodEnd                 = periodEnd,
+                TotalAssociations         = assocs.Count,
+                AcceptedAssociations      = assocs.Count(a => a.Status == AssociationStatus.Completed),
+                RejectedAssociations      = assocs.Count(a => a.Status == AssociationStatus.Rejected),
+                AbortedAssociations       = assocs.Count(a => a.Status == AssociationStatus.Aborted),
+                TotalImagesReceived       = assocs.Sum(a => a.ImagesReceived),
+                CompletedStudies          = metrics.Count,
+                TotalBytesReceived        = metrics.Sum(m => m.TotalSizeBytes),
+                AverageReceptionDurationMs = avgDuration,
+                AverageThroughputMbps     = avgThroughput,
+            };
+
+            await hubClient.SendTelemetryAsync(request, ct);
+            logger.LogDebug(
+                "Telemetry pushed — Associations={Total} Completed={Studies} Period={Start:O}→{End:O}",
+                request.TotalAssociations, request.CompletedStudies, periodStart, periodEnd);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Telemetry push failed — will retry next cycle");
         }
     }
 }

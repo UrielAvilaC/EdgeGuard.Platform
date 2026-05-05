@@ -62,6 +62,28 @@ public sealed class NodeHeartbeatRequest
     public int? ErrorsLast24Hours { get; init; }
 }
 
+public sealed class NodeTelemetryRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    public DateTime PeriodStart { get; init; }
+    public DateTime PeriodEnd   { get; init; }
+
+    // ── Associations (from dicom_associations) ────────────────────────────
+    [Range(0, int.MaxValue)] public int TotalAssociations    { get; init; }
+    [Range(0, int.MaxValue)] public int AcceptedAssociations { get; init; }
+    [Range(0, int.MaxValue)] public int RejectedAssociations { get; init; }
+    [Range(0, int.MaxValue)] public int AbortedAssociations  { get; init; }
+    [Range(0, int.MaxValue)] public int TotalImagesReceived  { get; init; }
+
+    // ── Study metrics (from study_metrics) ───────────────────────────────
+    [Range(0, int.MaxValue)]  public int    CompletedStudies           { get; init; }
+    [Range(0, long.MaxValue)] public long   TotalBytesReceived         { get; init; }
+    public double? AverageReceptionDurationMs { get; init; }
+    public double? AverageThroughputMbps      { get; init; }
+}
+
 public sealed class StudyNotifyRequest
 {
     [Required, StringLength(36, MinimumLength = 1)]

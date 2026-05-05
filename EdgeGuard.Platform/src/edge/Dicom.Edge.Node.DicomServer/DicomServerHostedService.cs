@@ -23,6 +23,7 @@ public sealed class DicomServerHostedService(
     IDicomInstanceHandler instanceHandler,
     IWorklistCFindHandler mwlHandler,
     IStudyCompletionTrigger completionTrigger,
+    IDicomAssociationTracker associationTracker,
     IOptionsMonitor<DicomServerOptions> optionsMonitor,
     IDicomServerFactory dicomServerFactory,
     ILogger<DicomServerHostedService> logger) : IHostedService, IDisposable
@@ -44,9 +45,9 @@ public sealed class DicomServerHostedService(
             "Starting DICOM SCP on port {Port} AeTitle={AeTitle} MWL={MwlEnabled} CEcho={CEchoEnabled} ValidateCallingAe={ValidateCallingAe}",
             opts.Port, opts.AeTitle, opts.MwlEnabled, opts.CEchoEnabled, opts.ValidateCallingAe);
 
-        _server = dicomServerFactory.Create<CStoreScp>(ipAddress: "*",
+        _server = dicomServerFactory.Create<CStoreScp>(
             opts.Port,
-            userState: new DicomScpDependencies(instanceHandler, mwlHandler, completionTrigger, optionsMonitor, logger));
+            userState: new DicomScpDependencies(instanceHandler, mwlHandler, completionTrigger, associationTracker, optionsMonitor, logger));
 
         logger.LogInformation(
             "DICOM server listening on port {Port} — C-STORE=enabled C-ECHO={CEchoEnabled} MWL={MwlEnabled}",
@@ -81,6 +82,7 @@ public sealed record DicomScpDependencies(
     IDicomInstanceHandler InstanceHandler,
     IWorklistCFindHandler MwlHandler,
     IStudyCompletionTrigger CompletionTrigger,
+    IDicomAssociationTracker AssociationTracker,
     IOptionsMonitor<DicomServerOptions> OptionsMonitor,
     ILogger<DicomServerHostedService> Logger)
 {

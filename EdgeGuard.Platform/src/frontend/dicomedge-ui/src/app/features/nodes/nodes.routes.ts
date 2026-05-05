@@ -13,4 +13,8 @@ export const nodesRoutes: Routes = [
     path: ':id/config',
     loadComponent: () => import('./presentation/node-config-page/node-config-page.component'),
   },
+  {
+    path: ':id/telemetry',
+    loadComponent: () => import('./presentation/node-telemetry-page/node-telemetry-page.component'),
+  },
 ];
