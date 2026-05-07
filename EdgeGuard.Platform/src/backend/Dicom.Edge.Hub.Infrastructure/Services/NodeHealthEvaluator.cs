@@ -52,8 +52,11 @@ public class NodeHealthEvaluator : INodeHealthEvaluator
     {
         var latest = await _healthCheckRepository.GetLatestByNodeAsync(node.Id, ct);
 
-        // If no heartbeat within the configured interval * 3, mark as offline
-        var maxAllowedGap = TimeSpan.FromSeconds(node.HealthCheckIntervalSeconds * 3);
+        // Grace period = max(5 min, heartbeatInterval * 5).
+        // Multiplier of 5 tolerates transient network issues and IIS recycles
+        // without false-positive offline marking on the first missed heartbeat.
+        var minGraceSec = Math.Max(300, node.HealthCheckIntervalSeconds * 5);
+        var maxAllowedGap = TimeSpan.FromSeconds(minGraceSec);
         var lastSeen = node.LastHeartbeatAt ?? node.CreatedAt;
         var timeSinceLastHeartbeat = DateTime.UtcNow - lastSeen;
 

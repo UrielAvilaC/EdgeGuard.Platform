@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Persistence;
+using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
@@ -11,6 +12,8 @@ using Dicom.Edge.Security.Authentication;
 using Dicom.Edge.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using NodeRegistrationResponse = Dicom.Edge.Contracts.Hub.NodeRegistrationResponse;
+using HubNodeRegistrationRequest = Dicom.Edge.Contracts.Hub.NodeRegistrationRequest;
 
 namespace Dicom.Edge.Hub.Application.Edge;
 
@@ -30,7 +33,7 @@ public sealed class EdgeNodeService(
     ILogger<EdgeNodeService> logger) : IEdgeNodeService
 {
     public async Task<NodeRegistrationResponse> RegisterAsync(
-        NodeRegistrationRequest request, CancellationToken ct = default)
+        HubNodeRegistrationRequest request, CancellationToken ct = default)
     {
         var existing = await nodeRepository.GetByAeTitleAsync(request.AeTitle, ct);
         if (existing is not null)
@@ -230,13 +233,14 @@ public sealed class EdgeNodeService(
                 })
                 .ToArray();
 
-            dict["cecho.destinations"] = JsonSerializer.Serialize(destinations);
+            dict[SharedNodeSettingKeys.PacsDestination.AllDestinations] =
+                JsonSerializer.Serialize(destinations);
 
-            // Also set single-destination sender keys to the first active PACS
+            // Primary PACS \u2014 canonical keys read by RoutingRuleLoaderService
             var primary = destinations[0];
-            dict["pacs_dest.host"]     = primary.Host;
-            dict["pacs_dest.port"]     = primary.Port.ToString();
-            dict["pacs_dest.ae_title"] = primary.AeTitle;
+            dict[SharedNodeSettingKeys.PacsDestination.Host]    = primary.Host;
+            dict[SharedNodeSettingKeys.PacsDestination.Port]    = primary.Port.ToString();
+            dict[SharedNodeSettingKeys.PacsDestination.AeTitle] = primary.AeTitle;
         }
 
         logger.LogInformation(

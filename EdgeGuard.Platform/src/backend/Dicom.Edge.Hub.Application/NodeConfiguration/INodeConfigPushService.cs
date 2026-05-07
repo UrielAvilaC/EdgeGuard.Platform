@@ -14,6 +14,21 @@ public interface INodeConfigPushService
 }
 
 /// <summary>
+/// Pushes the current PACS destination assignments to a node immediately after
+/// any assign/unassign operation. Separate from the general config push so PACS
+/// changes don't require a full settings snapshot.
+/// </summary>
+public interface INodePacsDestinationPushService
+{
+    /// <summary>
+    /// Resolves all active PACS assignments for <paramref name="nodeId"/> and
+    /// sends them to the node via <c>POST /api/pacs-destinations/sync</c>.
+    /// Returns false if the node has no API endpoint or the push fails.
+    /// </summary>
+    Task<bool> PushAsync(string nodeId, CancellationToken ct = default);
+}
+
+/// <summary>
 /// Outcome of a configuration push attempt.
 /// </summary>
 public sealed class ConfigPushResult

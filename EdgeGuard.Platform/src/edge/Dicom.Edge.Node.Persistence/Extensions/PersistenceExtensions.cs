@@ -118,6 +118,7 @@ public static class PersistenceExtensions
         services.AddSingleton<INodeWorkQueue, SqliteNodeWorkQueue>();
         services.AddSingleton<IWorklistManager, SqliteWorklistManager>();
         services.AddSingleton<IEventBus, InMemoryEventBus>();
+        services.AddSingleton<INodePacsServerRepository, NodePacsServerRepository>();
     }
 
     // ── Background services ───────────────────────────────────────────────────

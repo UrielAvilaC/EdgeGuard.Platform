@@ -17,6 +17,7 @@ public sealed class NodeService(
     INodeRepository nodeRepository,
     IPacsServerRepository pacsRepository,
     INodeConfigPushService configPushService,
+    INodePacsDestinationPushService pacsDestinationPushService,
     IServiceScopeFactory scopeFactory,
     IUnitOfWork unitOfWork,
     ILogger<NodeService> logger) : INodeService
@@ -101,10 +102,12 @@ public sealed class NodeService(
 
         logger.LogInformation("PACS {PacsId} assigned to node {NodeId}", pacsId, nodeId);
 
-        // Push config in an isolated scope so the background task doesn't share
-        // the request's DbContext (prevents 'reader is closed' on fire-and-forget).
+        // Push config (settings) + PACS destinations separately and immediately
         if (!string.IsNullOrWhiteSpace(node.ApiEndpoint))
+        {
             _ = PushConfigInNewScopeAsync(nodeId);
+            _ = PushPacsInNewScopeAsync(nodeId);
+        }
 
         return true;
     }
@@ -124,10 +127,12 @@ public sealed class NodeService(
 
         logger.LogInformation("PACS {PacsId} unassigned from node {NodeId}", pacsId, nodeId);
 
-        // Push config in an isolated scope so the background task doesn't share
-        // the request's DbContext (prevents 'reader is closed' on fire-and-forget).
+        // Push config (settings) + PACS destinations separately and immediately
         if (!string.IsNullOrWhiteSpace(node.ApiEndpoint))
+        {
             _ = PushConfigInNewScopeAsync(nodeId);
+            _ = PushPacsInNewScopeAsync(nodeId);
+        }
 
         return true;
     }
@@ -156,6 +161,27 @@ public sealed class NodeService(
         {
             logger.LogWarning(ex,
                 "Config push to node {NodeId} threw an exception — node will sync on next pull cycle",
+                nodeId);
+        }
+    }
+
+    private async Task PushPacsInNewScopeAsync(string nodeId)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var push = scope.ServiceProvider.GetRequiredService<INodePacsDestinationPushService>();
+            var ok = await push.PushAsync(nodeId, CancellationToken.None);
+
+            if (!ok)
+                logger.LogWarning(
+                    "PACS destinations push to node {NodeId} failed — node will sync on next config pull",
+                    nodeId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "PACS destinations push to node {NodeId} threw — node will sync on next config pull",
                 nodeId);
         }
     }

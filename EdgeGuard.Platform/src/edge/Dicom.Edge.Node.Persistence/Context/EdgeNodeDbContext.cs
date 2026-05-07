@@ -35,8 +35,11 @@ public sealed class EdgeNodeDbContext(DbContextOptions<EdgeNodeDbContext> option
     public DbSet<StudyMetrics>  Metrics  { get; init; }
 
     // ── Routing & Worklist ────────────────────────────────────────────────────
-    public DbSet<RoutingRule>   RoutingRules  { get; init; }
-    public DbSet<WorklistItem>  WorklistItems { get; init; }
+    public DbSet<RoutingRule>    RoutingRules    { get; init; }
+    public DbSet<WorklistItem>   WorklistItems   { get; init; }
+
+    // ── PACS Servers (synced from Hub assignments) ────────────────────────────
+    public DbSet<NodePacsServer> NodePacsServers { get; init; }
 
     protected override void OnModelCreating(ModelBuilder mb)
     {

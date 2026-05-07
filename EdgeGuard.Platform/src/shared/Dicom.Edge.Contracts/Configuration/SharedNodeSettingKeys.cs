@@ -114,11 +114,17 @@ public static class SharedNodeSettingKeys
     }
 
     // ── PACS Destination ──────────────────────────────────────────────────────────
+    /// <summary>
+    /// Canonical keys for PACS destination settings pushed from Hub → Node.
+    /// The primary destination drives the router fallback; AllDestinations
+    /// is a JSON array used to upsert routing rules on the node.
+    /// </summary>
     public static class PacsDestination
     {
-        public const string Host    = "pacs_dest.host";
-        public const string Port    = "pacs_dest.port";
-        public const string AeTitle = "pacs_dest.ae_title";
+        public const string Host            = "pacs.dest.host";
+        public const string Port            = "pacs.dest.port";
+        public const string AeTitle         = "pacs.dest.ae_title";
+        public const string AllDestinations = "pacs.dest.all";  // JSON array of PacsDestinationSyncEntry
     }
 
     // ── Node API ─────────────────────────────────────────────────────────────────

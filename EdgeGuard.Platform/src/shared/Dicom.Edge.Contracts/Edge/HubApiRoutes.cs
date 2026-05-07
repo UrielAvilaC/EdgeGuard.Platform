@@ -64,4 +64,11 @@ public static class NodeApiRoutes
 
     /// <summary>GET — Returns the node's current config version hash.</summary>
     public const string ConfigurationVersion = "/configuration/version";
+
+    /// <summary>
+    /// POST — Hub pushes active PACS destinations to the node.
+    /// Triggers an immediate upsert of <c>node_pacs_servers</c> and routing rule reload.
+    /// Called immediately after any PACS assignment change.
+    /// </summary>
+    public const string PacsDestinationsSync = "/pacs-destinations/sync";
 }

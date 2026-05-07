@@ -1,3 +1,4 @@
+using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Common;
 using Dicom.Edge.Hub.Domain.Services;
 using Dicom.Edge.Hub.Infrastructure.EventHandlers;
@@ -29,6 +30,10 @@ public static class HubDomainServiceCollectionExtensions
 
         // M2M API key validation for Edge Node authentication
         services.AddScoped<IApiKeyValidator, NodeApiKeyValidator>();
+
+        // Node-push services (Hub → Node HTTP)
+        services.AddScoped<INodeConfigPushService, NodeConfigPushService>();
+        services.AddScoped<INodePacsDestinationPushService, NodePacsDestinationPushService>();
 
         return services;
     }
