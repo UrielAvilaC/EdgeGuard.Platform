@@ -86,9 +86,8 @@ public sealed class HubConfigSyncHostedService(
     }
 
     /// <summary>
-    /// Writes appsettings values to the DB for any Hub identity field that is still empty.
-    /// This ensures the DB reflects the local configuration after a fresh install,
-    /// while never overwriting values that were already set (e.g. by the Hub UI).
+    /// Resolves Hub identity values using the DB as source of truth.
+    /// For any empty DB value, falls back to appsettings and seeds the DB immediately.
     /// </summary>
     private async Task SyncAppsettingsToDatabase(CancellationToken ct)
     {
@@ -97,30 +96,33 @@ public sealed class HubConfigSyncHostedService(
             using var scope = scopeFactory.CreateScope();
             var settings = scope.ServiceProvider.GetRequiredService<INodeSettingsService>();
 
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.NodeName,  _opts.NodeName,    ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.AeTitle,   _opts.AeTitle,     ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.IpAddress, _opts.IpAddress,   ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Version,   _opts.Version,     ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Location,  _opts.Location,    ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.FacilityName, _opts.FacilityName, ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.ApiEndpoint,  _opts.ApiEndpoint,  ct);
+            _opts.NodeName = await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.NodeName, _opts.NodeName, ct) ?? _opts.NodeName;
+            _opts.AeTitle = await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.AeTitle, _opts.AeTitle, ct) ?? _opts.AeTitle;
+            _opts.IpAddress = await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.IpAddress, _opts.IpAddress, ct) ?? _opts.IpAddress;
+            _opts.Version = await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Version, _opts.Version, ct);
+            _opts.Location = await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Location, _opts.Location, ct);
+            _opts.FacilityName = await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.FacilityName, _opts.FacilityName, ct);
+            _opts.ApiEndpoint = await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.ApiEndpoint, _opts.ApiEndpoint, ct);
 
-            logger.LogDebug("Appsettings → DB identity sync complete");
+            logger.LogDebug("DB-first identity sync complete");
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Appsettings → DB sync failed — continuing with appsettings values");
+            logger.LogWarning(ex, "DB-first identity sync failed — continuing with current option values");
         }
     }
 
-    private static async Task SyncIfEmptyAsync(
-        INodeSettingsService settings, string key, string? value, CancellationToken ct)
+    private static async Task<string?> SyncIfEmptyAsync(
+        INodeSettingsService settings, string key, string? appsettingsValue, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(value)) return;
-
         var existing = await settings.GetAsync<string>(key, string.Empty, ct);
-        if (string.IsNullOrEmpty(existing))
-            await settings.SetAsync(key, value, ct);
+        if (!string.IsNullOrWhiteSpace(existing))
+            return existing;
+
+        if (!string.IsNullOrWhiteSpace(appsettingsValue))
+            await settings.SetAsync(key, appsettingsValue, ct);
+
+        return appsettingsValue;
     }
 
     private async Task<bool> LoadApiKeyFromDatabaseAsync(CancellationToken ct)
