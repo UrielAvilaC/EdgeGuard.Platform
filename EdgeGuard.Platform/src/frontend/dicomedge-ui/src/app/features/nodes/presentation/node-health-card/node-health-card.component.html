@@ -1,0 +1,56 @@
+@if (node(); as n) {
+      <div class="space-y-4">
+        <!-- Storage -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-sm text-gray-500 dark:text-gray-400">
+              <fa-icon [icon]="faHardDrive" class="mr-1" /> Almacenamiento
+            </span>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">
+              {{ storageUsedFormatted() }} / {{ storageMaxFormatted() }}
+            </span>
+          </div>
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+            <div
+              class="h-2.5 rounded-full transition-all duration-300"
+              [class]="storagePercent() > 90 ? 'bg-red-500' : storagePercent() > 70 ? 'bg-amber-500' : 'bg-emerald-500'"
+              [style.width.%]="storagePercent()"
+              role="progressbar"
+              [attr.aria-valuenow]="storagePercent()"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-label]="'Uso de almacenamiento: ' + storagePercent() + '%'"
+            ></div>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">{{ availableFormatted() }} disponible</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+              <fa-icon [icon]="faListOl" class="mr-1" /> Estudios recibidos
+            </div>
+            <div class="text-lg font-bold text-gray-900 dark:text-white">
+              {{ n.totalStudiesReceived | number }}
+            </div>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Estudios enviados
+            </div>
+            <div class="text-lg font-bold text-gray-900 dark:text-white">
+              {{ n.totalStudiesSent | number }}
+            </div>
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 col-span-2">
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+              Errores últimas 24h
+            </div>
+            <div class="text-lg font-bold" [class]="n.errorsLast24Hours > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'">
+              {{ n.errorsLast24Hours }}
+            </div>
+          </div>
+        </div>
+      </div>
+    }

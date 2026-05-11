@@ -1,0 +1,86 @@
+<div class="space-y-6">
+      <ui-page-header
+        title="Pacientes"
+        description="Gestión de datos demográficos de pacientes DICOM."
+      >
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="facade.loadPatients()">
+          Actualizar
+        </ui-button>
+        <ui-button variant="secondary" size="sm" [icon]="faFileExport" (clicked)="facade.exportCsv()">
+          Exportar
+        </ui-button>
+        <ui-button variant="secondary" size="sm" [icon]="faFileImport" (clicked)="fileInput.click()">
+          Importar
+        </ui-button>
+        <input
+          #fileInput
+          type="file"
+          accept=".csv"
+          class="hidden"
+          (change)="onImportFile($event)"
+          aria-label="Seleccionar archivo CSV para importar"
+        />
+      </ui-page-header>
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" [dismissible]="true" />
+      }
+
+      <app-patient-filters
+        [currentFilter]="facade.filter()"
+        [activeFilterCount]="facade.activeFilterCount()"
+        (filterChange)="facade.updateFilter($event)"
+        (clearFilters)="facade.clearFilters()"
+      />
+
+      <ui-data-table
+        [columns]="columns"
+        [data]="facade.patients()"
+        [pagination]="facade.pagination()"
+        [sort]="facade.sort()"
+        [loading]="facade.loading()"
+        emptyMessage="No se encontraron pacientes con los filtros aplicados."
+        (pageChange)="facade.changePage($event.page, $event.pageSize)"
+        (sortChange)="facade.changeSort($event)"
+        (rowClick)="onRowClick($event)"
+      >
+        <ng-template [uiCellDef]="'patientName'" let-row let-value="value">
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+            @if (!row.isActive) {
+              <ui-chip color="default">Inactivo</ui-chip>
+            }
+          </div>
+        </ng-template>
+
+        <ng-template [uiCellDef]="'sex'" let-value="value">
+          {{ value === 'M' ? 'Masculino' : value === 'F' ? 'Femenino' : value ?? '—' }}
+        </ng-template>
+
+        <ng-template [uiCellDef]="'phoneNumber'" let-value="value">
+          @if (value) {
+            <span class="inline-flex items-center gap-1 text-sm">
+              <fa-icon [icon]="faPhone" class="text-xs text-gray-400" />
+              {{ value }}
+            </span>
+          } @else {
+            <span class="text-gray-400">—</span>
+          }
+        </ng-template>
+
+        <ng-template [uiCellDef]="'email'" let-value="value">
+          @if (value) {
+            <span class="inline-flex items-center gap-1 text-sm">
+              <fa-icon [icon]="faEnvelope" class="text-xs text-gray-400" />
+              {{ value }}
+            </span>
+          } @else {
+            <span class="text-gray-400">—</span>
+          }
+        </ng-template>
+
+        <ng-template [uiCellDef]="'createdAt'" let-value="value">
+          {{ value | relativeTime }}
+        </ng-template>
+      </ui-data-table>
+    </div>

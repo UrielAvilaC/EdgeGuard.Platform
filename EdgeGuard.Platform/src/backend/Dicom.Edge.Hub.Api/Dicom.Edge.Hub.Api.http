@@ -1,0 +1,6 @@
+@Dicom.Edge.Hub.Api_HostAddress = http://localhost:5197
+
+GET {{Dicom.Edge.Hub.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

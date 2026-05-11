@@ -1,0 +1,26 @@
+<mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      @if (label()) {
+        <mat-label>{{ label() }}</mat-label>
+      }
+      <mat-date-range-input [rangePicker]="picker">
+        <input
+          matStartDate
+          [placeholder]="startPlaceholder()"
+          [ngModel]="value.start"
+          (ngModelChange)="onStartChange($event)"
+          (blur)="onTouched()"
+        />
+        <input
+          matEndDate
+          [placeholder]="endPlaceholder()"
+          [ngModel]="value.end"
+          (ngModelChange)="onEndChange($event)"
+          (blur)="onTouched()"
+        />
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="picker" />
+      <mat-date-range-picker #picker />
+      @if (hint()) {
+        <mat-hint>{{ hint() }}</mat-hint>
+      }
+    </mat-form-field>

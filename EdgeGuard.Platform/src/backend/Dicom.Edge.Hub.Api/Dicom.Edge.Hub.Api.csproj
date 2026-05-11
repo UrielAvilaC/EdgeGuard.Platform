@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-Dicom.Edge.Hub.Api-a1b2c3d4-e5f6-7890-abcd-ef1234567890</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dicom.Edge.Hub.Domain\Dicom.Edge.Hub.Domain.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Hub.Application\Dicom.Edge.Hub.Application.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Hub.Persistence\Dicom.Edge.Hub.Persistence.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Hub.Infrastructure\Dicom.Edge.Hub.Infrastructure.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Hub.Diagnostics\Dicom.Edge.Hub.Diagnostics.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Security\Dicom.Edge.Security.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
+</Project>

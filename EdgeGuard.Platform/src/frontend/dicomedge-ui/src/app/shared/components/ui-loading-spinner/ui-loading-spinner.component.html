@@ -1,0 +1,9 @@
+@if (overlay()) {
+      <div class="spinner-overlay">
+        <mat-spinner [diameter]="diameter()" />
+      </div>
+    } @else {
+      <div class="spinner-inline">
+        <mat-spinner [diameter]="diameter()" />
+      </div>
+    }

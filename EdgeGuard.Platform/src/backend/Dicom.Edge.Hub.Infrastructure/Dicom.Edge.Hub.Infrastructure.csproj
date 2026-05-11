@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dicom.Edge.Hub.Domain\Dicom.Edge.Hub.Domain.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Hub.Application\Dicom.Edge.Hub.Application.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Hub.Persistence\Dicom.Edge.Hub.Persistence.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Abstractions\Dicom.Edge.Abstractions.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Contracts\Dicom.Edge.Contracts.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Security\Dicom.Edge.Security.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Twilio.AspNet.Core" Version="8.1.2" />
+  </ItemGroup>
+
+</Project>

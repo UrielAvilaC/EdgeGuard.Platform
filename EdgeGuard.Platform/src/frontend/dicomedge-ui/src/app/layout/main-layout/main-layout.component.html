@@ -1,0 +1,26 @@
+<a class="skip-link" href="#main-content">Ir al contenido principal</a>
+    <div class="layout-shell">
+      <app-header
+        [sidenavOpen]="sidenavOpen()"
+        (toggleSidenav)="toggleSidenav()"
+      ></app-header>
+
+      <mat-sidenav-container class="layout-body">
+        <mat-sidenav
+          #sidenav
+          [mode]="isMobile() ? 'over' : 'side'"
+          [opened]="sidenavOpen()"
+          (openedChange)="sidenavOpen.set($event)"
+          class="layout-sidenav"
+          [attr.role]="'navigation'"
+        >
+          <app-sidebar (navigated)="onNavigated()"></app-sidebar>
+        </mat-sidenav>
+
+        <mat-sidenav-content class="layout-content">
+          <main id="main-content" class="layout-main" tabindex="-1">
+            <router-outlet />
+          </main>
+        </mat-sidenav-content>
+      </mat-sidenav-container>
+    </div>

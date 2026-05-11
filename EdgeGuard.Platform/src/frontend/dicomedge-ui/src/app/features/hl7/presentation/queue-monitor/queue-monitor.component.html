@@ -1,0 +1,67 @@
+<!-- Pipeline summary bars -->
+    @if (summary(); as s) {
+      <div class="space-y-6">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          @for (stage of stages; track stage.key) {
+            <button
+              type="button"
+              class="p-3 rounded-lg border text-left transition-colors"
+              [class]="selectedStatus() === stage.key
+                ? 'border-azure-500 bg-azure-50 dark:bg-azure-900/20'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-azure-300'"
+              (click)="selectStatus.emit(stage.key)"
+              [attr.aria-label]="stage.label + ': ' + getStageValue(s, stage.key)"
+            >
+              <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ stage.label }}</div>
+              <div class="text-xl font-bold" [class]="stage.colorClass">
+                {{ getStageValue(s, stage.key) | number }}
+              </div>
+            </button>
+          }
+        </div>
+
+        <!-- Total pipeline -->
+        <div class="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+          <span class="text-sm text-gray-500">Total en pipeline</span>
+          <span class="text-lg font-bold text-gray-900 dark:text-white">{{ s.totalInPipeline | number }}</span>
+        </div>
+
+        <!-- Queued messages table -->
+        @if (queuedMessages().length > 0) {
+          <div>
+            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Mensajes en cola</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Paciente</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Nodo destino</th>
+                    <th class="text-center py-2 px-3 text-xs font-medium text-gray-500 uppercase">Prioridad</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">En cola</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (msg of queuedMessages(); track msg.id) {
+                    <tr class="border-b border-gray-100 dark:border-gray-800">
+                      <td class="py-2 px-3 font-medium text-gray-900 dark:text-white">
+                        {{ msg.messageType }}
+                        @if (msg.triggerEvent) {
+                          <span class="text-gray-400">^{{ msg.triggerEvent }}</span>
+                        }
+                      </td>
+                      <td class="py-2 px-3 text-gray-600 dark:text-gray-400">{{ msg.patientId || '—' }}</td>
+                      <td class="py-2 px-3 text-gray-600 dark:text-gray-400">{{ msg.targetNodeName || msg.targetNodeId || '—' }}</td>
+                      <td class="py-2 px-3 text-center text-gray-600 dark:text-gray-400">{{ msg.priority }}</td>
+                      <td class="py-2 px-3 text-gray-500">{{ msg.queuedAt | relativeTime }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="text-gray-400 text-sm py-4">Cargando resumen de la cola...</p>
+    }

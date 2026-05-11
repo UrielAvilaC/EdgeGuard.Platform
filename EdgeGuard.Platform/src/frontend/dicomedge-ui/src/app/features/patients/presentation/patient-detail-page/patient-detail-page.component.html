@@ -1,0 +1,162 @@
+<div class="space-y-6">
+      <ui-page-header [title]="pageTitle()">
+        <ui-button variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
+          Volver a pacientes
+        </ui-button>
+        @if (facade.selectedPatient()) {
+          <ui-button variant="secondary" size="sm" [icon]="faPen" (clicked)="openEditDialog()">
+            Editar
+          </ui-button>
+        }
+      </ui-page-header>
+
+      @if (facade.selectedLoading()) {
+        <ui-loading-spinner [overlay]="true" />
+      }
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" />
+      }
+
+      @if (facade.selectedPatient(); as p) {
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <!-- Main Info -->
+          <div class="xl:col-span-2 space-y-6">
+            <!-- Demographics -->
+            <mat-card class="!p-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                Datos Demográficos
+              </h3>
+              <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Nombre completo</dt>
+                  <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    {{ p.patientName }}
+                    @if (!p.isActive) {
+                      <ui-chip color="default">Inactivo</ui-chip>
+                    }
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faIdCard" class="mr-1" /> DICOM ID
+                  </dt>
+                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ p.patientDicomId }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faCakeCandles" class="mr-1" /> Fecha de Nacimiento
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.birthDate ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faVenusMars" class="mr-1" /> Sexo
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">
+                    {{ p.sex === 'M' ? 'Masculino' : p.sex === 'F' ? 'Femenino' : p.sex ?? '—' }}
+                  </dd>
+                </div>
+              </dl>
+            </mat-card>
+
+            <!-- Associated Studies -->
+            <mat-card class="!p-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Estudios Asociados
+              </h3>
+              @if (studiesLoading()) {
+                <ui-loading-spinner [diameter]="32" />
+              } @else if (patientStudies().length === 0) {
+                <ui-empty-state title="Sin estudios" description="Este paciente no tiene estudios registrados." />
+              } @else {
+                <ui-data-table
+                  [columns]="studyColumns"
+                  [data]="patientStudies()"
+                  emptyMessage="Sin estudios."
+                  (rowClick)="goToStudy($event)"
+                >
+                  <ng-template [uiCellDef]="'status'" let-value="value">
+                    <ui-status-badge [status]="value" />
+                  </ng-template>
+
+                  <ng-template [uiCellDef]="'totalSizeBytes'" let-value="value">
+                    {{ value | fileSize }}
+                  </ng-template>
+
+                  <ng-template [uiCellDef]="'createdAt'" let-value="value">
+                    {{ value | relativeTime }}
+                  </ng-template>
+                </ui-data-table>
+              }
+            </mat-card>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="space-y-6">
+            <!-- Contact -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Contacto
+              </h3>
+              <dl class="space-y-3">
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faPhone" class="mr-1" /> Teléfono
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.phoneNumber ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faEnvelope" class="mr-1" /> Email
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.email ?? '—' }}</dd>
+                </div>
+              </dl>
+            </mat-card>
+
+            <!-- Source -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Origen
+              </h3>
+              <dl class="space-y-3">
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faHospital" class="mr-1" /> Facility
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.facilitySource ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faServer" class="mr-1" /> Nodo creador
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.createdByNodeId ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Issuer of Patient ID</dt>
+                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ p.issuerOfPatientId ?? '—' }}</dd>
+                </div>
+              </dl>
+            </mat-card>
+
+            <!-- Timestamps -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Timestamps
+              </h3>
+              <dl class="space-y-3">
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Creado</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ p.createdAt | relativeTime }}</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Actualizado</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ p.updatedAt ? (p.updatedAt | relativeTime) : '—' }}</dd>
+                </div>
+              </dl>
+            </mat-card>
+          </div>
+        </div>
+      }
+    </div>

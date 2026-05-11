@@ -1,0 +1,67 @@
+<div class="space-y-6">
+      <ui-page-header title="Auditoría" description="Registros de auditoría del sistema.">
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="facade.loadLogs()">Actualizar</ui-button>
+      </ui-page-header>
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" [dismissible]="true" />
+      }
+
+      <!-- Filters -->
+      <div class="flex flex-wrap items-end gap-4">
+        <ui-search-bar
+          placeholder="Buscar en registros..."
+          (searchChange)="facade.updateFilter({ search: $event })"
+        />
+        <div class="w-48">
+          <ui-dropdown
+            label="Severidad"
+            [options]="severityOptions"
+            [ngModel]="severityFilter()"
+            (ngModelChange)="onSeverityChange($event)"
+            placeholder="Todas"
+            [showEmpty]="true"
+          />
+        </div>
+        <div class="w-56">
+          <ui-dropdown
+            label="Tipo de evento"
+            [options]="eventTypeOptions()"
+            [ngModel]="eventTypeFilter()"
+            (ngModelChange)="onEventTypeChange($event)"
+            placeholder="Todos"
+            [showEmpty]="true"
+          />
+        </div>
+        @if (facade.activeFilterCount() > 0) {
+          <ui-button variant="secondary" size="sm" [icon]="faXmark" (clicked)="facade.clearFilters()">
+            Limpiar filtros
+          </ui-button>
+        }
+      </div>
+
+      <ui-data-table
+        [columns]="columns"
+        [data]="facade.logs()"
+        [pagination]="facade.pagination()"
+        [sort]="facade.sort()"
+        [loading]="facade.loading()"
+        emptyMessage="No se encontraron registros de auditoría."
+        (pageChange)="facade.changePage($event.page, $event.pageSize)"
+        (sortChange)="facade.changeSort($event)"
+        (rowClick)="openDetail($event)"
+      >
+        <ng-template [uiCellDef]="'severity'" let-row let-value="value">
+          <ui-chip [color]="getSeverityColor(asString(value))">{{ getSeverityLabel(asString(value)) }}</ui-chip>
+        </ng-template>
+        <ng-template [uiCellDef]="'isSuccess'" let-row let-value="value">
+          <ui-chip [color]="value ? 'success' : 'danger'">{{ value ? 'OK' : 'Error' }}</ui-chip>
+        </ng-template>
+        <ng-template [uiCellDef]="'createdAt'" let-row let-value="value">
+          {{ asString(value) | relativeTime }}
+        </ng-template>
+        <ng-template [uiCellDef]="'actions'" let-row>
+          <ui-icon-button [icon]="faEye" tooltip="Ver detalle" ariaLabel="Ver detalle" (clicked)="openDetail(row); $event.stopPropagation()" />
+        </ng-template>
+      </ui-data-table>
+    </div>

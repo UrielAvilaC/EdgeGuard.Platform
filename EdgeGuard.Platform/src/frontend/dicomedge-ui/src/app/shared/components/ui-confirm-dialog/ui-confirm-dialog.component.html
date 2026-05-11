@@ -1,0 +1,26 @@
+<div class="confirm-dialog">
+      @if (data.icon) {
+        <div class="dialog-icon" [class.dialog-icon-warn]="data.confirmColor === 'warn'">
+          <fa-icon [icon]="data.icon" />
+        </div>
+      }
+      <h2 class="dialog-title">{{ data.title }}</h2>
+      <p class="dialog-message">{{ data.message }}</p>
+      <div class="dialog-actions">
+        <button
+          mat-stroked-button
+          (click)="dialogRef.close(false)"
+          class="dialog-btn-cancel"
+        >
+          {{ data.cancelText || 'Cancelar' }}
+        </button>
+        <button
+          mat-flat-button
+          [color]="data.confirmColor || 'primary'"
+          (click)="dialogRef.close(true)"
+          class="dialog-btn-confirm"
+        >
+          {{ data.confirmText || 'Confirmar' }}
+        </button>
+      </div>
+    </div>

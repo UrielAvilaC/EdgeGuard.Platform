@@ -1,0 +1,103 @@
+<div class="space-y-4">
+      <!-- Controls -->
+      <div class="flex items-center gap-4 flex-wrap">
+        <div class="flex-1 min-w-[280px]">
+          <ui-search-bar
+            placeholder="Buscar por nombre, nodo..."
+            (searchChange)="onSearchChange($event)"
+          />
+        </div>
+
+        <ui-button
+          variant="secondary"
+          size="sm"
+          [icon]="faFilter"
+          (clicked)="filtersExpanded = !filtersExpanded"
+        >
+          Filtros
+          @if (activeFilterCount() > 0) {
+            <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-azure-600 text-white">
+              {{ activeFilterCount() }}
+            </span>
+          }
+        </ui-button>
+
+        @if (activeFilterCount() > 0) {
+          <ui-button variant="ghost" size="sm" [icon]="faXmark" (clicked)="clearFilters.emit()">
+            Limpiar
+          </ui-button>
+        }
+
+        <ui-button size="sm" [icon]="faPlus" (clicked)="create.emit()">
+          Nueva regla
+        </ui-button>
+      </div>
+
+      @if (filtersExpanded) {
+        <div class="flex items-center gap-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+             role="group" aria-label="Filtros avanzados">
+          <ui-slide-toggle
+            label="Solo habilitadas"
+            [ngModel]="filter().isEnabled ?? false"
+            (ngModelChange)="onEnabledChange($event)"
+          />
+        </div>
+      }
+
+      <ui-data-table
+        [columns]="columns"
+        [data]="rules()"
+        [pagination]="pagination()"
+        [sort]="sort()"
+        [loading]="loading()"
+        emptyMessage="No se encontraron reglas de enrutamiento."
+        (pageChange)="pageChange.emit($event)"
+        (sortChange)="sortChange.emit($event)"
+      >
+        <ng-template [uiCellDef]="'name'" let-row let-value="value">
+          <div class="flex items-center gap-2">
+            <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+            @if (!row.isEnabled) {
+              <ui-chip color="default">Deshabilitada</ui-chip>
+            }
+          </div>
+        </ng-template>
+
+        <ng-template [uiCellDef]="'matchers'" let-row>
+          <div class="flex flex-wrap gap-1">
+            @if (row.matchMessageType) {
+              <ui-chip color="info">{{ row.matchMessageType }}</ui-chip>
+            }
+            @if (row.matchTriggerEvent) {
+              <ui-chip color="info">^{{ row.matchTriggerEvent }}</ui-chip>
+            }
+            @if (row.matchSendingFacility) {
+              <ui-chip color="default">{{ row.matchSendingFacility }}</ui-chip>
+            }
+            @if (!row.matchMessageType && !row.matchTriggerEvent && !row.matchSendingFacility) {
+              <span class="text-gray-400 text-xs">Todos</span>
+            }
+          </div>
+        </ng-template>
+
+        <ng-template [uiCellDef]="'lastMatchedAt'" let-row>
+          @if (row.lastMatchedAt) {
+            {{ row.lastMatchedAt | relativeTime }}
+          } @else {
+            <span class="text-gray-400">—</span>
+          }
+        </ng-template>
+
+        <ng-template [uiCellDef]="'actions'" let-row>
+          <div class="flex items-center gap-1" (click)="$event.stopPropagation()">
+            <ui-icon-button [icon]="faPen" tooltip="Editar" ariaLabel="Editar regla" (clicked)="edit.emit(row)" />
+            @if (row.isEnabled) {
+              <ui-icon-button [icon]="faToggleOff" tooltip="Deshabilitar" ariaLabel="Deshabilitar regla" (clicked)="disable.emit(row.id)" />
+            } @else {
+              <ui-icon-button [icon]="faToggleOn" tooltip="Habilitar" ariaLabel="Habilitar regla" (clicked)="enable.emit(row.id)" />
+            }
+            <ui-icon-button [icon]="faTrash" tooltip="Eliminar" ariaLabel="Eliminar regla" (clicked)="deleteRule.emit(row)" />
+          </div>
+        </ng-template>
+      </ui-data-table>
+    </div>

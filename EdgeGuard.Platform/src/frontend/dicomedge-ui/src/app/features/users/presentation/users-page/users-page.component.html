@@ -1,0 +1,48 @@
+<div class="space-y-6">
+      <ui-page-header title="Usuarios" description="Gestión de usuarios, roles y permisos.">
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="facade.loadUsers()">Actualizar</ui-button>
+        <ui-button size="sm" [icon]="faPlus" (clicked)="openCreateDialog()">Nuevo usuario</ui-button>
+      </ui-page-header>
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" [dismissible]="true" />
+      }
+
+      <div class="flex items-center gap-4">
+        <ui-search-bar
+          placeholder="Buscar por nombre o usuario..."
+          (searchChange)="facade.updateFilter({ search: $event })"
+        />
+      </div>
+
+      <ui-data-table
+        [columns]="columns"
+        [data]="facade.users()"
+        [pagination]="facade.pagination()"
+        [sort]="facade.sort()"
+        [loading]="facade.loading()"
+        emptyMessage="No se encontraron usuarios."
+        (pageChange)="facade.changePage($event.page, $event.pageSize)"
+        (sortChange)="facade.changeSort($event)"
+        (rowClick)="onRowClick($event)"
+      >
+        <ng-template [uiCellDef]="'isActive'" let-row let-value="value">
+          <ui-chip [color]="value ? 'success' : 'danger'">{{ value ? 'Activo' : 'Inactivo' }}</ui-chip>
+        </ng-template>
+        <ng-template [uiCellDef]="'isLocked'" let-row let-value="value">
+          @if (value) {
+            <ui-chip color="warning">Bloqueado</ui-chip>
+          }
+        </ng-template>
+        <ng-template [uiCellDef]="'roles'" let-row let-value="value">
+          <div class="flex flex-wrap gap-1">
+            @for (role of asStringArray(value); track role) {
+              <ui-chip color="info">{{ getRoleLabel(role) }}</ui-chip>
+            }
+          </div>
+        </ng-template>
+        <ng-template [uiCellDef]="'lastLoginAt'" let-row let-value="value">
+          {{ value ? (asString(value) | relativeTime) : 'Nunca' }}
+        </ng-template>
+      </ui-data-table>
+    </div>

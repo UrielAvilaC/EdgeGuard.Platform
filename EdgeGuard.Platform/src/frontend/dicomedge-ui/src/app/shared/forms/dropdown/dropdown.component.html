@@ -1,0 +1,29 @@
+<mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      @if (label()) {
+        <mat-label>{{ label() }}</mat-label>
+      }
+      <mat-select
+        [ngModel]="value"
+        (ngModelChange)="onValueChange($event)"
+        (blur)="onTouched()"
+        [disabled]="isDisabled"
+        [placeholder]="placeholder()"
+        [multiple]="multiple()"
+        [attr.aria-label]="ariaLabel() || label()"
+      >
+        @if (showEmpty()) {
+          <mat-option [value]="null">{{ emptyLabel() }}</mat-option>
+        }
+        @for (opt of options(); track opt.value) {
+          <mat-option [value]="opt.value" [disabled]="opt.disabled ?? false">
+            {{ opt.label }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (hint()) {
+        <mat-hint>{{ hint() }}</mat-hint>
+      }
+      @if (errorMessage()) {
+        <mat-error>{{ errorMessage() }}</mat-error>
+      }
+    </mat-form-field>

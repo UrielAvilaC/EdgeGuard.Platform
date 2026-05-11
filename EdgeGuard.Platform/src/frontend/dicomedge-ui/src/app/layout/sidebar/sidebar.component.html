@@ -1,0 +1,45 @@
+<nav class="sidebar-nav" aria-label="Navegación principal">
+      <div class="sidebar-brand">
+        <img
+          class="brand-logo brand-logo-light"
+          ngSrc="assets/branding/edgeguard-logo-light.svg"
+          width="164"
+          height="34"
+          alt="EdgeGuard"
+          priority
+        />
+        <img
+          class="brand-logo brand-logo-dark"
+          ngSrc="assets/branding/edgeguard-logo-dark.svg"
+          width="164"
+          height="34"
+          alt="EdgeGuard"
+          priority
+        />
+      </div>
+
+      <div class="sidebar-scroll">
+        @for (group of visibleGroups(); track group.label) {
+          <div class="nav-group">
+            <p class="nav-group-label">{{ group.label }}</p>
+            <ul class="nav-list">@for (item of group.items; track item.route) {
+              <li>
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="nav-item-active"
+                  class="nav-item"
+                  (click)="navigated.emit()"
+                >
+                  <fa-icon [icon]="item.icon" class="nav-item-icon"></fa-icon>
+                  <span>{{ item.label }}</span>
+                </a>
+              </li>
+            }</ul>
+          </div>
+        }
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-version">v1.0.0</div>
+      </div>
+    </nav>
