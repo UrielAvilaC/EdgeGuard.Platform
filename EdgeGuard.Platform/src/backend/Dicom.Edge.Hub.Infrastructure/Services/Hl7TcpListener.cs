@@ -124,6 +124,8 @@ public class Hl7TcpListener : IHl7Listener
         _isRunning = false;
         _listener?.Stop();
         _messageChannel.Writer.Complete();
+        _listener?.Dispose();
+        _listener = null;
 
         _logger.LogInformation("HL7 Listener stopped");
     }

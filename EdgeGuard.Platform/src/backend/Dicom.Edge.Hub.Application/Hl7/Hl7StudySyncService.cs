@@ -22,7 +22,7 @@ public sealed class Hl7StudySyncService(
     {
         if (!_supportedMessageTypes.Contains(message.MessageType))
         {
-            logger.LogDebug(
+            logger.LogInformation(
                 "Study sync skipped for {MessageId}: message type {MessageType} does not carry scheduling data",
                 message.Id, message.MessageType);
             return;
@@ -30,7 +30,7 @@ public sealed class Hl7StudySyncService(
 
         if (string.IsNullOrWhiteSpace(message.AccessionNumber))
         {
-            logger.LogDebug(
+            logger.LogInformation(
                 "Study sync skipped for {MessageId}: no AccessionNumber in message",
                 message.Id);
             return;
@@ -68,7 +68,8 @@ public sealed class Hl7StudySyncService(
             referringPhysician: null);
 
         await studyRepository.AddAsync(study, ct);
-        await unitOfWork.SaveChangesAsync(ct);
+        
+        
 
         logger.LogInformation(
             "Created scheduled study {StudyId} (AccessionNumber={AccessionNumber}) from HL7 {MessageType} message {MessageId}",

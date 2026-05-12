@@ -15,7 +15,7 @@ internal static class NodeSettingsSeed
     /// without touching keys that already exist (safe for upgrades).
     /// </summary>
     public static async Task SeedMissingAsync(
-        EdgeNodeDbContext ctx, CancellationToken ct = default)
+        EdgeNodeDbContext ctx,ILogger logger, CancellationToken ct = default)
     {
         var existing = await ctx.NodeSettings
             .Select(s => s.Key)
@@ -70,6 +70,7 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Hub.Port,                  "443",     Cat.Hub, "Hub Port",                      VT.Int),
         Row(NodeSettingKeys.Hub.BasePath,              "/api",    Cat.Hub, "Hub API Base Path",             VT.String),
         Row(NodeSettingKeys.Hub.ApiKey,                "",        Cat.Hub, "Hub API Key",                   VT.String),
+        Row(NodeSettingKeys.Hub.NodeId,                "",        Cat.Hub, "Hub Node ID",                   VT.String),
         Row(NodeSettingKeys.Hub.TimeoutSeconds,        "30",      Cat.Hub, "Hub Request Timeout (sec)",     VT.Int),
         Row(NodeSettingKeys.Hub.HeartbeatIntervalSec,  "60",      Cat.Hub, "Heartbeat Interval (sec)",      VT.Int),
         Row(NodeSettingKeys.Hub.RegisterOnStartup,     "true",    Cat.Hub, "Register on Startup",           VT.Bool),

@@ -187,7 +187,7 @@ internal sealed class PersistenceInitializerService(
         logger.LogInformation("Database schema is up to date");
 
         // ── Phase 2: Seed missing settings ───────────────────────────────────
-        await NodeSettingsSeed.SeedMissingAsync(ctx, cancellationToken);
+        await NodeSettingsSeed.SeedMissingAsync(ctx,logger, cancellationToken);
         logger.LogDebug("Seed check complete");
 
         // ── Phase 3: Warm settings cache ─────────────────────────────────────

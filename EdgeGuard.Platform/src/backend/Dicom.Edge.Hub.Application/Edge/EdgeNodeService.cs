@@ -111,6 +111,9 @@ public sealed class EdgeNodeService(
     public async Task<EdgeStudyNotifyResult?> ProcessStudyNotifyAsync(
         StudyNotifyRequest request, CancellationToken ct = default)
     {
+        logger.LogInformation(
+            "Study notify received from node {NodeId}: StudyUID={StudyUid} Patient={Patient} Instances={Count}",
+            request.NodeId, request.StudyInstanceUid, request.PatientName, request.InstanceCount);
         var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
         if (node is null) return null;
 

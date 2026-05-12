@@ -49,6 +49,10 @@ public sealed class StudyHubNotifier(
                 TotalSizeBytes   = totalSizeBytes,
             };
 
+            logger.LogDebug(
+                "Sending study notification to Hub for study {StudyUid} on node {NodeId} — Patient={Patient}",
+                studyInstanceUid, resolvedNodeId, patientName);
+
             var success = await hubClient.NotifyStudyAsync(request, ct);
 
             if (success)

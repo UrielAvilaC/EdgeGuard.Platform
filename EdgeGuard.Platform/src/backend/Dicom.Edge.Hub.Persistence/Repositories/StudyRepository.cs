@@ -90,6 +90,7 @@ public class StudyRepository : IStudyRepository
     public async Task<Study> AddAsync(Study study, CancellationToken ct = default)
     {
         await _context.Studies.AddAsync(study, ct);
+        await _context.SaveChangesAsync(ct);
         return study;
     }
 

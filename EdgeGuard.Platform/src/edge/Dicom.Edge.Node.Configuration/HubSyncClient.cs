@@ -207,13 +207,22 @@ public sealed class HubSyncClient(
 
     public async Task<bool> NotifyStudyAsync(StudyNotifyRequest request, CancellationToken ct = default)
     {
-        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping study notify -- node not yet registered"); return false; }
+        logger.LogInformation("Study notify requested -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes}",
+            request.StudyInstanceUid, request.PatientId, request.PatientName, request.AccessionNumber, request.InstanceCount, request.TotalSizeBytes);
+
+        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogInformation("Skipping study notify -- node not yet registered"); return false; }
+        
+        logger.LogInformation("Sending study notify -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes}",
+            request.StudyInstanceUid, request.PatientId, request.PatientName, request.AccessionNumber, request.InstanceCount, request.TotalSizeBytes);
+
         var url = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.StudyNotify}";
         try
         {
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Content = JsonContent.Create(request);
             ApplyApiKeyHeader(httpRequest);
+            logger.LogInformation("Sending study notify -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes}",
+                request.StudyInstanceUid, request.PatientId, request.PatientName, request.AccessionNumber, request.InstanceCount, request.TotalSizeBytes);
             var response = await httpClient.SendAsync(httpRequest, ct);
             if (!response.IsSuccessStatusCode)
                 logger.LogWarning("Study notify failed -- StatusCode={StatusCode} StudyUid={StudyUid}",

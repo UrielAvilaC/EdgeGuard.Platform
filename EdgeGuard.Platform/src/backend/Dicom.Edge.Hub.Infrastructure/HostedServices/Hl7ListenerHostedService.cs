@@ -37,8 +37,6 @@ public class Hl7ListenerHostedService : BackgroundService
             se.SocketErrorCode == SocketError.OperationAborted ||
             stoppingToken.IsCancellationRequested)
         {
-            // Windows IIS app pool recycle: socket abort propagates as SocketException 995,
-            // not OperationCanceledException. Treat as normal shutdown to prevent StopHost.
             _logger.LogInformation("HL7 Listener Hosted Service stopped (host shutdown)");
         }
         catch (Exception ex)

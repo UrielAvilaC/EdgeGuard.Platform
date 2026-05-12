@@ -162,6 +162,7 @@ public static class SharedNodeSettingDefaults
             public const string MaxPduLength              = SharedNodeSettingKeys.Dicom.MaxPduLength;
             public const string MwlEnabled                = SharedNodeSettingKeys.Dicom.MwlEnabled;
             public const string CEchoEnabled              = SharedNodeSettingKeys.Dicom.CEchoEnabled;
+            public  const string QrEnabled                 = SharedNodeSettingKeys.Dicom.QrEnabled;
         }
         public static class Cleanup
         {
