@@ -1,6 +1,7 @@
 using Dicom.Edge.Node.Persistence.Configuration;
 using Dicom.Edge.Node.Persistence.Constants;
 using Dicom.Edge.Node.Persistence.Diagnostics;
+using Microsoft.Extensions.Configuration;
 
 namespace Dicom.Edge.Node.Persistence.Services;
 
@@ -13,6 +14,7 @@ namespace Dicom.Edge.Node.Persistence.Services;
 public sealed class NodeSettingsService(
     IDbContextFactory<EdgeNodeDbContext> factory,
     INodeConfigurationReloader configReloader,
+    IConfiguration configuration,
     ILogger<NodeSettingsService> logger) : INodeSettingsService, IDisposable
 {
     private ConcurrentDictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
@@ -23,7 +25,7 @@ public sealed class NodeSettingsService(
 
     public async Task<T> GetAsync<T>(string key, CancellationToken ct = default)
     {
-        if (_cache.TryGetValue(key, out var raw))
+        if (_cache.TryGetValue(key, out var raw) && !string.IsNullOrEmpty(raw))
         {
             logger.LogDebug("Setting {Key} cache HIT (raw={Value})", key, raw);
             return Parse<T>(raw);
@@ -34,19 +36,31 @@ public sealed class NodeSettingsService(
         var entity = await ctx.NodeSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Key == key, ct);
 
-        if (entity is not null)
+        if (entity is not null && !string.IsNullOrEmpty(entity.Value))
         {
             logger.LogDebug("Setting {Key} found in DB (raw={Value})", key, entity.Value);
             return Parse<T>(entity.Value);
         }
 
-        logger.LogDebug("Setting {Key} not found in DB — returning default", key);
+        // DB has no value — fall back to environment variables then appsettings (DB → env → appsettings)
+        var configPath = NodeSettingConfigPathMap.GetConfigPath(key);
+        if (configPath is not null)
+        {
+            var configValue = configuration[configPath];
+            if (!string.IsNullOrEmpty(configValue))
+            {
+                logger.LogDebug("Setting {Key} resolved from IConfiguration path {Path} (env/appsettings)", key, configPath);
+                return Parse<T>(configValue);
+            }
+        }
+
+        logger.LogDebug("Setting {Key} not found in DB or configuration — returning default", key);
         return default!;
     }
 
     public async Task<T> GetAsync<T>(string key, T defaultValue, CancellationToken ct = default)
     {
-        if (_cache.TryGetValue(key, out var raw))
+        if (_cache.TryGetValue(key, out var raw) && !string.IsNullOrEmpty(raw))
         {
             logger.LogDebug("Setting {Key} cache HIT (raw={Value})", key, raw);
             return Parse<T>(raw);
@@ -57,7 +71,22 @@ public sealed class NodeSettingsService(
         var entity = await ctx.NodeSettings.AsNoTracking()
             .FirstOrDefaultAsync(s => s.Key == key, ct);
 
-        return entity is not null ? Parse<T>(entity.Value) : defaultValue;
+        if (entity is not null && !string.IsNullOrEmpty(entity.Value))
+            return Parse<T>(entity.Value);
+
+        // DB has no value — fall back to environment variables then appsettings (DB → env → appsettings)
+        var configPath = NodeSettingConfigPathMap.GetConfigPath(key);
+        if (configPath is not null)
+        {
+            var configValue = configuration[configPath];
+            if (!string.IsNullOrEmpty(configValue))
+            {
+                logger.LogDebug("Setting {Key} resolved from IConfiguration path {Path} (env/appsettings)", key, configPath);
+                return Parse<T>(configValue);
+            }
+        }
+
+        return defaultValue;
     }
 
     public async Task SetAsync<T>(string key, T value, CancellationToken ct = default)

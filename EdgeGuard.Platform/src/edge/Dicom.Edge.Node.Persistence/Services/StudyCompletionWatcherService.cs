@@ -126,6 +126,10 @@ public sealed class StudyCompletionWatcherService(
                     InstanceCount    = study.InstanceCount,
                     CallingAeTitle   = study.SourceAeTitle ?? string.Empty,
                     CompletedAt      = now,
+                    PatientId        = study.PatientId,
+                    PatientName      = study.PatientName,
+                    AccessionNumber  = study.AccessionNumber,
+                    TotalSizeBytes   = study.TotalSizeBytes,
                 }), ct);
 
             metrics.RecordStudyReceived(

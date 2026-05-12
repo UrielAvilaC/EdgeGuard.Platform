@@ -78,6 +78,35 @@ public sealed record NodeTelemetryAckDto
     public DateTime ServerTimeUtc { get; init; }
 }
 
+// ── PACS C-ECHO status (Hub-side, per node) ───────────────────────────────────
+
+/// <summary>
+/// Hub-side DTO that groups the latest C-ECHO results for a node, returned by
+/// <c>GET /api/nodes/{id}/pacs-echo</c>.
+/// </summary>
+public sealed record NodePacsCEchoStatusDto
+{
+    public required string NodeId        { get; init; }
+    public required DateTime ReportedAtUtc { get; init; }
+    public required IReadOnlyList<PacsCEchoDestinationDto> Destinations { get; init; }
+    public int TotalChecked   => Destinations.Count;
+    public int TotalReachable => Destinations.Count(d => d.Success);
+}
+
+public sealed record PacsCEchoDestinationDto
+{
+    public required string AeTitle      { get; init; }
+    public required string Host         { get; init; }
+    public required int    Port         { get; init; }
+    public required bool   Success      { get; init; }
+    public double?         LatencyMs    { get; init; }
+    /// <summary>Human-readable error (network, timeout, etc.).</summary>
+    public string?         Error        { get; init; }
+    /// <summary>Structured DICOM rejection reason, e.g. "CalledAENotRecognized".</summary>
+    public string?         ErrorReason  { get; init; }
+    public required DateTime CheckedAtUtc { get; init; }
+}
+
 // ── Studies ──────────────────────────────────────────────────────────────────
 
 public sealed record StudyDto

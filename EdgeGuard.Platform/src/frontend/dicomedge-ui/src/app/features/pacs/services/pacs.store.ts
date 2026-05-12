@@ -39,9 +39,9 @@ export class PacsStore {
   );
 
   // ── Mutations ──
-  setServers(servers: PacsServer[], total: number): void {
+  setServers(servers: PacsServer[], page: number, pageSize: number, total: number): void {
     this._servers.set(servers);
-    this._pagination.update(p => ({ ...p, total }));
+    this._pagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

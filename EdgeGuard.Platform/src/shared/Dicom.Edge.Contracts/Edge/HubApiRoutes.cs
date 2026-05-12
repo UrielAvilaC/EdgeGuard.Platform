@@ -36,6 +36,9 @@ public static class HubApiRoutes
     /// Returns a short-lived one-time token the node uses to call <see cref="Register"/>.
     /// </summary>
     public const string RequestToken = "/api/edge/token";
+
+    /// <summary>POST — Node reports PACS C-ECHO connectivity results. Returns acknowledgment.</summary>
+    public const string PacsEchoReport = "/api/edge/pacs-echo";
 }
 
 /// <summary>

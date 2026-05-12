@@ -49,7 +49,7 @@ export class RoutingRulesFacade {
       finalize(() => this.store.setLoading(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (result) => this.store.setRules(result.items, result.total),
+      next: (result) => this.store.setRules(result.items, result.page, result.pageSize, result.total),
       error: () => {
         this.store.setError('Error al cargar reglas de ruteo');
         this.toast.error('No se pudieron cargar las reglas de ruteo');

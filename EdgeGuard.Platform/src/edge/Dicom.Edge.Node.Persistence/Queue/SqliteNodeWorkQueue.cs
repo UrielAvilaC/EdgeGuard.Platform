@@ -35,7 +35,6 @@ public sealed class SqliteNodeWorkQueue(
         };
 
         var result = await edgeQueue.EnqueueAsync(queueItem, item.Priority, ct);
-
         if (result.IsSuccess)
         {
             logger.LogInformation(

@@ -46,9 +46,9 @@ export class StudiesStore {
   });
 
   // ── Mutations ──
-  setStudies(studies: Study[], total: number): void {
+  setStudies(studies: Study[], page: number, pageSize: number, total: number): void {
     this._studies.set(studies);
-    this._pagination.update(p => ({ ...p, total }));
+    this._pagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

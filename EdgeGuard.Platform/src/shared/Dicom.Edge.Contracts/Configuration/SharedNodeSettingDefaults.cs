@@ -60,6 +60,7 @@ public static class SharedNodeSettingDefaults
             E(K.Dicom.MaxPduLength,              "262144",    C.Dicom, "Max PDU Length (bytes)",            V.Int),
             E(K.Dicom.MwlEnabled,                "true",      C.Dicom, "MWL C-FIND SCP Enabled",           V.Bool),
             E(K.Dicom.CEchoEnabled,              "true",      C.Dicom, "C-ECHO (Verification) SCP Enabled", V.Bool),
+            E(K.Dicom.QrEnabled,                 "true",      C.Dicom, "Query/Retrieve (Q/R) SCP Enabled",  V.Bool),
 
             // ── Cleanup ─────────────────────────────────────────────────────
             E(K.Cleanup.Enabled,            "true",  C.Cleanup, "Auto-Cleanup Enabled",          V.Bool),

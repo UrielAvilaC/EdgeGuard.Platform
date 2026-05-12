@@ -85,20 +85,22 @@ public sealed class RoutingRuleLoaderService(
             };
         }).ToList();
 
-        // Default destination: prefer primary PACS from node_pacs_servers table,
-        // fall back to canonical settings keys (legacy / manual override)
-        PacsDestination? defaultDestination = null;
+        // Default destinations: all enabled PACS servers ordered by priority.
+        // When no routing rule matches a study, it is sent to every default destination in parallel.
+        List<PacsDestination> defaultDestinations = [];
 
-        var primaryPacs = pacsServers.MinBy(p => p.Priority);
-        if (primaryPacs is not null)
+        if (pacsServers.Count > 0)
         {
-            defaultDestination = new PacsDestination
-            {
-                Id      = primaryPacs.Id,
-                AeTitle = primaryPacs.AeTitle,
-                Host    = primaryPacs.Host,
-                Port    = primaryPacs.Port,
-            };
+            defaultDestinations = pacsServers
+                .OrderBy(p => p.Priority)
+                .Select(p => new PacsDestination
+                {
+                    Id      = p.Id,
+                    AeTitle = p.AeTitle,
+                    Host    = p.Host,
+                    Port    = p.Port,
+                })
+                .ToList();
         }
         else
         {
@@ -109,20 +111,22 @@ public sealed class RoutingRuleLoaderService(
                 var defaultHost = await settingsService.GetAsync<string>(SharedNodeSettingKeys.PacsDestination.Host, "localhost", ct);
                 var defaultPort = await settingsService.GetAsync<int>(SharedNodeSettingKeys.PacsDestination.Port, 104, ct);
 
-                defaultDestination = new PacsDestination
+                defaultDestinations.Add(new PacsDestination
                 {
                     Id      = "default",
                     AeTitle = defaultAe,
                     Host    = defaultHost,
                     Port    = defaultPort,
-                };
+                });
             }
         }
 
-        router.LoadRules(routingRules, defaultDestination);
+        router.LoadRules(routingRules, defaultDestinations);
 
         logger.LogInformation(
-            "Loaded {RuleCount} routing rules from database (default destination: {DefaultAe})",
-            routingRules.Count, defaultDestination?.AeTitle ?? "none");
+            "Loaded {RuleCount} routing rules from database ({DefaultCount} default destination(s): [{DefaultAes}])",
+            routingRules.Count,
+            defaultDestinations.Count,
+            string.Join(", ", defaultDestinations.Select(d => d.AeTitle)));
     }
 }

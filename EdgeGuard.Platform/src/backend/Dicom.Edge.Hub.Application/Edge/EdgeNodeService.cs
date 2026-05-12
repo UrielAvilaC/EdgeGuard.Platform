@@ -28,6 +28,7 @@ public sealed class EdgeNodeService(
     INodeTelemetryRepository telemetryRepository,
     IPacsServerRepository pacsRepository,
     INodeConfigurationService configService,
+    INodePacsEchoStore pacsEchoStore,
     IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,
     ILogger<EdgeNodeService> logger) : IEdgeNodeService
@@ -152,6 +153,10 @@ public sealed class EdgeNodeService(
         var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
         if (node is null) return null;
 
+        // A health report is proof of life — refresh the heartbeat timestamp.
+        node.UpdateHeartbeat(availableStorageMb: request.AvailableStorageMb);
+        await nodeRepository.UpdateAsync(node, ct);
+
         var record = HealthCheckRecord.Create(
             request.NodeId,
             NodeStatus.Online,
@@ -175,6 +180,10 @@ public sealed class EdgeNodeService(
     {
         var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
         if (node is null) return null;
+
+        // Telemetry is proof of life — refresh the heartbeat timestamp.
+        node.UpdateHeartbeat();
+        await nodeRepository.UpdateAsync(node, ct);
 
         var record = NodeTelemetryRecord.Create(
             request.NodeId,
@@ -248,5 +257,37 @@ public sealed class EdgeNodeService(
             nodeId, dict.Count, activePacsIds.Count);
 
         return dict;
+    }
+
+    public Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(
+        NodePacsEchoReportRequest request, CancellationToken ct = default)
+    {
+        var node = nodeRepository.GetByIdAsync(request.NodeId, ct);
+        // We don't await the existence check — just store optimistically.
+        // If the node disappears it's a cosmetic issue.
+        var status = new NodePacsCEchoStatusDto
+        {
+            NodeId        = request.NodeId,
+            ReportedAtUtc = request.ReportedAtUtc,
+            Destinations  = request.Results.Select(r => new PacsCEchoDestinationDto
+            {
+                AeTitle     = r.AeTitle,
+                Host        = r.Host,
+                Port        = r.Port,
+                Success     = r.Success,
+                LatencyMs   = r.LatencyMs,
+                Error       = r.Error,
+                ErrorReason = r.ErrorReason,
+                CheckedAtUtc = r.CheckedAtUtc,
+            }).ToList().AsReadOnly(),
+        };
+
+        pacsEchoStore.Upsert(status);
+
+        logger.LogDebug(
+            "PACS echo report stored for node {NodeId}: {Count} destination(s), {Ok} reachable",
+            request.NodeId, status.TotalChecked, status.TotalReachable);
+
+        return Task.FromResult<EdgeOperationResult?>(new EdgeOperationResult(true, DateTime.UtcNow));
     }
 }

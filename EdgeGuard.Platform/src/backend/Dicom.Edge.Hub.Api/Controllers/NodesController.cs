@@ -9,7 +9,6 @@ using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
@@ -145,6 +144,22 @@ public class NodesController : ControllerBase
     {
         var records = await _telemetryRepository.GetByNodeAsync(id, limit, ct);
         return Ok(records.Select(r => r.ToDto()));
+    }
+
+    // ── PACS C-ECHO Status ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// GET /api/nodes/{id}/pacs-echo — Returns the latest PACS C-ECHO status reported by the node.
+    /// Updated each time the node runs a C-ECHO cycle and reports results to the Hub.
+    /// </summary>
+    [HttpGet("{id}/pacs-echo")]
+    public IActionResult GetPacsEchoStatus(string id, [FromServices] INodePacsEchoStore pacsEchoStore)
+    {
+        var status = pacsEchoStore.Get(id);
+        if (status is null)
+            return NotFound(new { message = $"No PACS echo report received yet from node '{id}'." });
+
+        return Ok(status);
     }
 
     // ── Bootstrap Tokens ─────────────────────────────────────────────

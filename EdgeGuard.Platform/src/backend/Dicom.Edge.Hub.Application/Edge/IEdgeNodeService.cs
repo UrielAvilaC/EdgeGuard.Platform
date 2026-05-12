@@ -24,11 +24,13 @@ public interface IEdgeNodeService
     /// <summary>Persists a telemetry snapshot from a node. Returns null if node not found.</summary>
     Task<EdgeOperationResult?> ProcessTelemetryAsync(NodeTelemetryRequest request, CancellationToken ct = default);
 
-    /// <summary>
-    /// Returns the configuration dictionary for a node, or null if node not found.
+    /// <summary>Returns the configuration dictionary for a node, or null if node not found.
     /// Empty string nodeId returns null.
     /// </summary>
     Task<Dictionary<string, string>?> PullConfigurationAsync(string nodeId, CancellationToken ct = default);
+
+    /// <summary>Stores the latest PACS C-ECHO report from a node. Returns null if node not found.</summary>
+    Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(NodePacsEchoReportRequest request, CancellationToken ct = default);
 }
 
 /// <summary>

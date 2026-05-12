@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using Dicom.Edge.Abstractions.Monitoring;
 using Dicom.Edge.Contracts.Node;
 using Microsoft.Extensions.Hosting;
@@ -16,6 +15,7 @@ namespace Dicom.Edge.Node.Sender;
 /// </summary>
 public sealed class PacsCEchoHostedService(
     IPacsSender pacsSender,
+    IPacsEchoHubReporter hubReporter,
     IOptionsMonitor<PacsCEchoOptions> optionsMonitor,
     ILogger<PacsCEchoHostedService> logger) : BackgroundService, IPacsCEchoMonitor
 {
@@ -54,6 +54,10 @@ public sealed class PacsCEchoHostedService(
                 opts.Destinations.Length, opts.IntervalSeconds);
 
             await RunAllChecksAsync(opts, stoppingToken);
+
+            // Push results to Hub so the SPA can display per-node connectivity status
+            await hubReporter.ReportAsync(GetLatestResults(), stoppingToken);
+
             await Task.Delay(TimeSpan.FromSeconds(opts.IntervalSeconds), stoppingToken);
         }
     }
@@ -64,30 +68,30 @@ public sealed class PacsCEchoHostedService(
         {
             try
             {
-                var sw = Stopwatch.StartNew();
-                var success = await pacsSender.VerifyConnectionAsync(destination, ct);
-                sw.Stop();
+                var echoResult = await pacsSender.VerifyConnectionAsync(destination, ct);
 
                 var result = new PacsCEchoResultDto
                 {
                     DestinationAeTitle = destination.AeTitle,
-                    Host = destination.Host,
-                    Port = destination.Port,
-                    Success = success,
-                    CheckedAtUtc = DateTime.UtcNow,
-                    LatencyMs = sw.Elapsed.TotalMilliseconds
+                    Host               = destination.Host,
+                    Port               = destination.Port,
+                    Success            = echoResult.Success,
+                    CheckedAtUtc       = DateTime.UtcNow,
+                    LatencyMs          = echoResult.LatencyMs,
+                    Error              = echoResult.ErrorMessage,
+                    ErrorReason        = echoResult.ErrorReason,
                 };
 
                 _results[destination.AeTitle] = result;
 
-                if (success)
+                if (echoResult.Success)
                     logger.LogDebug(
                         "C-ECHO to {AeTitle}@{Host}:{Port} succeeded in {Latency:N1}ms",
-                        destination.AeTitle, destination.Host, destination.Port, sw.Elapsed.TotalMilliseconds);
+                        destination.AeTitle, destination.Host, destination.Port, echoResult.LatencyMs);
                 else
                     logger.LogWarning(
-                        "C-ECHO to {AeTitle}@{Host}:{Port} failed (no DICOM success status)",
-                        destination.AeTitle, destination.Host, destination.Port);
+                        "C-ECHO to {AeTitle}@{Host}:{Port} failed (no DICOM success status) — Reason={Reason}",
+                        destination.AeTitle, destination.Host, destination.Port, echoResult.ErrorReason ?? echoResult.ErrorMessage);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -98,11 +102,11 @@ public sealed class PacsCEchoHostedService(
                 _results[destination.AeTitle] = new PacsCEchoResultDto
                 {
                     DestinationAeTitle = destination.AeTitle,
-                    Host = destination.Host,
-                    Port = destination.Port,
-                    Success = false,
-                    CheckedAtUtc = DateTime.UtcNow,
-                    Error = ex.Message
+                    Host               = destination.Host,
+                    Port               = destination.Port,
+                    Success            = false,
+                    CheckedAtUtc       = DateTime.UtcNow,
+                    Error              = ex.Message,
                 };
 
                 logger.LogWarning(ex,

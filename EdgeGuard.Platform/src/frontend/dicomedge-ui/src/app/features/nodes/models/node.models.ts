@@ -98,3 +98,25 @@ export interface NodeTelemetry {
   averageReceptionDurationMs: number | null;
   averageThroughputMbps: number | null;
 }
+
+// ── PACS C-ECHO Status ────────────────────────────────────────────────────────
+
+export interface PacsCEchoDestination {
+  aeTitle: string;
+  host: string;
+  port: number;
+  success: boolean;
+  latencyMs: number | null;
+  error: string | null;
+  /** Structured DICOM rejection reason, e.g. 'CalledAENotRecognized'. */
+  errorReason: string | null;
+  checkedAtUtc: string;
+}
+
+export interface NodePacsCEchoStatus {
+  nodeId: string;
+  reportedAtUtc: string;
+  destinations: PacsCEchoDestination[];
+  totalChecked: number;
+  totalReachable: number;
+}

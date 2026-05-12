@@ -50,13 +50,14 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
             "Association request — CallingAE={CallingAe} CalledAE={CalledAe} LocalAE={LocalAe} Host={Host}",
             callingAe, calledAe, localAe, association.RemoteHost);
 
-        if (!string.Equals(calledAe, localAe, StringComparison.OrdinalIgnoreCase))
+        if (!options.IsAcceptedCalledAe(calledAe))
         {
             Deps.Logger.LogWarning(
-                "Association REJECTED — CalledAE '{CalledAe}' does not match local AE '{LocalAe}'. " +
-                "The remote SCU must use the correct AE Title. " +
-                "Check DicomServer:AeTitle in appsettings or the value pushed from the Hub (dicom.ae_title in DB).",
-                calledAe, localAe);
+                "Association REJECTED — CalledAE '{CalledAe}' does not match local AE '{LocalAe}' or any alias ({Aliases}). " +
+                "Update DicomServer:AeTitleAliases to accept this title, set ValidateCalledAe=false for permissive mode, " +
+                "or correct the AE title on the remote SCU.",
+                calledAe, localAe,
+                options.AeTitleAliases.Length > 0 ? string.Join(", ", options.AeTitleAliases) : "(none)");
             await Deps.AssociationTracker.RecordRejectionAsync(
                 callingAe, calledAe,
                 association.RemoteHost ?? string.Empty,

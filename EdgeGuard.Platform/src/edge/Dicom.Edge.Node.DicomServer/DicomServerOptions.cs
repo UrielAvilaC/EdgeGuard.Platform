@@ -17,16 +17,34 @@ public sealed class DicomServerOptions
     public string[] AllowedCallingAeTitles { get; set; } = [];
 
     /// <summary>
+    /// Additional AE titles this node accepts as CalledAE besides <see cref="AeTitle"/>.
+    /// Useful when clients still target the node's old AE title after a rename,
+    /// or when multiple logical names must be served from a single port.
+    /// </summary>
+    public string[] AeTitleAliases { get; set; } = [];
+
+    /// <summary>
+    /// When <c>true</c> (default), incoming associations are rejected if the CalledAE
+    /// does not match <see cref="AeTitle"/> or any entry in <see cref="AeTitleAliases"/>.
+    /// Set to <c>false</c> to accept any CalledAE (permissive mode).
+    /// </summary>
+    public bool ValidateCalledAe { get; set; } = true;
+
+    /// <summary>
     /// Enables Modality Worklist (MWL) C-FIND SCP on the same DICOM port.
-    /// When <c>false</c>, MWL presentation contexts are rejected.
     /// </summary>
     public bool MwlEnabled { get; set; } = true;
 
     /// <summary>
     /// Enables C-ECHO (Verification SCP) on the same DICOM port.
-    /// When <c>true</c>, remote systems can ping the node with a DICOM echo.
     /// </summary>
     public bool CEchoEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Enables the Query/Retrieve (Q/R) SCP for Study Root and Patient Root C-FIND and C-MOVE.
+    /// When enabled, remote SCUs can query the local study database and retrieve studies.
+    /// </summary>
+    public bool QrEnabled { get; set; } = true;
 
     /// <summary>
     /// When <c>true</c>, only CallingAE titles listed in
@@ -34,4 +52,14 @@ public sealed class DicomServerOptions
     /// Has no effect when <see cref="AllowedCallingAeTitles"/> is empty.
     /// </summary>
     public bool ValidateCallingAe { get; set; } = false;
+
+    /// <summary>
+    /// Returns true when <paramref name="calledAe"/> is accepted by this node,
+    /// honouring <see cref="ValidateCalledAe"/>, <see cref="AeTitle"/> and
+    /// <see cref="AeTitleAliases"/>.
+    /// </summary>
+    public bool IsAcceptedCalledAe(string calledAe) =>
+        !ValidateCalledAe ||
+        string.Equals(calledAe, AeTitle.Trim(), StringComparison.OrdinalIgnoreCase) ||
+        AeTitleAliases.Contains(calledAe, StringComparer.OrdinalIgnoreCase);
 }

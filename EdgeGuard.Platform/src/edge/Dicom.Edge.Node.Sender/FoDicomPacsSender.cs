@@ -94,8 +94,9 @@ public sealed class FoDicomPacsSender(
         }
     }
 
-    public async Task<bool> VerifyConnectionAsync(PacsDestination destination, CancellationToken ct = default)
+    public async Task<PacsCEchoVerifyResult> VerifyConnectionAsync(PacsDestination destination, CancellationToken ct = default)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var client = DicomClientFactory.Create(
@@ -105,22 +106,40 @@ public sealed class FoDicomPacsSender(
             client.ClientOptions.AssociationRequestTimeoutInMs = Opts.TimeoutSeconds * 1000;
 
             var echoRequest = new DicomCEchoRequest();
-            var success = false;
+            var dicomSuccess = false;
+            string? dicomStatusDescription = null;
             echoRequest.OnResponseReceived += (_, response) =>
             {
-                success = response.Status == DicomStatus.Success;
+                dicomSuccess = response.Status == DicomStatus.Success;
+                if (!dicomSuccess)
+                    dicomStatusDescription = response.Status?.Description ?? response.Status?.ToString();
             };
 
             await client.AddRequestAsync(echoRequest);
             await client.SendAsync(ct);
+            sw.Stop();
 
-            return success;
+            return dicomSuccess
+                ? PacsCEchoVerifyResult.Ok(sw.Elapsed.TotalMilliseconds)
+                : PacsCEchoVerifyResult.Fail(
+                    $"C-ECHO returned non-success status: {dicomStatusDescription}",
+                    dicomStatusDescription);
+        }
+        catch (DicomAssociationRejectedException ex)
+        {
+            sw.Stop();
+            // Extract the structured rejection reason from the DICOM exception
+            var reason = ex.RejectReason.ToString();
+            logger.LogWarning(ex, "C-ECHO to {AeTitle}@{Host}:{Port} failed — AssociationRejected Reason={Reason}",
+                destination.AeTitle, destination.Host, destination.Port, reason);
+            return PacsCEchoVerifyResult.Fail(ex.Message, reason);
         }
         catch (Exception ex)
         {
+            sw.Stop();
             logger.LogWarning(ex, "C-ECHO to {AeTitle}@{Host}:{Port} failed",
                 destination.AeTitle, destination.Host, destination.Port);
-            return false;
+            return PacsCEchoVerifyResult.Fail(ex.Message);
         }
     }
 }

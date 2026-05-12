@@ -117,6 +117,17 @@ public class EdgeController : ControllerBase
         return Ok(new NodeTelemetryAckDto { Acknowledged = result.Acknowledged, ServerTimeUtc = result.ServerTimeUtc });
     }
 
+    /// <summary>POST /edge/pacs-echo — Node reports PACS C-ECHO connectivity results.</summary>
+    [HttpPost("pacs-echo")]
+    public async Task<IActionResult> PacsEchoReport([FromBody] NodePacsEchoReportRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessPacsEchoReportAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new { acknowledged = result.Acknowledged });
+    }
+
     /// <summary>GET /edge/configuration — Node pulls its config as key-value pairs.</summary>
     [HttpGet("configuration")]
     public async Task<IActionResult> PullConfiguration([FromQuery] string nodeId, CancellationToken ct)

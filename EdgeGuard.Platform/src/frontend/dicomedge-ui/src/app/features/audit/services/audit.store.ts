@@ -40,9 +40,9 @@ export class AuditStore {
     return count;
   });
 
-  setLogs(logs: AuditLogDto[], total: number): void {
+  setLogs(logs: AuditLogDto[], page: number, pageSize: number, total: number): void {
     this._logs.set(logs);
-    this._pagination.update(p => ({ ...p, total }));
+    this._pagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

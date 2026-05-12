@@ -33,6 +33,7 @@ public static class NodeSettingKeys
         public const string Port                  = SharedNodeSettingKeys.Hub.Port;
         public const string BasePath              = SharedNodeSettingKeys.Hub.BasePath;
         public const string ApiKey                = SharedNodeSettingKeys.Hub.ApiKey;
+        public const string NodeId                = SharedNodeSettingKeys.Hub.NodeId;
         public const string TimeoutSeconds        = SharedNodeSettingKeys.Hub.TimeoutSeconds;
         public const string HeartbeatIntervalSec  = SharedNodeSettingKeys.Hub.HeartbeatIntervalSec;
         public const string RegisterOnStartup     = SharedNodeSettingKeys.Hub.RegisterOnStartup;
@@ -48,7 +49,9 @@ public static class NodeSettingKeys
     {
         public const string Enabled                   = SharedNodeSettingKeys.Dicom.Enabled;
         public const string ValidateCallingAe         = SharedNodeSettingKeys.Dicom.ValidateCallingAe;
+        public const string ValidateCalledAe          = SharedNodeSettingKeys.Dicom.ValidateCalledAe;
         public const string AllowedAeTitles           = SharedNodeSettingKeys.Dicom.AllowedAeTitles;
+        public const string AeTitleAliases            = SharedNodeSettingKeys.Dicom.AeTitleAliases;
         public const string MaxAssociations           = SharedNodeSettingKeys.Dicom.MaxAssociations;
         public const string Port                      = SharedNodeSettingKeys.Dicom.Port;
         public const string AeTitle                   = SharedNodeSettingKeys.Dicom.AeTitle;
@@ -58,6 +61,7 @@ public static class NodeSettingKeys
         public const string MaxPduLength              = SharedNodeSettingKeys.Dicom.MaxPduLength;
         public const string MwlEnabled                = SharedNodeSettingKeys.Dicom.MwlEnabled;
         public const string CEchoEnabled              = SharedNodeSettingKeys.Dicom.CEchoEnabled;
+        public const string QrEnabled                 = SharedNodeSettingKeys.Dicom.QrEnabled;
     }
 
     // ── Cleanup

@@ -338,6 +338,50 @@ public sealed class UpdateStudyRequest
     public bool? IsUrgent { get; init; }
 }
 
+// ── PACS C-ECHO report (Node → Hub) ─────────────────────────────────────────
+
+/// <summary>
+/// Node reports the latest PACS C-ECHO results to the Hub so the SPA can display connectivity status.
+/// </summary>
+public sealed class NodePacsEchoReportRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    public required IReadOnlyList<PacsEchoDestinationResult> Results { get; init; }
+
+    public DateTime ReportedAtUtc { get; init; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Per-destination result inside a <see cref="NodePacsEchoReportRequest"/>.
+/// </summary>
+public sealed class PacsEchoDestinationResult
+{
+    [Required, StringLength(16, MinimumLength = 1)]
+    public required string AeTitle { get; init; }
+
+    [Required]
+    public required string Host { get; init; }
+
+    public required int Port { get; init; }
+
+    public required bool Success { get; init; }
+
+    public double? LatencyMs { get; init; }
+
+    /// <summary>Human-readable exception or DICOM status message.</summary>
+    public string? Error { get; init; }
+
+    /// <summary>
+    /// Structured DICOM rejection reason, e.g. "CalledAENotRecognized".
+    /// Null when successful or the failure is non-DICOM.
+    /// </summary>
+    public string? ErrorReason { get; init; }
+
+    public required DateTime CheckedAtUtc { get; init; }
+}
+
 // ── Update Study Status (manual) ─────────────────────────────────────────────
 
 public sealed class UpdateStudyStatusRequest

@@ -67,7 +67,7 @@ public sealed class StudyProcessingHostedService(
                     "Processing work item {ItemId} for study {StudyUid} (type={Type}, retry={Retry})",
                     workItem.Id, workItem.StudyInstanceUid, workItem.Type, workItem.RetryCount);
 
-                await pipeline.ProcessStudyAsync(workItem.StudyInstanceUid, stoppingToken);
+                await pipeline.ProcessStudyAsync(workItem, stoppingToken);
 
                 // Small delay between items to avoid monopolizing the DB
                 await Task.Delay(BusyPollInterval, stoppingToken);
@@ -99,12 +99,17 @@ internal sealed class StudyCompletionEnqueueHandler(
     {
         var workItem = new NodeWorkItem
         {
-            Id = Guid.NewGuid().ToString(),
+            Id               = Guid.NewGuid().ToString(),
             StudyInstanceUid = @event.Study.StudyInstanceUid,
-            Type = NodeWorkItemType.PacsSend,
-            Priority = 5,
-            SourceAeTitle = @event.Study.CallingAeTitle,
-            CreatedAt = DateTime.UtcNow
+            Type             = NodeWorkItemType.PacsSend,
+            Priority         = 5,
+            SourceAeTitle    = @event.Study.CallingAeTitle,
+            CreatedAt        = DateTime.UtcNow,
+            PatientId        = @event.Study.PatientId,
+            PatientName      = @event.Study.PatientName,
+            AccessionNumber  = @event.Study.AccessionNumber,
+            TotalSizeBytes   = @event.Study.TotalSizeBytes,
+            InstanceCount    = @event.Study.InstanceCount,
         };
 
         var result = await workQueue.EnqueueAsync(workItem, cancellationToken);

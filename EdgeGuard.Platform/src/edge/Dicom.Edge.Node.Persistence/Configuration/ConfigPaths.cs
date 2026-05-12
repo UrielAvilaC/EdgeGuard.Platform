@@ -47,8 +47,11 @@ internal static class ConfigPaths
     public const string DicomMaxPduLength         = $"{ConfigSectionNames.DicomServer}:MaxPduLength";
     public const string DicomMwlEnabled           = $"{ConfigSectionNames.DicomServer}:MwlEnabled";
     public const string DicomCEchoEnabled         = $"{ConfigSectionNames.DicomServer}:CEchoEnabled";
+    public const string DicomQrEnabled            = $"{ConfigSectionNames.DicomServer}:QrEnabled";
     public const string DicomValidateCallingAe    = $"{ConfigSectionNames.DicomServer}:ValidateCallingAe";
+    public const string DicomValidateCalledAe     = $"{ConfigSectionNames.DicomServer}:ValidateCalledAe";
     public const string DicomAllowedCallingPrefix = $"{ConfigSectionNames.DicomServer}:AllowedCallingAeTitles";
+    public const string DicomAeTitleAliasesPrefix = $"{ConfigSectionNames.DicomServer}:AeTitleAliases";
 
     // ── PacsSender ───────────────────────────────────────────────────────────
 

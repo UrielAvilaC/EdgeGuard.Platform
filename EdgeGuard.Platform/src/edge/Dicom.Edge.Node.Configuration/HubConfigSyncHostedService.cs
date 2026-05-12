@@ -166,9 +166,24 @@ public sealed class HubConfigSyncHostedService(
             if (!string.IsNullOrEmpty(apiKey))
             {
                 if (hubClient is HubSyncClient concrete)
+                {
                     concrete.SetApiKey(apiKey);
 
-                logger.LogInformation("API key loaded from database for Hub authentication");
+                    var nodeId = await settingsService.GetAsync<string>(
+                        SharedNodeSettingKeys.Hub.NodeId, string.Empty, ct);
+                    if (!string.IsNullOrEmpty(nodeId))
+                    {
+                        concrete.SetRegisteredNodeId(nodeId);
+                        logger.LogInformation("NodeId restored from database — NodeId={NodeId}", nodeId);
+                    }
+                    else
+                    {
+                        logger.LogWarning("API key found in database but NodeId is missing — node will re-register to obtain a NodeId");
+                        return false;
+                    }
+                }
+
+                logger.LogInformation("API key and NodeId loaded from database for Hub authentication");
                 return true;
             }
 
@@ -201,6 +216,11 @@ public sealed class HubConfigSyncHostedService(
                     logger.LogInformation(
                         "Re-registered with Hub (NodeId={NodeId})", result.NodeId);
                 }
+
+                // Always persist/update NodeId so it survives restarts
+                if (!string.IsNullOrEmpty(result.NodeId))
+                    await PersistNodeIdAsync(result.NodeId, ct);
+
                 return;
             }
 
@@ -227,6 +247,21 @@ public sealed class HubConfigSyncHostedService(
         {
             logger.LogError(ex, "CRITICAL: Failed to persist API key to database. " +
                 "The node will need to be re-registered manually.");
+        }
+    }
+
+    private async Task PersistNodeIdAsync(string nodeId, CancellationToken ct)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var settingsService = scope.ServiceProvider.GetRequiredService<INodeSettingsService>();
+            await settingsService.SetAsync(SharedNodeSettingKeys.Hub.NodeId, nodeId, ct);
+            logger.LogInformation("NodeId persisted to database — NodeId={NodeId}", nodeId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "CRITICAL: Failed to persist NodeId to database — NodeId={NodeId}", nodeId);
         }
     }
 

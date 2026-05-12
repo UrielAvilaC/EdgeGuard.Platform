@@ -20,6 +20,7 @@ public sealed class HubSyncClient(
     public string? RegisteredNodeId => _registeredNodeId;
 
     internal void SetApiKey(string apiKey) => _apiKey = apiKey;
+    internal void SetRegisteredNodeId(string nodeId) => _registeredNodeId = nodeId;
 
     public async Task<RegistrationResult> RegisterAsync(CancellationToken ct = default)
     {
@@ -200,6 +201,51 @@ public sealed class HubSyncClient(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Telemetry send error -- NodeId={NodeId} Url={Url}", _registeredNodeId, url);
+            return false;
+        }
+    }
+
+    public async Task<bool> NotifyStudyAsync(StudyNotifyRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping study notify -- node not yet registered"); return false; }
+        var url = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.StudyNotify}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("Study notify failed -- StatusCode={StatusCode} StudyUid={StudyUid}",
+                    (int)response.StatusCode, request.StudyInstanceUid);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Study notify error -- StudyUid={StudyUid} Url={Url}",
+                request.StudyInstanceUid, url);
+            return false;
+        }
+    }
+
+    public async Task<bool> ReportPacsEchoAsync(NodePacsEchoReportRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping PACS echo report -- node not yet registered"); return false; }
+        var url = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.PacsEchoReport}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("PACS echo report failed -- StatusCode={StatusCode} NodeId={NodeId}",
+                    (int)response.StatusCode, _registeredNodeId);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "PACS echo report error -- NodeId={NodeId} Url={Url}", _registeredNodeId, url);
             return false;
         }
     }

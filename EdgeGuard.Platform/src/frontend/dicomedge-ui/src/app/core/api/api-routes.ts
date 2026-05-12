@@ -40,6 +40,7 @@ export const API_ROUTES = {
     ASSIGN_PACS: (nodeId: string, pacsId: string) => `/nodes/${nodeId}/pacs/${pacsId}`,
     UNASSIGN_PACS: (nodeId: string, pacsId: string) => `/nodes/${nodeId}/pacs/${pacsId}`,
     TELEMETRY: (id: string) => `/nodes/${id}/telemetry`,
+    PACS_ECHO: (id: string) => `/nodes/${id}/pacs-echo`,
   },
   PACS_SERVERS: {
     LIST: '/pacs-servers',

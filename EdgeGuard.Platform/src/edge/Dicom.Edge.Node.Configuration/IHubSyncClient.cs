@@ -10,10 +10,6 @@ public interface IHubSyncClient
     /// <summary>Node ID assigned by the Hub after successful registration. Null until registered.</summary>
     string? RegisteredNodeId { get; }
 
-    /// <summary>
-    /// Registers with the Hub.
-    /// Returns <see cref="RegistrationResult"/> indicating success and whether a new API key was issued.
-    /// </summary>
     Task<RegistrationResult> RegisterAsync(CancellationToken ct = default);
     Task<bool> SendHeartbeatAsync(CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, string>?> PullConfigurationAsync(CancellationToken ct = default);
@@ -21,6 +17,12 @@ public interface IHubSyncClient
 
     /// <summary>Sends a periodic telemetry snapshot to the Hub.</summary>
     Task<bool> SendTelemetryAsync(NodeTelemetryRequest request, CancellationToken ct = default);
+
+    /// <summary>Notifies the Hub that a study has completed so it appears in the SPA.</summary>
+    Task<bool> NotifyStudyAsync(StudyNotifyRequest request, CancellationToken ct = default);
+
+    /// <summary>Reports PACS C-ECHO results to the Hub so the SPA can display connectivity status.</summary>
+    Task<bool> ReportPacsEchoAsync(NodePacsEchoReportRequest request, CancellationToken ct = default);
 }
 
 /// <param name="Success">True if registration was accepted (first or re-registration).</param>
