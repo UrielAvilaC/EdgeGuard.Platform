@@ -10,7 +10,6 @@ public sealed class HubConnectionOptions
     public bool Enabled { get; set; } = false;
     public string HubBaseUrl { get; set; } = "http://localhost:5000";
     public string ApiKey { get; set; } = string.Empty;
-
     public string NodeId { get; set; } = string.Empty;
     public string BootstrapToken { get; set; } = string.Empty;
     public int HeartbeatIntervalSeconds { get; set; } = 60;

@@ -86,6 +86,7 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         // It is an infrastructure decision controlled exclusively via appsettings
         // so the Hub cannot remotely disable its own connection channel.
         Map(db, cfg, NodeSettingKeys.Hub.ApiKey,                ConfigPaths.HubApiKey);
+        Map(db, cfg, NodeSettingKeys.Hub.NodeId,                ConfigPaths.HubNodeId);
         Map(db, cfg, NodeSettingKeys.Hub.TimeoutSeconds,        ConfigPaths.HubTimeoutSeconds);
         Map(db, cfg, NodeSettingKeys.Hub.HeartbeatIntervalSec,  ConfigPaths.HubHeartbeatIntervalSeconds);
         Map(db, cfg, NodeSettingKeys.Hub.RegisterOnStartup,     ConfigPaths.HubRegisterOnStartup);

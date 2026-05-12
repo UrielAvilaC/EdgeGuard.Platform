@@ -17,6 +17,7 @@ internal static class ConfigPaths
 
     public const string HubEnabled                  = $"{ConfigSectionNames.HubConnection}:Enabled";
     public const string HubApiKey                   = $"{ConfigSectionNames.HubConnection}:ApiKey";
+    public const string HubNodeId                   = $"{ConfigSectionNames.HubConnection}:NodeId";
     public const string HubTimeoutSeconds           = $"{ConfigSectionNames.HubConnection}:TimeoutSeconds";
     public const string HubHeartbeatIntervalSeconds = $"{ConfigSectionNames.HubConnection}:HeartbeatIntervalSeconds";
     public const string HubRegisterOnStartup        = $"{ConfigSectionNames.HubConnection}:RegisterOnStartup";
