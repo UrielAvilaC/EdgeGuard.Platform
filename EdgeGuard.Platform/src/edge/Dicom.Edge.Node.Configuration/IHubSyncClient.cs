@@ -9,7 +9,7 @@ public interface IHubSyncClient
 {
     /// <summary>Node ID assigned by the Hub after successful registration. Null until registered.</summary>
     string? RegisteredNodeId { get; }
-
+    HubConnectionOptions ConnectionOptions { get; }
     Task<RegistrationResult> RegisterAsync(CancellationToken ct = default);
     Task<bool> SendHeartbeatAsync(CancellationToken ct = default);
     Task<IReadOnlyDictionary<string, string>?> PullConfigurationAsync(CancellationToken ct = default);

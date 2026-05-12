@@ -10,6 +10,7 @@ namespace Dicom.Edge.Node.DicomServer;
 /// <list type="bullet">
 ///   <item><description><b>C-STORE</b> — image/object reception delegated to <see cref="IDicomInstanceHandler"/>.</description></item>
 ///   <item><description><b>C-FIND MWL</b> — Modality Worklist queries delegated to <see cref="IWorklistCFindHandler"/>.</description></item>
+///   <item><description><b>C-FIND Study Root Q/R</b> — study queries delegated to <see cref="IStudyRootCFindHandler"/>.</description></item>
 ///   <item><description><b>C-ECHO</b> — Verification SCP; responds to connectivity pings from remote systems.</description></item>
 /// </list>
 /// Dependencies are passed via <see cref="DicomService.UserState"/> (<see cref="DicomScpDependencies"/>)
@@ -144,6 +145,28 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 continue;
             }
 
+            // Study Root Query/Retrieve C-FIND
+            if (uid == DicomUID.StudyRootQueryRetrieveInformationModelFind)
+            {
+                if (options.QrEnabled)
+                {
+                    ctx.SetResult(DicomPresentationContextResult.Accept);
+                    accepted++;
+                    if (acceptedUids.Length > 0) acceptedUids.Append(", ");
+                    acceptedUids.Append(uid.UID);
+                    Deps.Logger.LogDebug("Presentation context ACCEPTED — Study Root C-FIND ID={Id}", ctx.ID);
+                }
+                else
+                {
+                    ctx.SetResult(DicomPresentationContextResult.RejectAbstractSyntaxNotSupported);
+                    rejected++;
+                    Deps.Logger.LogDebug(
+                        "Presentation context REJECTED — Query/Retrieve disabled (QrEnabled=false). " +
+                        "Enable it via node settings key EnableDicomQr or dicom.qr_enabled.");
+                }
+                continue;
+            }
+
             // C-STORE — accept all storage SOP classes
             ctx.SetResult(DicomPresentationContextResult.Accept);
             accepted++;
@@ -217,39 +240,82 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
         return Task.CompletedTask;
     }
 
-    // ── C-FIND MWL (Modality Worklist query) ────────────────────────────────
+    // ── C-FIND handlers (MWL + Study Root Q/R) ──────────────────────────────
 
     public async IAsyncEnumerable<DicomCFindResponse> OnCFindRequestAsync(
         DicomCFindRequest request)
     {
-        // Only handle Modality Worklist queries
-        if (request.SOPClassUID != DicomUID.ModalityWorklistInformationModelFind)
+        // MWL (Modality Worklist) queries
+        if (request.SOPClassUID == DicomUID.ModalityWorklistInformationModelFind)
         {
-            Deps.Logger.LogWarning("Unsupported C-FIND SOP class: {SopClassUid}", request.SOPClassUID);
-            yield return new DicomCFindResponse(request, DicomStatus.SOPClassNotSupported);
+            Deps.Logger.LogInformation("MWL C-FIND request from {CallingAe}", Association.CallingAE);
+
+            int resultCount = 0;
+
+            await foreach (var dataset in Deps.MwlHandler.QueryWorklistAsync(request.Dataset))
+            {
+                var response = new DicomCFindResponse(request, DicomStatus.Pending)
+                {
+                    Dataset = dataset
+                };
+
+                resultCount++;
+                yield return response;
+            }
+
+            Deps.Logger.LogInformation(
+                "MWL C-FIND completed — {Count} results for {CallingAe}",
+                resultCount, Association.CallingAE);
+
+            yield return new DicomCFindResponse(request, DicomStatus.Success);
             yield break;
         }
 
-        Deps.Logger.LogInformation("MWL C-FIND request from {CallingAe}", Association.CallingAE);
-
-        int resultCount = 0;
-
-        await foreach (var dataset in Deps.MwlHandler.QueryWorklistAsync(request.Dataset))
+        // Study Root Query/Retrieve queries
+        if (request.SOPClassUID == DicomUID.StudyRootQueryRetrieveInformationModelFind)
         {
-            var response = new DicomCFindResponse(request, DicomStatus.Pending)
+            if (!Deps.Options.QrEnabled)
             {
-                Dataset = dataset
-            };
+                Deps.Logger.LogWarning("Study Root C-FIND requested while Q/R is disabled");
+                yield return new DicomCFindResponse(request, DicomStatus.SOPClassNotSupported);
+                yield break;
+            }
 
-            resultCount++;
-            yield return response;
+            var queryKeys = request.Dataset ?? new DicomDataset();
+            var level = queryKeys.GetSingleValueOrDefault(DicomTag.QueryRetrieveLevel, "STUDY");
+
+            if (!string.Equals(level, "STUDY", StringComparison.OrdinalIgnoreCase))
+            {
+                Deps.Logger.LogWarning(
+                    "Unsupported Q/R level for Study Root C-FIND: {Level}",
+                    level);
+                yield return new DicomCFindResponse(request, DicomStatus.QueryRetrieveUnableToProcess);
+                yield break;
+            }
+
+            Deps.Logger.LogInformation("Study Root C-FIND request from {CallingAe}", Association.CallingAE);
+            var resultCount = 0;
+
+            await foreach (var dataset in Deps.StudyRootHandler.QueryStudiesAsync(queryKeys))
+            {
+                var response = new DicomCFindResponse(request, DicomStatus.Pending)
+                {
+                    Dataset = dataset
+                };
+                resultCount++;
+                yield return response;
+            }
+
+            Deps.Logger.LogInformation(
+                "Study Root C-FIND completed — {Count} results for {CallingAe}",
+                resultCount, Association.CallingAE);
+
+            yield return new DicomCFindResponse(request, DicomStatus.Success);
+            yield break;
         }
 
-        Deps.Logger.LogInformation(
-            "MWL C-FIND completed — {Count} results for {CallingAe}",
-            resultCount, Association.CallingAE);
-
-        yield return new DicomCFindResponse(request, DicomStatus.Success);
+        Deps.Logger.LogWarning("Unsupported C-FIND SOP class: {SopClassUid}", request.SOPClassUID);
+        yield return new DicomCFindResponse(request, DicomStatus.SOPClassNotSupported);
     }
 
     // ── C-ECHO (Verification) ────────────────────────────────────────────────

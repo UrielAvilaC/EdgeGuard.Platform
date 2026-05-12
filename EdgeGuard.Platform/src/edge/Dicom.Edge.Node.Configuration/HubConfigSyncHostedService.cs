@@ -174,6 +174,7 @@ public sealed class HubConfigSyncHostedService(
                     if (!string.IsNullOrEmpty(nodeId))
                     {
                         concrete.SetRegisteredNodeId(nodeId);
+                        
                         logger.LogInformation("NodeId restored from database — NodeId={NodeId}", nodeId);
                     }
                     else
@@ -269,7 +270,7 @@ public sealed class HubConfigSyncHostedService(
 
     private async Task PushTelemetryAsync(DateTime periodStart, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(hubClient.RegisteredNodeId)) return;
+        if (string.IsNullOrEmpty(optionsMonitor.CurrentValue.NodeId)) return;
 
         try
         {
@@ -301,7 +302,7 @@ public sealed class HubConfigSyncHostedService(
 
             var request = new NodeTelemetryRequest
             {
-                NodeId                    = hubClient.RegisteredNodeId,
+                NodeId                    = optionsMonitor.CurrentValue.NodeId,
                 PeriodStart               = periodStart,
                 PeriodEnd                 = periodEnd,
                 TotalAssociations         = assocs.Count,

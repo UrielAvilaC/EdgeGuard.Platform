@@ -41,8 +41,8 @@ public sealed class DicomServerOptions
     public bool CEchoEnabled { get; set; } = true;
 
     /// <summary>
-    /// Enables the Query/Retrieve (Q/R) SCP for Study Root and Patient Root C-FIND and C-MOVE.
-    /// When enabled, remote SCUs can query the local study database and retrieve studies.
+    /// Enables Query/Retrieve (Q/R) Study Root C-FIND SCP support.
+    /// When enabled, remote SCUs can query the local study database via C-FIND.
     /// </summary>
     public bool QrEnabled { get; set; } = true;
 

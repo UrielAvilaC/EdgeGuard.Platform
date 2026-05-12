@@ -22,6 +22,7 @@ namespace Dicom.Edge.Node.DicomServer;
 public sealed class DicomServerHostedService(
     IDicomInstanceHandler instanceHandler,
     IWorklistCFindHandler mwlHandler,
+    IStudyRootCFindHandler studyRootHandler,
     IStudyCompletionTrigger completionTrigger,
     IDicomAssociationTracker associationTracker,
     IOptionsMonitor<DicomServerOptions> optionsMonitor,
@@ -42,16 +43,23 @@ public sealed class DicomServerHostedService(
         }
 
         logger.LogInformation(
-            "Starting DICOM SCP on port {Port} AeTitle={AeTitle} MWL={MwlEnabled} CEcho={CEchoEnabled} ValidateCallingAe={ValidateCallingAe}",
-            opts.Port, opts.AeTitle, opts.MwlEnabled, opts.CEchoEnabled, opts.ValidateCallingAe);
+            "Starting DICOM SCP on port {Port} AeTitle={AeTitle} MWL={MwlEnabled} QR={QrEnabled} CEcho={CEchoEnabled} ValidateCallingAe={ValidateCallingAe}",
+            opts.Port, opts.AeTitle, opts.MwlEnabled, opts.QrEnabled, opts.CEchoEnabled, opts.ValidateCallingAe);
 
         _server = dicomServerFactory.Create<CStoreScp>(
             opts.Port,
-            userState: new DicomScpDependencies(instanceHandler, mwlHandler, completionTrigger, associationTracker, optionsMonitor, logger));
+            userState: new DicomScpDependencies(
+                instanceHandler,
+                mwlHandler,
+                studyRootHandler,
+                completionTrigger,
+                associationTracker,
+                optionsMonitor,
+                logger));
 
         logger.LogInformation(
-            "DICOM server listening on port {Port} — C-STORE=enabled C-ECHO={CEchoEnabled} MWL={MwlEnabled}",
-            opts.Port, opts.CEchoEnabled, opts.MwlEnabled);
+            "DICOM server listening on port {Port} — C-STORE=enabled C-ECHO={CEchoEnabled} MWL={MwlEnabled} QR={QrEnabled}",
+            opts.Port, opts.CEchoEnabled, opts.MwlEnabled, opts.QrEnabled);
 
         return Task.CompletedTask;
     }
@@ -81,6 +89,7 @@ public sealed class DicomServerHostedService(
 public sealed record DicomScpDependencies(
     IDicomInstanceHandler InstanceHandler,
     IWorklistCFindHandler MwlHandler,
+    IStudyRootCFindHandler StudyRootHandler,
     IStudyCompletionTrigger CompletionTrigger,
     IDicomAssociationTracker AssociationTracker,
     IOptionsMonitor<DicomServerOptions> OptionsMonitor,

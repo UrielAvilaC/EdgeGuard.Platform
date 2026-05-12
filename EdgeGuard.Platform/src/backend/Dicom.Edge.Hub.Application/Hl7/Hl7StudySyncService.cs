@@ -49,13 +49,13 @@ public sealed class Hl7StudySyncService(
         DateTime? studyDate = null;
         if (!string.IsNullOrWhiteSpace(message.StudyDate) &&
             DateTime.TryParseExact(
-                message.StudyDate[..Math.Min(8, message.StudyDate.Length)],
-                "yyyyMMdd",
+                message.StudyDate[..Math.Min(14, message.StudyDate.Length)],
+                "yyyyMMddHHmmss",
                 System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.None,
                 out var parsedDate))
         {
-            studyDate = parsedDate;
+            studyDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
         }
 
         var study = Study.CreateFromWorklist(

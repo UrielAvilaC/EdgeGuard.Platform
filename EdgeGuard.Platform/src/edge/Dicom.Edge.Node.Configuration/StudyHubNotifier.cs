@@ -1,6 +1,7 @@
 using Dicom.Edge.Abstractions.Monitoring;
 using Dicom.Edge.Contracts.Hub;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Dicom.Edge.Node.Configuration;
 
@@ -29,7 +30,9 @@ public sealed class StudyHubNotifier(
 
         if (string.IsNullOrEmpty(resolvedNodeId))
         {
-            logger.LogDebug("Skipping Hub study notification — node not yet registered");
+            logger.LogInformation("Skipping Hub study notification — node not yet registered");
+            var hubOptions = JsonSerializer.Serialize(hubClient.ConnectionOptions);
+            logger.LogInformation("Hub connection options: {Options}", hubOptions);
             return false;
         }
         logger.LogInformation(
@@ -49,7 +52,7 @@ public sealed class StudyHubNotifier(
                 TotalSizeBytes   = totalSizeBytes,
             };
 
-            logger.LogDebug(
+            logger.LogInformation(
                 "Sending study notification to Hub for study {StudyUid} on node {NodeId} — Patient={Patient}",
                 studyInstanceUid, resolvedNodeId, patientName);
 

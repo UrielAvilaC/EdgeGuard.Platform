@@ -78,6 +78,8 @@ try
 
     // ── DICOM Association Tracker (per-association audit + metrics) ──────
     builder.Services.AddSingleton<IDicomAssociationTracker, DicomAssociationTracker>();
+    // ── Study Root C-FIND handler (Query/Retrieve) ───────────────────────
+    builder.Services.AddSingleton<IStudyRootCFindHandler, StudyRootCFindHandler>();
 
     // ── DICOM Server (C-STORE SCP + MWL C-FIND SCP) ─────────────────────
     builder.Services.AddNodeDicomServer(builder.Configuration);

@@ -12,12 +12,13 @@ public sealed class HubSyncClient(
     IOptionsMonitor<HubConnectionOptions> optionsMonitor,
     ILogger<HubSyncClient> logger) : IHubSyncClient
 {
-    private HubConnectionOptions _opts => optionsMonitor.CurrentValue;
+    public HubConnectionOptions ConnectionOptions => optionsMonitor.CurrentValue;
     private string? _registeredNodeId;
     private string? _apiKey;
 
+    
     /// <inheritdoc />
-    public string? RegisteredNodeId => _registeredNodeId;
+    public string? RegisteredNodeId => _registeredNodeId ?? ConnectionOptions.NodeId;
 
     internal void SetApiKey(string apiKey) => _apiKey = apiKey;
     internal void SetRegisteredNodeId(string nodeId) => _registeredNodeId = nodeId;
@@ -25,31 +26,31 @@ public sealed class HubSyncClient(
     public async Task<RegistrationResult> RegisterAsync(CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
-        var resolvedApiEndpoint = !string.IsNullOrWhiteSpace(_opts.ApiEndpoint)
-            ? _opts.ApiEndpoint
-            : $"http://{_opts.IpAddress}:{_opts.ApiPort}/api";
-        var registerUrl = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Register}";
+        var resolvedApiEndpoint = !string.IsNullOrWhiteSpace(ConnectionOptions.ApiEndpoint)
+            ? ConnectionOptions.ApiEndpoint
+            : $"http://{ConnectionOptions.IpAddress}:{ConnectionOptions.ApiPort}/api";
+        var registerUrl = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Register}";
         logger.LogInformation(
             "Hub registration starting -- HubBaseUrl={HubBaseUrl} RegisterUrl={RegisterUrl} AeTitle={AeTitle} IpAddress={IpAddress} DicomPort={DicomPort} ApiEndpoint={ApiEndpoint} NodeName={NodeName} FacilityName={FacilityName}",
-            _opts.HubBaseUrl, registerUrl, _opts.AeTitle, _opts.IpAddress, _opts.Port, resolvedApiEndpoint, _opts.NodeName, _opts.FacilityName);
+            ConnectionOptions.HubBaseUrl, registerUrl, ConnectionOptions.AeTitle, ConnectionOptions.IpAddress, ConnectionOptions.Port, resolvedApiEndpoint, ConnectionOptions.NodeName, ConnectionOptions.FacilityName);
         try
         {
             var payload = new NodeRegistrationRequest
             {
-                Name         = !string.IsNullOrWhiteSpace(_opts.NodeName) ? _opts.NodeName : Environment.MachineName,
-                AeTitle      = _opts.AeTitle,
-                IpAddress    = _opts.IpAddress,
-                Port         = _opts.Port,
+                Name         = !string.IsNullOrWhiteSpace(ConnectionOptions.NodeName) ? ConnectionOptions.NodeName : Environment.MachineName,
+                AeTitle      = ConnectionOptions.AeTitle,
+                IpAddress    = ConnectionOptions.IpAddress,
+                Port         = ConnectionOptions.Port,
                 ApiEndpoint  = resolvedApiEndpoint,
-                Location     = _opts.Location,
-                FacilityName = _opts.FacilityName,
-                Version      = _opts.Version
+                Location     = ConnectionOptions.Location,
+                FacilityName = ConnectionOptions.FacilityName,
+                Version      = ConnectionOptions.Version
             };
-            var bootstrapToken = !string.IsNullOrWhiteSpace(_opts.BootstrapToken)
-                ? _opts.BootstrapToken
+            var bootstrapToken = !string.IsNullOrWhiteSpace(ConnectionOptions.BootstrapToken)
+                ? ConnectionOptions.BootstrapToken
                 : await RequestBootstrapTokenAsync(ct);
             logger.LogDebug("Bootstrap token resolved -- Source={Source} HasToken={HasToken}",
-                !string.IsNullOrWhiteSpace(_opts.BootstrapToken) ? "config" : "self-service", bootstrapToken is not null);
+                !string.IsNullOrWhiteSpace(ConnectionOptions.BootstrapToken) ? "config" : "self-service", bootstrapToken is not null);
             using var request = new HttpRequestMessage(HttpMethod.Post, registerUrl);
             request.Content = JsonContent.Create(payload);
             if (!string.IsNullOrEmpty(bootstrapToken))
@@ -78,16 +79,16 @@ public sealed class HubSyncClient(
         catch (Exception ex)
         {
             logger.LogError(ex, "Hub registration error -- HubBaseUrl={HubBaseUrl} RegisterUrl={RegisterUrl} ElapsedMs={ElapsedMs}",
-                _opts.HubBaseUrl, registerUrl, sw.ElapsedMilliseconds);
+                ConnectionOptions.HubBaseUrl, registerUrl, sw.ElapsedMilliseconds);
             return new RegistrationResult(false, null, null);
         }
     }
 
     private async Task<string?> RequestBootstrapTokenAsync(CancellationToken ct)
     {
-        var tokenUrl = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.RequestToken}";
+        var tokenUrl = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.RequestToken}";
         logger.LogDebug("Requesting bootstrap token -- HubBaseUrl={HubBaseUrl} TokenRoute={TokenRoute} ResolvedUrl={ResolvedUrl}",
-            _opts.HubBaseUrl, HubApiRoutes.RequestToken, tokenUrl);
+            ConnectionOptions.HubBaseUrl, HubApiRoutes.RequestToken, tokenUrl);
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, tokenUrl);
@@ -108,12 +109,12 @@ public sealed class HubSyncClient(
         {
             logger.LogError(ex,
                 "Invalid URI for bootstrap token -- HubBaseUrl={HubBaseUrl} TokenRoute={TokenRoute} ResolvedUrl={ResolvedUrl} -- Check HubConnection:HubBaseUrl in appsettings",
-                _opts.HubBaseUrl, HubApiRoutes.RequestToken, tokenUrl);
+                ConnectionOptions.HubBaseUrl, HubApiRoutes.RequestToken, tokenUrl);
             return null;
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Could not obtain bootstrap token -- HubBaseUrl={HubBaseUrl} Url={Url}", _opts.HubBaseUrl, tokenUrl);
+            logger.LogWarning(ex, "Could not obtain bootstrap token -- HubBaseUrl={HubBaseUrl} Url={Url}", ConnectionOptions.HubBaseUrl, tokenUrl);
             return null;
         }
     }
@@ -121,7 +122,7 @@ public sealed class HubSyncClient(
     public async Task<bool> SendHeartbeatAsync(CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping heartbeat -- node not yet registered"); return false; }
-        var heartbeatUrl = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Heartbeat}";
+        var heartbeatUrl = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Heartbeat}";
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, heartbeatUrl);
@@ -142,7 +143,7 @@ public sealed class HubSyncClient(
     public async Task<IReadOnlyDictionary<string, string>?> PullConfigurationAsync(CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping config pull -- node not yet registered"); return null; }
-        var configUrl = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.ConfigurationPull}?nodeId={Uri.EscapeDataString(_registeredNodeId)}";
+        var configUrl = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.ConfigurationPull}?nodeId={Uri.EscapeDataString(_registeredNodeId)}";
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, configUrl);
@@ -167,7 +168,7 @@ public sealed class HubSyncClient(
 
     public async Task<bool> DeregisterAsync(CancellationToken ct = default)
     {
-        var deregisterUrl = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Deregister}";
+        var deregisterUrl = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Deregister}";
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Delete, deregisterUrl);
@@ -187,7 +188,7 @@ public sealed class HubSyncClient(
     public async Task<bool> SendTelemetryAsync(NodeTelemetryRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping telemetry -- node not yet registered"); return false; }
-        var url = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Telemetry}";
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.Telemetry}";
         try
         {
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
@@ -215,7 +216,7 @@ public sealed class HubSyncClient(
         logger.LogInformation("Sending study notify -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes}",
             request.StudyInstanceUid, request.PatientId, request.PatientName, request.AccessionNumber, request.InstanceCount, request.TotalSizeBytes);
 
-        var url = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.StudyNotify}";
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.StudyNotify}";
         try
         {
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
@@ -240,7 +241,7 @@ public sealed class HubSyncClient(
     public async Task<bool> ReportPacsEchoAsync(NodePacsEchoReportRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping PACS echo report -- node not yet registered"); return false; }
-        var url = $"{_opts.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.PacsEchoReport}";
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.PacsEchoReport}";
         try
         {
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
