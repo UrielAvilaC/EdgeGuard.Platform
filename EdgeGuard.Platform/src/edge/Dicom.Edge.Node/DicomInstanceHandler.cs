@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Persistence;
+using Dicom.Edge.Abstractions.Monitoring;
 using Dicom.Edge.Models.Core;
 using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Models.Patient;
@@ -25,6 +26,7 @@ namespace Dicom.Edge.Node;
 internal sealed class DicomInstanceHandler(
     IServiceScopeFactory scopeFactory,
     INodeSettingsService settings,
+    IStudyHubNotifier hubNotifier,
     ILogger<DicomInstanceHandler> logger) : IDicomInstanceHandler
 {
     public async Task HandleInstanceAsync(
@@ -219,5 +221,20 @@ internal sealed class DicomInstanceHandler(
         logger.LogDebug(
             "Persisted instance {SopUid} for study {StudyUid} (InstanceCount={Count})",
             sopUid, studyUid, study.InstanceCount);
+
+        // ── Notify Hub of receiving progress (throttled: first + every 5th) ─
+        if (study.InstanceCount == 1 || study.InstanceCount % 5 == 0)
+        {
+            var generalCfg = await settings.GetGeneralConfigAsync(ct);
+            _ = hubNotifier.NotifyStudyProgressAsync(
+                nodeId:          generalCfg.NodeName,
+                studyInstanceUid: studyUid,
+                accessionNumber: study.AccessionNumber,
+                patientId:       study.PatientId,
+                patientName:     study.PatientName,
+                instanceCount:   study.InstanceCount,
+                totalSizeBytes:  study.TotalSizeBytes,
+                ct:              ct);
+        }
     }
 }

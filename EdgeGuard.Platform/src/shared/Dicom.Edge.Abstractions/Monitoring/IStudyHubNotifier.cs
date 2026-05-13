@@ -19,4 +19,18 @@ public interface IStudyHubNotifier
         int instanceCount,
         long totalSizeBytes,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Sends incremental progress (per-instance) to the Hub while a study is being received.
+    /// Throttle strategy is left to the caller. Fire-and-forget safe — never throws.
+    /// </summary>
+    Task<bool> NotifyStudyProgressAsync(
+        string nodeId,
+        string studyInstanceUid,
+        string? accessionNumber,
+        string? patientId,
+        string? patientName,
+        int instanceCount,
+        long totalSizeBytes,
+        CancellationToken ct = default);
 }

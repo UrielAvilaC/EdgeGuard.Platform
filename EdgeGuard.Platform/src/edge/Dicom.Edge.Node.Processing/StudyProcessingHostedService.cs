@@ -39,8 +39,7 @@ public sealed class StudyProcessingHostedService(
         logger.LogInformation("Study processing hosted service started (persistent queue mode)");
 
         // Subscribe to completion events to enqueue work items into the persistent queue
-        eventBus.Subscribe<StudyCompletedEvent>(
-            new StudyCompletionEnqueueHandler(workQueue, logger));
+        eventBus.Subscribe(new StudyCompletionEnqueueHandler(workQueue, logger));
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -99,17 +98,17 @@ internal sealed class StudyCompletionEnqueueHandler(
     {
         var workItem = new NodeWorkItem
         {
-            Id               = Guid.NewGuid().ToString(),
+            Id = Guid.NewGuid().ToString(),
             StudyInstanceUid = @event.Study.StudyInstanceUid,
-            Type             = NodeWorkItemType.PacsSend,
-            Priority         = 5,
-            SourceAeTitle    = @event.Study.CallingAeTitle,
-            CreatedAt        = DateTime.UtcNow,
-            PatientId        = @event.Study.PatientId,
-            PatientName      = @event.Study.PatientName,
-            AccessionNumber  = @event.Study.AccessionNumber,
-            TotalSizeBytes   = @event.Study.TotalSizeBytes,
-            InstanceCount    = @event.Study.InstanceCount,
+            Type = NodeWorkItemType.PacsSend,
+            Priority = 5,
+            SourceAeTitle = @event.Study.CallingAeTitle,
+            CreatedAt = DateTime.UtcNow,
+            PatientId = @event.Study.PatientId,
+            PatientName = @event.Study.PatientName,
+            AccessionNumber = @event.Study.AccessionNumber,
+            TotalSizeBytes = @event.Study.TotalSizeBytes,
+            InstanceCount = @event.Study.InstanceCount,
         };
 
         var result = await workQueue.EnqueueAsync(workItem, cancellationToken);

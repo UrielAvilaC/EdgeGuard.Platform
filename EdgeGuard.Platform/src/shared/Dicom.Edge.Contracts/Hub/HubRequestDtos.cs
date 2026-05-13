@@ -108,6 +108,34 @@ public sealed class StudyNotifyRequest
     public long TotalSizeBytes { get; init; }
 }
 
+/// <summary>
+/// Sent by the Edge Node on each received C-STORE to track real-time study progress at the Hub.
+/// Used for incremental UI updates and HL7 merge reconciliation.
+/// </summary>
+public sealed class StudyProgressNotifyRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    [Required, StringLength(64, MinimumLength = 1)]
+    public required string StudyInstanceUid { get; init; }
+
+    [StringLength(64)]
+    public string? AccessionNumber { get; init; }
+
+    [StringLength(64)]
+    public string? PatientId { get; init; }
+
+    [StringLength(256)]
+    public string? PatientName { get; init; }
+
+    [Range(0, int.MaxValue)]
+    public int InstanceCount { get; init; }
+
+    [Range(0, long.MaxValue)]
+    public long TotalSizeBytes { get; init; }
+}
+
 public sealed class NodeHealthReportRequest
 {
     [Required, StringLength(36, MinimumLength = 1)]

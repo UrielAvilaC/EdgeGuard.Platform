@@ -18,6 +18,13 @@ public interface IEdgeNodeService
     /// <summary>Processes a study notification from a node. Returns null if node not found.</summary>
     Task<EdgeStudyNotifyResult?> ProcessStudyNotifyAsync(StudyNotifyRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Processes an incremental study progress update from a node.
+    /// Creates the study if it doesn't exist, merges with HL7-scheduled record via AccessionNumber.
+    /// Returns null if node not found.
+    /// </summary>
+    Task<EdgeStudyNotifyResult?> ProcessStudyProgressAsync(StudyProgressNotifyRequest request, CancellationToken ct = default);
+
     /// <summary>Processes a health report from a node. Returns null if node not found.</summary>
     Task<EdgeOperationResult?> ProcessHealthReportAsync(NodeHealthReportRequest request, CancellationToken ct = default);
 

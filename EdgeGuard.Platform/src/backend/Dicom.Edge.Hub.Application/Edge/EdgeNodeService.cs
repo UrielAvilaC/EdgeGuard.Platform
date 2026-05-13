@@ -118,6 +118,31 @@ public sealed class EdgeNodeService(
         if (node is null) return null;
 
         var existing = await studyRepository.GetByStudyInstanceUidAsync(request.StudyInstanceUid, ct);
+
+        // ── HL7 → DICOM fusion ────────────────────────────────────────────────
+        // When an ORM arrives first, the study is created with a synthetic UID
+        // keyed only by AccessionNumber. The real DICOM UID is unknown until the
+        // Edge Node notifies after receiving the actual images. If the UID lookup
+        // misses, fall back to AccessionNumber and promote the scheduled record.
+        if (existing is null && !string.IsNullOrWhiteSpace(request.AccessionNumber))
+        {
+            var scheduled = await studyRepository.GetByAccessionNumberAsync(request.AccessionNumber, ct);
+            if (scheduled is not null && scheduled.Status == StudyStatus.Scheduled)
+            {
+                logger.LogInformation(
+                    "Merging HL7-scheduled study {StudyId} (AccessionNumber={Accession}) " +
+                    "with real DICOM UID {StudyUid} from node {NodeId}",
+                    scheduled.Id, request.AccessionNumber, request.StudyInstanceUid, request.NodeId);
+
+                scheduled.MergeFromDicom(
+                    DicomUid.Create(request.StudyInstanceUid),
+                    sourceNodeId: request.NodeId);
+
+                existing = scheduled;
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         if (existing is not null)
         {
             existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
@@ -146,6 +171,61 @@ public sealed class EdgeNodeService(
         logger.LogInformation(
             "Study created from node {NodeId}: StudyUID={StudyUid} Patient={Patient}",
             request.NodeId, request.StudyInstanceUid, request.PatientName);
+
+        return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
+    }
+
+    public async Task<EdgeStudyNotifyResult?> ProcessStudyProgressAsync(
+        StudyProgressNotifyRequest request, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
+        if (node is null) return null;
+
+        var existing = await studyRepository.GetByStudyInstanceUidAsync(request.StudyInstanceUid, ct);
+
+        // ── HL7 → DICOM fusion (incremental path) ────────────────────────────
+        if (existing is null && !string.IsNullOrWhiteSpace(request.AccessionNumber))
+        {
+            var scheduled = await studyRepository.GetByAccessionNumberAsync(request.AccessionNumber, ct);
+            if (scheduled is not null && scheduled.Status == StudyStatus.Scheduled)
+            {
+                logger.LogInformation(
+                    "Progress merge: HL7-scheduled study {StudyId} (AccessionNumber={Accession}) " +
+                    "promoted to Receiving with real UID {StudyUid} from node {NodeId}",
+                    scheduled.Id, request.AccessionNumber, request.StudyInstanceUid, request.NodeId);
+
+                scheduled.MergeFromDicom(
+                    DicomUid.Create(request.StudyInstanceUid),
+                    sourceNodeId: request.NodeId);
+
+                existing = scheduled;
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        if (existing is not null)
+        {
+            existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+            await studyRepository.UpdateAsync(existing, ct);
+            await unitOfWork.SaveChangesAsync(ct);
+            return new EdgeStudyNotifyResult(true, existing.Id, DateTime.UtcNow);
+        }
+
+        var study = Study.Create(
+            DicomUid.Create(request.StudyInstanceUid),
+            patientId: request.PatientId,
+            patientName: request.PatientName,
+            sourceNodeId: request.NodeId,
+            accessionNumber: request.AccessionNumber);
+
+        study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+
+        await studyRepository.AddAsync(study, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogDebug(
+            "Study created via progress from node {NodeId}: StudyUID={StudyUid}",
+            request.NodeId, request.StudyInstanceUid);
 
         return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
     }

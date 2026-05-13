@@ -22,6 +22,9 @@ public static class HubApiRoutes
     /// <summary>POST — Notify Hub a study was received. Returns acknowledgment.</summary>
     public const string StudyNotify = "/api/edge/studies";
 
+    /// <summary>POST — Send incremental study progress (per-instance) while receiving. Enables real-time SPA updates and HL7 merge.</summary>
+    public const string StudyProgress = "/api/edge/studies/progress";
+
     /// <summary>POST — Report node health metrics. Returns acknowledgment.</summary>
     public const string HealthReport = "/api/edge/health";
 

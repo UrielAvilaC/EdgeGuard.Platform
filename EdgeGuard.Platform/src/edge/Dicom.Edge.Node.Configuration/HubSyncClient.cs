@@ -208,10 +208,10 @@ public sealed class HubSyncClient(
 
     public async Task<bool> NotifyStudyAsync(StudyNotifyRequest request, CancellationToken ct = default)
     {
-        logger.LogInformation("Study notify requested -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes}",
-            request.StudyInstanceUid, request.PatientId, request.PatientName, request.AccessionNumber, request.InstanceCount, request.TotalSizeBytes);
+        logger.LogInformation("Study notify requested -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes} NodeId={NodeId}",
+            request.StudyInstanceUid, request.PatientId, request.PatientName, request.AccessionNumber, request.InstanceCount, request.TotalSizeBytes, _registeredNodeId??request.NodeId);
 
-        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogInformation("Skipping study notify -- node not yet registered"); return false; }
+        
         
         logger.LogInformation("Sending study notify -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes}",
             request.StudyInstanceUid, request.PatientId, request.PatientName, request.AccessionNumber, request.InstanceCount, request.TotalSizeBytes);
@@ -238,9 +238,32 @@ public sealed class HubSyncClient(
         }
     }
 
+    public async Task<bool> NotifyStudyProgressAsync(StudyProgressNotifyRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping study progress notify -- node not yet registered"); return false; }
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.StudyProgress}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("Study progress notify failed -- StatusCode={StatusCode} StudyUid={StudyUid}",
+                    (int)response.StatusCode, request.StudyInstanceUid);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Study progress notify error -- StudyUid={StudyUid} Url={Url}",
+                request.StudyInstanceUid, url);
+            return false;
+        }
+    }
+
     public async Task<bool> ReportPacsEchoAsync(NodePacsEchoReportRequest request, CancellationToken ct = default)
     {
-        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping PACS echo report -- node not yet registered"); return false; }
+        if (string.IsNullOrEmpty(RegisteredNodeId)) { logger.LogDebug("Skipping PACS echo report -- node not yet registered"); return false; }
         var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.PacsEchoReport}";
         try
         {
@@ -262,7 +285,8 @@ public sealed class HubSyncClient(
 
     private void ApplyApiKeyHeader(HttpRequestMessage request)
     {
-        if (!string.IsNullOrEmpty(_apiKey))
-            request.Headers.Add(ApiKeyAuthenticationOptions.HeaderName, _apiKey);
+        var apiKey = _apiKey ?? ConnectionOptions.ApiKey;
+        if (!string.IsNullOrEmpty(apiKey))
+            request.Headers.Add(ApiKeyAuthenticationOptions.HeaderName, apiKey);
     }
 }

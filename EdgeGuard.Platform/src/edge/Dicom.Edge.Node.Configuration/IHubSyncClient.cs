@@ -21,6 +21,9 @@ public interface IHubSyncClient
     /// <summary>Notifies the Hub that a study has completed so it appears in the SPA.</summary>
     Task<bool> NotifyStudyAsync(StudyNotifyRequest request, CancellationToken ct = default);
 
+    /// <summary>Sends incremental study progress updates to the Hub as DICOM instances arrive.</summary>
+    Task<bool> NotifyStudyProgressAsync(StudyProgressNotifyRequest request, CancellationToken ct = default);
+
     /// <summary>Reports PACS C-ECHO results to the Hub so the SPA can display connectivity status.</summary>
     Task<bool> ReportPacsEchoAsync(NodePacsEchoReportRequest request, CancellationToken ct = default);
 }

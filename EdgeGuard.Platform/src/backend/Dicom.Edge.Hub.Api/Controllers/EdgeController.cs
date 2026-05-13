@@ -95,6 +95,17 @@ public class EdgeController : ControllerBase
         });
     }
 
+    /// <summary>POST /edge/studies/progress — Node reports incremental study progress while receiving.</summary>
+    [HttpPost("studies/progress")]
+    public async Task<IActionResult> StudyProgress([FromBody] StudyProgressNotifyRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessStudyProgressAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new { acknowledged = result.Acknowledged, studyId = result.StudyId });
+    }
+
     /// <summary>POST /edge/health — Node reports health metrics.</summary>
     [HttpPost("health")]
     public async Task<IActionResult> HealthReport([FromBody] NodeHealthReportRequest request, CancellationToken ct)

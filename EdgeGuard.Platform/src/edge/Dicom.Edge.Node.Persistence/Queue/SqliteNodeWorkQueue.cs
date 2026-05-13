@@ -27,10 +27,15 @@ public sealed class SqliteNodeWorkQueue(
             Priority = item.Priority,
             Destination = item.TargetPacsId ?? "hub",
             CreatedAt = item.CreatedAt,
+            SizeBytes = item.TotalSizeBytes,
+            InstanceCount = item.InstanceCount,
             Metadata = JsonSerializer.Serialize(new NodeWorkItemMetadata
             {
                 Type = item.Type,
-                SourceAeTitle = item.SourceAeTitle
+                SourceAeTitle = item.SourceAeTitle,
+                PatientId = item.PatientId,
+                PatientName = item.PatientName,
+                AccessionNumber = item.AccessionNumber
             })
         };
 
@@ -70,7 +75,12 @@ public sealed class SqliteNodeWorkQueue(
             TargetPacsId = queueItem.Destination,
             CreatedAt = queueItem.CreatedAt,
             RetryCount = queueItem.RetryCount,
-            LastError = queueItem.ErrorMessage
+            LastError = queueItem.ErrorMessage,
+            PatientId = metadata?.PatientId,
+            PatientName = metadata?.PatientName,
+            AccessionNumber = metadata?.AccessionNumber,
+            TotalSizeBytes = queueItem.SizeBytes,
+            InstanceCount = queueItem.InstanceCount
         };
 
         logger.LogDebug(
@@ -136,4 +146,7 @@ internal sealed class NodeWorkItemMetadata
 {
     public NodeWorkItemType Type { get; set; }
     public string? SourceAeTitle { get; set; }
+    public string? PatientId { get; set; }
+    public string? PatientName { get; set; }
+    public string? AccessionNumber { get; set; }
 }

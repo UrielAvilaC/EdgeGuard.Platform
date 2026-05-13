@@ -76,4 +76,45 @@ public sealed class StudyHubNotifier(
             return false;
         }
     }
+
+    public async Task<bool> NotifyStudyProgressAsync(
+        string nodeId,
+        string studyInstanceUid,
+        string? accessionNumber,
+        string? patientId,
+        string? patientName,
+        int instanceCount,
+        long totalSizeBytes,
+        CancellationToken ct = default)
+    {
+        var resolvedNodeId = string.IsNullOrEmpty(nodeId) ? hubClient.RegisteredNodeId : nodeId;
+        if (string.IsNullOrEmpty(resolvedNodeId))
+        {
+            logger.LogDebug("Skipping Hub progress notification — node not yet registered");
+            return false;
+        }
+
+        try
+        {
+            var request = new StudyProgressNotifyRequest
+            {
+                NodeId           = resolvedNodeId,
+                StudyInstanceUid = studyInstanceUid,
+                AccessionNumber  = accessionNumber,
+                PatientId        = patientId,
+                PatientName      = patientName,
+                InstanceCount    = instanceCount,
+                TotalSizeBytes   = totalSizeBytes,
+            };
+
+            return await hubClient.NotifyStudyProgressAsync(request, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Hub progress notification error for study {StudyUid}",
+                studyInstanceUid);
+            return false;
+        }
+    }
 }
