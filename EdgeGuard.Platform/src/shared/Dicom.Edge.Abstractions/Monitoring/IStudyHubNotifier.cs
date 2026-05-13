@@ -18,6 +18,9 @@ public interface IStudyHubNotifier
         string? accessionNumber,
         int instanceCount,
         long totalSizeBytes,
+        DateTime? studyDate = null,
+        string? studyDescription = null,
+        int seriesCount = 0,
         CancellationToken ct = default);
 
     /// <summary>
@@ -32,5 +35,8 @@ public interface IStudyHubNotifier
         string? patientName,
         int instanceCount,
         long totalSizeBytes,
+        DateTime? studyDate = null,
+        string? studyDescription = null,
+        int seriesCount = 0,
         CancellationToken ct = default);
 }

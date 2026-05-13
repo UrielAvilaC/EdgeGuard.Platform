@@ -22,6 +22,9 @@ public sealed class StudyHubNotifier(
         string? accessionNumber,
         int instanceCount,
         long totalSizeBytes,
+        DateTime? studyDate = null,
+        string? studyDescription = null,
+        int seriesCount = 0,
         CancellationToken ct = default)
     {
         var resolvedNodeId = string.IsNullOrEmpty(nodeId)
@@ -50,6 +53,9 @@ public sealed class StudyHubNotifier(
                 AccessionNumber  = accessionNumber,
                 InstanceCount    = instanceCount,
                 TotalSizeBytes   = totalSizeBytes,
+                StudyDate        = studyDate,
+                StudyDescription = studyDescription,
+                SeriesCount      = seriesCount,
             };
 
             logger.LogInformation(
@@ -85,6 +91,9 @@ public sealed class StudyHubNotifier(
         string? patientName,
         int instanceCount,
         long totalSizeBytes,
+        DateTime? studyDate = null,
+        string? studyDescription = null,
+        int seriesCount = 0,
         CancellationToken ct = default)
     {
         var resolvedNodeId = string.IsNullOrEmpty(nodeId) ? hubClient.RegisteredNodeId : nodeId;
@@ -105,6 +114,9 @@ public sealed class StudyHubNotifier(
                 PatientName      = patientName,
                 InstanceCount    = instanceCount,
                 TotalSizeBytes   = totalSizeBytes,
+                StudyDate        = studyDate,
+                StudyDescription = studyDescription,
+                SeriesCount      = seriesCount,
             };
 
             return await hubClient.NotifyStudyProgressAsync(request, ct);

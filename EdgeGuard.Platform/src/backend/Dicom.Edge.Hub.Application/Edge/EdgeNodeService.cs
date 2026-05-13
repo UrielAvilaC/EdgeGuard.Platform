@@ -145,7 +145,9 @@ public sealed class EdgeNodeService(
 
         if (existing is not null)
         {
-            existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+            existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes, seriesCount: request.SeriesCount);
+            existing.UpdateStudyMetadata(request.StudyDate, request.StudyDescription);
+            existing.MarkCompleted();
             await studyRepository.UpdateAsync(existing, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
@@ -161,9 +163,12 @@ public sealed class EdgeNodeService(
             patientId: request.PatientId,
             patientName: request.PatientName,
             sourceNodeId: request.NodeId,
-            accessionNumber: request.AccessionNumber);
+            accessionNumber: request.AccessionNumber,
+            studyDate: request.StudyDate,
+            studyDescription: request.StudyDescription);
 
-        study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+        study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes, seriesCount: request.SeriesCount);
+        study.MarkCompleted();
 
         await studyRepository.AddAsync(study, ct);
         await unitOfWork.SaveChangesAsync(ct);
@@ -205,7 +210,8 @@ public sealed class EdgeNodeService(
 
         if (existing is not null)
         {
-            existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+            existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes, seriesCount: request.SeriesCount);
+            existing.UpdateStudyMetadata(request.StudyDate, request.StudyDescription);
             await studyRepository.UpdateAsync(existing, ct);
             await unitOfWork.SaveChangesAsync(ct);
             return new EdgeStudyNotifyResult(true, existing.Id, DateTime.UtcNow);
@@ -216,9 +222,11 @@ public sealed class EdgeNodeService(
             patientId: request.PatientId,
             patientName: request.PatientName,
             sourceNodeId: request.NodeId,
-            accessionNumber: request.AccessionNumber);
+            accessionNumber: request.AccessionNumber,
+            studyDate: request.StudyDate,
+            studyDescription: request.StudyDescription);
 
-        study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes);
+        study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes, seriesCount: request.SeriesCount);
 
         await studyRepository.AddAsync(study, ct);
         await unitOfWork.SaveChangesAsync(ct);

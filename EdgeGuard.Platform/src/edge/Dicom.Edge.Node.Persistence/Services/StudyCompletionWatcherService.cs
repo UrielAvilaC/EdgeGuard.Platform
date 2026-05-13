@@ -90,6 +90,14 @@ public sealed class StudyCompletionWatcherService(
 
         if (ready.Count == 0) return;
 
+        // ── Resolve series counts for all completed studies in one query ──────
+        var studyUids = ready.Select(s => s.StudyInstanceUid).ToHashSet();
+        var seriesCounts = await ctx.Series
+            .Where(s => studyUids.Contains(s.StudyInstanceUid))
+            .GroupBy(s => s.StudyInstanceUid)
+            .Select(g => new { StudyUid = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.StudyUid, x => x.Count, ct);
+
         var now = DateTime.UtcNow;
         foreach (var study in ready)
         {
@@ -130,6 +138,9 @@ public sealed class StudyCompletionWatcherService(
                     PatientName      = study.PatientName,
                     AccessionNumber  = study.AccessionNumber,
                     TotalSizeBytes   = study.TotalSizeBytes,
+                    StudyDate        = study.StudyDate,
+                    StudyDescription = study.StudyDescription,
+                    SeriesCount      = seriesCounts.GetValueOrDefault(study.StudyInstanceUid, 0),
                 }), ct);
 
             metrics.RecordStudyReceived(

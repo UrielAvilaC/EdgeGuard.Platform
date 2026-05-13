@@ -21,6 +21,9 @@ public sealed class NodeWorkItem
     public string? AccessionNumber { get; init; }
     public long TotalSizeBytes { get; init; }
     public int InstanceCount { get; init; }
+    public DateTime? StudyDate { get; init; }
+    public string? StudyDescription { get; init; }
+    public int SeriesCount { get; init; }
 }
 
 public enum NodeWorkItemType
@@ -30,3 +33,4 @@ public enum NodeWorkItemType
     WorklistProcess,
     StudyCleanup
 }
+

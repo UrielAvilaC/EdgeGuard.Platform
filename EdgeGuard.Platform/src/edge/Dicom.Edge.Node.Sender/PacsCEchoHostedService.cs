@@ -37,14 +37,14 @@ public sealed class PacsCEchoHostedService(
 
             if (!opts.Enabled)
             {
-                logger.LogDebug("PACS C-ECHO monitor disabled — sleeping 60s");
+                logger.LogInformation("PACS C-ECHO monitor disabled — sleeping 60s");
                 await Task.Delay(TimeSpan.FromSeconds(60), stoppingToken);
                 continue;
             }
 
             if (opts.Destinations.Length == 0)
             {
-                logger.LogDebug("PACS C-ECHO — no destinations configured yet, retrying in 30s");
+                logger.LogInformation("PACS C-ECHO — no destinations configured yet, retrying in 30s");
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                 continue;
             }
@@ -57,7 +57,7 @@ public sealed class PacsCEchoHostedService(
 
             // Push results to Hub so the SPA can display per-node connectivity status
             await hubReporter.ReportAsync(GetLatestResults(), stoppingToken);
-
+            logger.LogInformation("PACS C-ECHO checks complete — sleeping {Interval}s", opts.IntervalSeconds);
             await Task.Delay(TimeSpan.FromSeconds(opts.IntervalSeconds), stoppingToken);
         }
     }

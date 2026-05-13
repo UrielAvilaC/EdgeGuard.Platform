@@ -109,6 +109,9 @@ internal sealed class StudyCompletionEnqueueHandler(
             AccessionNumber = @event.Study.AccessionNumber,
             TotalSizeBytes = @event.Study.TotalSizeBytes,
             InstanceCount = @event.Study.InstanceCount,
+            StudyDate = @event.Study.StudyDate,
+            StudyDescription = @event.Study.StudyDescription,
+            SeriesCount = @event.Study.SeriesCount,
         };
 
         var result = await workQueue.EnqueueAsync(workItem, cancellationToken);

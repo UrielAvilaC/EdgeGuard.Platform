@@ -16,5 +16,8 @@ namespace Dicom.Edge.Abstractions.Context
         public string? PatientName { get; set; }
         public string? AccessionNumber { get; set; }
         public long TotalSizeBytes { get; set; }
+        public DateTime? StudyDate { get; set; }
+        public string? StudyDescription { get; set; }
+        public int SeriesCount { get; set; }
     }
 }

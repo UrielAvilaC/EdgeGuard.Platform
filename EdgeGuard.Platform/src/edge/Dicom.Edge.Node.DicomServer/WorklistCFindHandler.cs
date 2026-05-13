@@ -51,6 +51,7 @@ public sealed class WorklistCFindHandler(
 
         var items = await worklistManager.GetActiveItemsAsync(ct);
         int matchCount = 0;
+        var queriedIds = new List<string>();
 
         foreach (var item in items)
         {
@@ -60,11 +61,17 @@ public sealed class WorklistCFindHandler(
                     accessionNumber, modality, scheduledDate, scheduledStationAe))
                 continue;
 
+            if (!string.IsNullOrEmpty(item.AccessionNumber))
+                queriedIds.Add(item.AccessionNumber);
+
             yield return BuildResponseDataset(item);
             matchCount++;
         }
 
         logger.LogInformation("MWL C-FIND completed — {MatchCount} matches returned", matchCount);
+
+        if (queriedIds.Count > 0)
+            _ = worklistManager.MarkItemsAsQueriedAsync(queriedIds, ct);
     }
 
     // ── Query matching ──────────────────────────────────────────────────────

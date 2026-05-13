@@ -54,6 +54,9 @@ public sealed class StudyPipeline(
             accessionNumber:  workItem.AccessionNumber,
             instanceCount:    workItem.InstanceCount,
             totalSizeBytes:   workItem.TotalSizeBytes,
+            studyDate:        workItem.StudyDate,
+            studyDescription: workItem.StudyDescription,
+            seriesCount:      workItem.SeriesCount,
             ct:               ct);
 
         if (destinations.Count > 0)

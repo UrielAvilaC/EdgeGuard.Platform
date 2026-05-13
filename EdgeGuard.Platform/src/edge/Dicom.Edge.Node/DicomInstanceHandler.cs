@@ -226,6 +226,7 @@ internal sealed class DicomInstanceHandler(
         if (study.InstanceCount == 1 || study.InstanceCount % 5 == 0)
         {
             var generalCfg = await settings.GetGeneralConfigAsync(ct);
+            var seriesCount = await ctx.Series.CountAsync(s => s.StudyInstanceUid == studyUid, ct);
             _ = hubNotifier.NotifyStudyProgressAsync(
                 nodeId:          generalCfg.NodeName,
                 studyInstanceUid: studyUid,
@@ -234,6 +235,9 @@ internal sealed class DicomInstanceHandler(
                 patientName:     study.PatientName,
                 instanceCount:   study.InstanceCount,
                 totalSizeBytes:  study.TotalSizeBytes,
+                studyDate:       study.StudyDate,
+                studyDescription: study.StudyDescription,
+                seriesCount:     seriesCount,
                 ct:              ct);
         }
     }

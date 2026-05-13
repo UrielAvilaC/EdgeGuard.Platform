@@ -257,6 +257,7 @@ export default class NodeDetailPage {
           currentAssignments: node.pacsAssignments,
         } satisfies PacsAssignDialogData,
         autoFocus: false,
+        disableClose: true,
       })
       .afterClosed()
       .subscribe((changed: boolean) => {

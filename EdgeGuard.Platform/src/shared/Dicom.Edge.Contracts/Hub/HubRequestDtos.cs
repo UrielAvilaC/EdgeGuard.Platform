@@ -106,10 +106,18 @@ public sealed class StudyNotifyRequest
 
     [Range(0, long.MaxValue)]
     public long TotalSizeBytes { get; init; }
+
+    public DateTime? StudyDate { get; init; }
+
+    [StringLength(512)]
+    public string? StudyDescription { get; init; }
+
+    [Range(0, int.MaxValue)]
+    public int SeriesCount { get; init; }
 }
 
 /// <summary>
-/// Sent by the Edge Node on each received C-STORE to track real-time study progress at the Hub.
+/// Sent by the Edge Node on each received C-STORE
 /// Used for incremental UI updates and HL7 merge reconciliation.
 /// </summary>
 public sealed class StudyProgressNotifyRequest
@@ -134,6 +142,14 @@ public sealed class StudyProgressNotifyRequest
 
     [Range(0, long.MaxValue)]
     public long TotalSizeBytes { get; init; }
+
+    public DateTime? StudyDate { get; init; }
+
+    [StringLength(512)]
+    public string? StudyDescription { get; init; }
+
+    [Range(0, int.MaxValue)]
+    public int SeriesCount { get; init; }
 }
 
 public sealed class NodeHealthReportRequest

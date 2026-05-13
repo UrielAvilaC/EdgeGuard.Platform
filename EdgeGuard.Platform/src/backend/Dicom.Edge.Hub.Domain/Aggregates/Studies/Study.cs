@@ -190,7 +190,18 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         RecordStatusChange(old, Status, null, "Re-scheduled");
     }
 
-    public void RecordImagesReceived(int count, long sizeBytes, string? modalityAeTitle = null)
+    /// <summary>
+    /// Updates study-level metadata (date, description) when received from the node.
+    /// Only overwrites if the incoming value is non-null.
+    /// </summary>
+    public void UpdateStudyMetadata(DateTime? studyDate, string? studyDescription)
+    {
+        if (studyDate.HasValue) StudyDate = studyDate;
+        if (!string.IsNullOrWhiteSpace(studyDescription)) StudyDescription = studyDescription;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void RecordImagesReceived(int count, long sizeBytes, string? modalityAeTitle = null, int seriesCount = 0)
     {
         if (count <= 0) return;
 
@@ -199,6 +210,9 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         LastImageReceivedAt = DateTime.UtcNow;
         FirstImageReceivedAt ??= DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+
+        if (seriesCount > SeriesCount)
+            SeriesCount = seriesCount;
 
         AddDomainEvent(new StudyImagesReceivedEvent(Id, count, sizeBytes, modalityAeTitle));
     }

@@ -31,6 +31,11 @@ public interface IWorklistManager
     /// Returns the total count of active worklist items.
     /// </summary>
     Task<int> GetActiveCountAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Marks worklist items as queried by a modality so they are not returned again.
+    /// </summary>
+    Task MarkItemsAsQueriedAsync(IEnumerable<string> ids, CancellationToken ct = default);
 }
 
 public sealed class WorklistAcceptResult

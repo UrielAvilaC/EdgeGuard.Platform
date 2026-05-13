@@ -94,7 +94,7 @@ public sealed class HubConfigSyncHostedService(
             }
         }
 
-        await hubClient.DeregisterAsync(CancellationToken.None);
+        //await hubClient.DeregisterAsync(CancellationToken.None);
     }
 
     private async Task PullAndApplyConfigAsync(CancellationToken ct)
