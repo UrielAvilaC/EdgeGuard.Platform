@@ -1,0 +1,59 @@
+<div class="p-6 w-[520px] max-w-full">
+      <!-- Header -->
+      <div class="flex items-start justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+            <fa-icon [icon]="faRobot" class="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ isEdit ? 'Editar Regla' : 'Nueva Regla Auto-Send' }}
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {{ isEdit ? 'Modifica la configuración de la regla.' : 'Envía automáticamente un WhatsApp al cambiar el estado de un estudio.' }}
+            </p>
+          </div>
+        </div>
+        <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+      </div>
+
+      <form #ruleForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-5">
+        <div class="space-y-4">
+          @if (!isEdit) {
+            <ui-dropdown
+              label="Estado del estudio (trigger)"
+              hint="Cuando el estudio cambie a este estado, se enviará el mensaje."
+              [options]="studyStatusOptions"
+              [(ngModel)]="createForm.studyStatus"
+              name="studyStatus"
+              required
+            />
+          }
+
+          <ui-dropdown
+            label="Template"
+            hint="Template de WhatsApp que se usará para el mensaje."
+            [options]="templateOptions"
+            [(ngModel)]="templateId"
+            name="templateId"
+            [required]="!isEdit"
+          />
+
+          <ui-textarea
+            label="Descripción"
+            placeholder="Describe el propósito de esta regla..."
+            [(ngModel)]="description"
+            name="description"
+          />
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <ui-button variant="secondary" type="button" (clicked)="onCancel()">
+            Cancelar
+          </ui-button>
+          <ui-button type="submit" [disabled]="!isFormValid">
+            {{ isEdit ? 'Guardar cambios' : 'Crear regla' }}
+          </ui-button>
+        </div>
+      </form>
+    </div>

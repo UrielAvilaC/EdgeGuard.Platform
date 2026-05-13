@@ -1,0 +1,9 @@
+<button
+      mat-icon-button
+      [matTooltip]="tooltip()"
+      [disabled]="disabled()"
+      [attr.aria-label]="ariaLabel() || tooltip()"
+      (click)="clicked.emit($event)"
+    >
+      <fa-icon [icon]="icon()" />
+    </button>

@@ -1,0 +1,106 @@
+<div class="p-6 w-[560px] max-w-full">
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+        <fa-icon [icon]="faRoute" class="text-azure-600 dark:text-azure-400" />
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          {{ isEdit ? 'Editar Regla de Ruteo' : 'Nueva Regla de Ruteo' }}
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          {{ isEdit ? 'Modifica los parámetros de enrutamiento.' : 'Define cómo se enrutan los mensajes HL7 a los nodos.' }}
+        </p>
+      </div>
+    </div>
+    <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+  </div>
+
+  <form #ruleForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-5">
+    <!-- Basic info section -->
+    <div class="space-y-4">
+      <ui-input-text
+        label="Nombre"
+        placeholder="Ej: Ruteo ADT Hospital Central"
+        hint="Nombre descriptivo para identificar la regla."
+        [(ngModel)]="form.name"
+        name="name"
+        required
+      />
+
+      <div class="grid grid-cols-2 gap-4">
+        <ui-dropdown
+          label="Nodo destino"
+          placeholder="Seleccionar nodo..."
+          [options]="nodeDropdownOptions"
+          [(ngModel)]="form.targetNodeId"
+          name="targetNodeId"
+          required
+        />
+
+        <ui-input-text
+          label="Prioridad"
+          type="number"
+          placeholder="100"
+          hint="Menor número = mayor prioridad."
+          [(ngModel)]="form.priority"
+          name="priority"
+          required
+        />
+      </div>
+    </div>
+
+    <!-- Match conditions section -->
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+      <div>
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+          Condiciones de coincidencia
+        </h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          Deje vacío para coincidir con cualquier valor. Se evalúan todas las condiciones (AND).
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <ui-input-text
+          label="Tipo de mensaje"
+          placeholder="ADT, ORM, ORU..."
+          [(ngModel)]="form.matchMessageType"
+          name="matchMessageType"
+        />
+        <ui-input-text
+          label="Evento trigger"
+          placeholder="A01, A08, O01..."
+          [(ngModel)]="form.matchTriggerEvent"
+          name="matchTriggerEvent"
+        />
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <ui-input-text
+          label="Sending Facility"
+          placeholder="Nombre del facility"
+          [(ngModel)]="form.matchSendingFacility"
+          name="matchSendingFacility"
+        />
+        <ui-input-text
+          label="Sending Application"
+          placeholder="HIS, RIS, LIS..."
+          [(ngModel)]="form.matchSendingApplication"
+          name="matchSendingApplication"
+        />
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <ui-button variant="secondary" type="button" (clicked)="onCancel()">
+        Cancelar
+      </ui-button>
+      <ui-button type="submit" [disabled]="!isFormValid">
+        {{ isEdit ? 'Guardar cambios' : 'Crear regla' }}
+      </ui-button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,16 @@
+<mat-card class="stat-card">
+      <mat-card-content class="stat-content">
+        <div class="stat-icon-wrapper" [class]="iconBgClass()">
+          <fa-icon [icon]="icon()" />
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">{{ label() }}</p>
+          <p class="stat-value">{{ value() }}</p>
+          @if (trend()) {
+            <p class="stat-trend" [class]="trendClasses()">
+              {{ trendPrefix() }}{{ trend() }}
+            </p>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>

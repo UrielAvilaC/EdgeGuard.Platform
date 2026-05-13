@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Abstractions\Dicom.Edge.Abstractions.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Contracts\Dicom.Edge.Contracts.csproj" />
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Security\Dicom.Edge.Security.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Persistence\Dicom.Edge.Node.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

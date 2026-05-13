@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-Dicom.Edge.Node-723f0a37-ab76-4935-bb32-101289c1ab99</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\Dicom.Edge.Diagnostics\Dicom.Edge.Diagnostics.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Api\Dicom.Edge.Node.Api.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Configuration\Dicom.Edge.Node.Configuration.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.DicomServer\Dicom.Edge.Node.DicomServer.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Persistence\Dicom.Edge.Node.Persistence.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Processing\Dicom.Edge.Node.Processing.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Queue\Dicom.Edge.Node.Queue.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Router\Dicom.Edge.Node.Router.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Sender\Dicom.Edge.Node.Sender.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Storage\Dicom.Edge.Node.Storage.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Worklist\Dicom.Edge.Node.Worklist.csproj" />
+  </ItemGroup>
+</Project>

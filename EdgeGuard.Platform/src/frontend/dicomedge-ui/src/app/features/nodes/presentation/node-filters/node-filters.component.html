@@ -1,0 +1,53 @@
+<div class="space-y-4">
+      <div class="flex items-center gap-4 flex-wrap">
+        <div class="flex-1 min-w-[280px]">
+          <ui-search-bar
+            placeholder="Buscar por nombre, AE Title, IP..."
+            (searchChange)="onSearchChange($event)"
+          />
+        </div>
+
+        <ui-button
+          variant="secondary"
+          size="sm"
+          [icon]="faFilter"
+          (clicked)="filtersExpanded = !filtersExpanded"
+        >
+          Filtros
+          @if (activeFilterCount() > 0) {
+            <span class="ml-1.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded-full bg-azure-600 text-white">
+              {{ activeFilterCount() }}
+            </span>
+          }
+        </ui-button>
+
+        @if (activeFilterCount() > 0) {
+          <ui-button variant="ghost" size="sm" [icon]="faXmark" (clicked)="onClear()">
+            Limpiar
+          </ui-button>
+        }
+      </div>
+
+      @if (filtersExpanded) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+             role="group" aria-label="Filtros avanzados">
+
+          <ui-dropdown
+            label="Estado"
+            [options]="statusOptions"
+            [showEmpty]="true"
+            emptyLabel="Todos"
+            [ngModel]="currentFilter().status ?? null"
+            (ngModelChange)="onStatusChange($event)"
+          />
+
+          <div class="flex items-end">
+            <ui-slide-toggle
+              label="Solo habilitados"
+              [ngModel]="currentFilter().isEnabled ?? false"
+              (ngModelChange)="onEnabledChange($event)"
+            />
+          </div>
+        </div>
+      }
+    </div>

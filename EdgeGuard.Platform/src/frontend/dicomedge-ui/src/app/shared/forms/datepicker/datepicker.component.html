@@ -1,0 +1,23 @@
+<mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      @if (label()) {
+        <mat-label>{{ label() }}</mat-label>
+      }
+      <input
+        matInput
+        [matDatepicker]="picker"
+        [placeholder]="placeholder()"
+        [disabled]="isDisabled"
+        [ngModel]="value"
+        (ngModelChange)="onValueChange($event)"
+        (blur)="onTouched()"
+        [attr.aria-label]="ariaLabel() || label()"
+      />
+      <mat-datepicker-toggle matSuffix [for]="picker" />
+      <mat-datepicker #picker />
+      @if (hint()) {
+        <mat-hint>{{ hint() }}</mat-hint>
+      }
+      @if (errorMessage()) {
+        <mat-error>{{ errorMessage() }}</mat-error>
+      }
+    </mat-form-field>

@@ -1,0 +1,23 @@
+<mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      @if (label()) {
+        <mat-label>{{ label() }}</mat-label>
+      }
+      <input
+        matInput
+        [matAutocomplete]="auto"
+        [placeholder]="placeholder()"
+        [disabled]="isDisabled"
+        [ngModel]="displayValue()"
+        (ngModelChange)="onInputChange($event)"
+        (blur)="onTouched()"
+        [attr.aria-label]="ariaLabel() || label()"
+      />
+      <mat-autocomplete #auto="matAutocomplete" (optionSelected)="onOptionSelected($event.option.value)">
+        @for (opt of filteredOptions(); track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-autocomplete>
+      @if (hint()) {
+        <mat-hint>{{ hint() }}</mat-hint>
+      }
+    </mat-form-field>
