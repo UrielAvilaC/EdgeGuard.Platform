@@ -15,14 +15,22 @@ public sealed class RuleBasedStudyRouter(
 {
     // In-memory rules — loaded from node settings or configuration sync
     private readonly List<RoutingRule> _rules = [];
-    private PacsDestination? _defaultDestination;
+    private readonly List<PacsDestination> _defaultDestinations = [];
 
-    public void LoadRules(IEnumerable<RoutingRule> rules, PacsDestination? defaultDestination = null)
+    public void LoadRules(IEnumerable<RoutingRule> rules, IEnumerable<PacsDestination>? defaultDestinations = null)
     {
         _rules.Clear();
         _rules.AddRange(rules.OrderBy(r => r.Priority));
-        _defaultDestination = defaultDestination;
-        logger.LogInformation("Loaded {Count} routing rules", _rules.Count);
+
+        _defaultDestinations.Clear();
+        if (defaultDestinations is not null)
+            _defaultDestinations.AddRange(defaultDestinations);
+
+        logger.LogInformation(
+            "Loaded {Count} routing rules, {DefaultCount} default destination(s): [{Aes}]",
+            _rules.Count,
+            _defaultDestinations.Count,
+            string.Join(", ", _defaultDestinations.Select(d => d.AeTitle)));
     }
 
     public Task<IReadOnlyList<PacsDestination>> ResolveDestinationsAsync(
@@ -35,12 +43,14 @@ public sealed class RuleBasedStudyRouter(
             .Distinct()
             .ToList();
 
-        if (matched.Count == 0 && _defaultDestination is not null)
+        if (matched.Count == 0 && _defaultDestinations.Count > 0)
         {
             logger.LogDebug(
-                "No routing rule matched for study {StudyUid}, using default destination {AeTitle}",
-                context.StudyInstanceUid, _defaultDestination.AeTitle);
-            matched.Add(_defaultDestination);
+                "No routing rule matched for study {StudyUid}, using {Count} default destination(s): [{Aes}]",
+                context.StudyInstanceUid,
+                _defaultDestinations.Count,
+                string.Join(", ", _defaultDestinations.Select(d => d.AeTitle)));
+            matched.AddRange(_defaultDestinations);
         }
 
         if (matched.Count == 0)

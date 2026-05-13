@@ -47,7 +47,7 @@ export class StudiesFacade {
       finalize(() => this.store.setLoading(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (result) => this.store.setStudies(result.items, result.total),
+      next: (result) => this.store.setStudies(result.items, result.page, result.pageSize, result.total),
       error: () => {
         this.store.setError('Error al cargar estudios');
         this.toast.error('No se pudieron cargar los estudios');

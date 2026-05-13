@@ -17,13 +17,25 @@ public interface INodeConfigurationService
     Task<IReadOnlyList<NodeConfigurationProfileDto>> GetNodeConfigByCategoryAsync(
         string nodeId, string category, CancellationToken ct = default);
 
+    /// <summary>Returns the distinct list of categories present for a node.</summary>
+    Task<IReadOnlyList<string>> GetCategoriesAsync(
+        string nodeId, CancellationToken ct = default);
+
     /// <summary>Updates a single setting value for a node.</summary>
     Task<bool> UpdateSettingAsync(
         string nodeId, string settingKey, string newValue, CancellationToken ct = default);
 
+    /// <summary>Updates multiple settings in a single operation. Returns counts of updated/not-found keys.</summary>
+    Task<BatchUpdateNodeSettingsResponse> UpdateBatchAsync(
+        string nodeId, BatchUpdateNodeSettingsRequest request, CancellationToken ct = default);
+
     /// <summary>Resets a setting to its shared default value.</summary>
     Task<bool> ResetSettingAsync(
         string nodeId, string settingKey, CancellationToken ct = default);
+
+    /// <summary>Resets all settings in a category to their shared default values.</summary>
+    Task<int> ResetCategoryAsync(
+        string nodeId, string category, CancellationToken ct = default);
 
     /// <summary>Initializes default configuration profiles for a node (idempotent).</summary>
     Task InitializeNodeDefaultsAsync(string nodeId, CancellationToken ct = default);

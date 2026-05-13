@@ -18,14 +18,26 @@ public interface IEdgeNodeService
     /// <summary>Processes a study notification from a node. Returns null if node not found.</summary>
     Task<EdgeStudyNotifyResult?> ProcessStudyNotifyAsync(StudyNotifyRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Processes an incremental study progress update from a node.
+    /// Creates the study if it doesn't exist, merges with HL7-scheduled record via AccessionNumber.
+    /// Returns null if node not found.
+    /// </summary>
+    Task<EdgeStudyNotifyResult?> ProcessStudyProgressAsync(StudyProgressNotifyRequest request, CancellationToken ct = default);
+
     /// <summary>Processes a health report from a node. Returns null if node not found.</summary>
     Task<EdgeOperationResult?> ProcessHealthReportAsync(NodeHealthReportRequest request, CancellationToken ct = default);
 
-    /// <summary>
-    /// Returns the configuration dictionary for a node, or null if node not found.
+    /// <summary>Persists a telemetry snapshot from a node. Returns null if node not found.</summary>
+    Task<EdgeOperationResult?> ProcessTelemetryAsync(NodeTelemetryRequest request, CancellationToken ct = default);
+
+    /// <summary>Returns the configuration dictionary for a node, or null if node not found.
     /// Empty string nodeId returns null.
     /// </summary>
     Task<Dictionary<string, string>?> PullConfigurationAsync(string nodeId, CancellationToken ct = default);
+
+    /// <summary>Stores the latest PACS C-ECHO report from a node. Returns null if node not found.</summary>
+    Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(NodePacsEchoReportRequest request, CancellationToken ct = default);
 }
 
 /// <summary>

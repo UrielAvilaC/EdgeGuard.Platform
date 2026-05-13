@@ -118,6 +118,7 @@ public static class PersistenceExtensions
         services.AddSingleton<INodeWorkQueue, SqliteNodeWorkQueue>();
         services.AddSingleton<IWorklistManager, SqliteWorklistManager>();
         services.AddSingleton<IEventBus, InMemoryEventBus>();
+        services.AddSingleton<INodePacsServerRepository, NodePacsServerRepository>();
     }
 
     // ── Background services ───────────────────────────────────────────────────
@@ -125,7 +126,13 @@ public static class PersistenceExtensions
     private static void RegisterBackgroundServices(IServiceCollection services)
     {
         services.AddHostedService<PersistenceInitializerService>();
-        services.AddHostedService<StudyCompletionWatcherService>();
+        // Register as singleton so IStudyCompletionTrigger can be injected elsewhere
+        // (e.g., CStoreScp via DicomScpDependencies), then reuse the same instance as hosted service.
+        services.AddSingleton<StudyCompletionWatcherService>();
+        services.AddSingleton<IStudyCompletionTrigger>(sp =>
+            sp.GetRequiredService<StudyCompletionWatcherService>());
+        services.AddHostedService(sp =>
+            sp.GetRequiredService<StudyCompletionWatcherService>());
         services.AddHostedService<StudyCleanupService>();
         services.AddHostedService<RoutingRuleLoaderService>();
     }
@@ -180,7 +187,7 @@ internal sealed class PersistenceInitializerService(
         logger.LogInformation("Database schema is up to date");
 
         // ── Phase 2: Seed missing settings ───────────────────────────────────
-        await NodeSettingsSeed.SeedMissingAsync(ctx, cancellationToken);
+        await NodeSettingsSeed.SeedMissingAsync(ctx,logger, cancellationToken);
         logger.LogDebug("Seed check complete");
 
         // ── Phase 3: Warm settings cache ─────────────────────────────────────

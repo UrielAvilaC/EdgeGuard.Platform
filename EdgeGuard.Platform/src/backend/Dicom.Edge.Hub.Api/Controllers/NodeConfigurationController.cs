@@ -46,6 +46,40 @@ public class NodeConfigurationController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/node-configuration/{nodeId}/categories — Returns distinct setting categories for a node.
+    /// </summary>
+    [HttpGet("{nodeId}/categories")]
+    public async Task<IActionResult> GetCategories(string nodeId, CancellationToken ct)
+    {
+        var categories = await _configService.GetCategoriesAsync(nodeId, ct);
+        return Ok(categories);
+    }
+
+    /// <summary>
+    /// PUT /api/node-configuration/{nodeId}/batch — Saves multiple settings in one call (Hub DB only).
+    /// Call POST /{nodeId}/push afterwards to propagate changes to the node.
+    /// </summary>
+    [HttpPut("{nodeId}/batch")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> UpdateBatch(
+        string nodeId, [FromBody] BatchUpdateNodeSettingsRequest request, CancellationToken ct)
+    {
+        var result = await _configService.UpdateBatchAsync(nodeId, request, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// POST /api/node-configuration/{nodeId}/reset-category/{category} — Resets all settings in a category to defaults.
+    /// </summary>
+    [HttpPost("{nodeId}/reset-category/{category}")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> ResetCategory(string nodeId, string category, CancellationToken ct)
+    {
+        var count = await _configService.ResetCategoryAsync(nodeId, category, ct);
+        return Ok(new { resetCount = count });
+    }
+
+    /// <summary>
     /// PUT /api/node-configuration/{nodeId}/{settingKey} — Updates a single setting value.
     /// </summary>
     [HttpPut("{nodeId}/{settingKey}")]

@@ -76,7 +76,7 @@ export default class AuditPage {
   }
 
   protected openDetail(log: AuditLogDto): void {
-    this.dialog.open(AuditDetailDialog, { data: log, width: '640px' });
+    this.dialog.open(AuditDetailDialog, { data: log, width: '640px', autoFocus: true, disableClose: true });
   }
 
   protected asString(value: unknown): string {

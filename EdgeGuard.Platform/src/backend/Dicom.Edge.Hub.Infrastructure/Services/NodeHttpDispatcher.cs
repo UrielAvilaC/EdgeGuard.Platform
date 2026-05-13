@@ -37,6 +37,9 @@ public sealed class NodeHttpDispatcher : INodeDispatcher
                 AccessionNumber = request.AccessionNumber,
                 SendingFacility = request.SendingFacility,
                 SendingApplication = request.SendingApplication,
+                Modality = request.Modality,
+                ProcedureDescription = request.ProcedureDescription,
+                RequestedProcedureId = request.ProcedureId,
                 Priority = request.Priority,
                 SentAtUtc = DateTime.UtcNow
             };

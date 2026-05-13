@@ -5,7 +5,7 @@
 param(
     [string]$ServiceName   = "EdgeGuardNode",
     [string]$DisplayName   = "EdgeGuard DICOM Node",
-    [string]$Description   = "EdgeGuard Platform — DICOM edge node service (C-STORE SCP, routing, worklist)",
+    [string]$Description   = "EdgeGuard Platform - DICOM edge node service (C-STORE SCP, routing, worklist)",
     [string]$ExePath       = "$PSScriptRoot\bin\publish\win-service\Dicom.Edge.Node.exe",
     [string]$StartupType   = "Automatic"
 )

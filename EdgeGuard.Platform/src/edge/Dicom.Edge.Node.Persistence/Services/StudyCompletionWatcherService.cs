@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Threading.Channels;
 using Dicom.Edge.Abstractions.Context;
 using Dicom.Edge.Abstractions.Events;
 using Dicom.Edge.Abstractions.Metrics;
@@ -16,6 +17,8 @@ namespace Dicom.Edge.Node.Persistence.Services;
 /// <para>
 /// Polling interval = timeout / 2 (capped to a minimum of 5 s) to ensure timely detection
 /// without excessive DB queries.
+/// An immediate check can also be triggered via <see cref="IStudyCompletionTrigger.RequestImmediateCheck"/>
+/// (e.g., on DICOM association release) to reduce latency for the common single-association case.
 /// </para>
 /// </summary>
 public sealed class StudyCompletionWatcherService(
@@ -23,8 +26,16 @@ public sealed class StudyCompletionWatcherService(
     INodeSettingsService settings,
     IEventBus eventBus,
     IMetricsCollector metrics,
-    ILogger<StudyCompletionWatcherService> logger) : BackgroundService
+    ILogger<StudyCompletionWatcherService> logger) : BackgroundService, IStudyCompletionTrigger
 {
+    // Bounded to 1: multiple rapid triggers (e.g., concurrent associations releasing)
+    // collapse into a single scan instead of queuing redundant checks.
+    private readonly Channel<bool> _triggerChannel = Channel.CreateBounded<bool>(
+        new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
+
+    /// <inheritdoc />
+    public void RequestImmediateCheck() => _triggerChannel.Writer.TryWrite(true);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("StudyCompletionWatcher started");
@@ -38,7 +49,14 @@ public sealed class StudyCompletionWatcherService(
                 var pollInterval = TimeSpan.FromSeconds(Math.Max(5, dicom.StudyCompletionTimeoutSec / 2));
 
                 await DetectCompletedStudiesAsync(stoppingToken);
-                await Task.Delay(pollInterval, stoppingToken);
+
+                // Wait for the next poll interval OR an early trigger from association release
+                await Task.WhenAny(
+                    Task.Delay(pollInterval, stoppingToken),
+                    _triggerChannel.Reader.WaitToReadAsync(stoppingToken).AsTask());
+
+                // Drain any pending signals to avoid back-to-back redundant scans
+                while (_triggerChannel.Reader.TryRead(out _)) { }
             }
             catch (OperationCanceledException)
             {
@@ -72,6 +90,14 @@ public sealed class StudyCompletionWatcherService(
 
         if (ready.Count == 0) return;
 
+        // ── Resolve series counts for all completed studies in one query ──────
+        var studyUids = ready.Select(s => s.StudyInstanceUid).ToHashSet();
+        var seriesCounts = await ctx.Series
+            .Where(s => studyUids.Contains(s.StudyInstanceUid))
+            .GroupBy(s => s.StudyInstanceUid)
+            .Select(g => new { StudyUid = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.StudyUid, x => x.Count, ct);
+
         var now = DateTime.UtcNow;
         foreach (var study in ready)
         {
@@ -80,6 +106,27 @@ public sealed class StudyCompletionWatcherService(
             study.Status = StudyStatus.Completed;
             ctx.Entry(study).Property<DateTime>("updated_at").CurrentValue = now;
 
+            // ── Persist study metrics (one record per study, guarded by unique index) ──
+            var metricsExist = await ctx.Metrics
+                .AnyAsync(m => m.StudyInstanceUid == study.StudyInstanceUid, ct);
+
+            if (!metricsExist)
+            {
+                ctx.Metrics.Add(new StudyMetrics
+                {
+                    StudyInstanceUid  = study.StudyInstanceUid,
+                    TotalSizeBytes    = study.TotalSizeBytes,
+                    InstancesReceived = study.InstanceCount,
+                    InstancesFailed   = 0,
+                    FirstImageAt      = study.ReceivedAt,
+                    LastImageAt       = study.LastImageReceivedAt,
+                    ReceptionDuration = study.LastImageReceivedAt - study.ReceivedAt,
+                    AverageImageSize  = study.InstanceCount > 0
+                        ? (double)study.TotalSizeBytes / study.InstanceCount
+                        : 0,
+                });
+            }
+
             await eventBus.PublishAsync(new StudyCompletedEvent(
                 new StudyContext
                 {
@@ -87,6 +134,13 @@ public sealed class StudyCompletionWatcherService(
                     InstanceCount    = study.InstanceCount,
                     CallingAeTitle   = study.SourceAeTitle ?? string.Empty,
                     CompletedAt      = now,
+                    PatientId        = study.PatientId,
+                    PatientName      = study.PatientName,
+                    AccessionNumber  = study.AccessionNumber,
+                    TotalSizeBytes   = study.TotalSizeBytes,
+                    StudyDate        = study.StudyDate,
+                    StudyDescription = study.StudyDescription,
+                    SeriesCount      = seriesCounts.GetValueOrDefault(study.StudyInstanceUid, 0),
                 }), ct);
 
             metrics.RecordStudyReceived(

@@ -18,6 +18,16 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         _connectionString = connectionString;
     }
 
+    /// <summary>
+    /// Re-reads SQLite and fires <see cref="IOptionsMonitor{T}"/> change tokens.
+    /// Called by <see cref="INodeConfigurationReloader"/> after every DB write.
+    /// </summary>
+    internal void TriggerReload()
+    {
+        Load();
+        OnReload();
+    }
+
     public override void Load()
     {
         var data = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
@@ -76,6 +86,7 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         // It is an infrastructure decision controlled exclusively via appsettings
         // so the Hub cannot remotely disable its own connection channel.
         Map(db, cfg, NodeSettingKeys.Hub.ApiKey,                ConfigPaths.HubApiKey);
+        Map(db, cfg, NodeSettingKeys.Hub.NodeId,                ConfigPaths.HubNodeId);
         Map(db, cfg, NodeSettingKeys.Hub.TimeoutSeconds,        ConfigPaths.HubTimeoutSeconds);
         Map(db, cfg, NodeSettingKeys.Hub.HeartbeatIntervalSec,  ConfigPaths.HubHeartbeatIntervalSeconds);
         Map(db, cfg, NodeSettingKeys.Hub.RegisterOnStartup,     ConfigPaths.HubRegisterOnStartup);
@@ -132,8 +143,12 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Map(db, cfg, NodeSettingKeys.Dicom.DimseTimeoutSec,      ConfigPaths.DicomDimseTimeout);
         Map(db, cfg, NodeSettingKeys.Dicom.MaxPduLength,         ConfigPaths.DicomMaxPduLength);
         Map(db, cfg, NodeSettingKeys.Dicom.MwlEnabled,           ConfigPaths.DicomMwlEnabled);
+        Map(db, cfg, NodeSettingKeys.Dicom.CEchoEnabled,         ConfigPaths.DicomCEchoEnabled);
+        Map(db, cfg, NodeSettingKeys.Dicom.QrEnabled,            ConfigPaths.DicomQrEnabled);
+        Map(db, cfg, NodeSettingKeys.Dicom.ValidateCallingAe,    ConfigPaths.DicomValidateCallingAe);
+        Map(db, cfg, NodeSettingKeys.Dicom.ValidateCalledAe,     ConfigPaths.DicomValidateCalledAe);
 
-        // AllowedCallingAeTitles is stored as JSON array — map to indexed IConfiguration keys
+        // AllowedCallingAeTitles — JSON array → indexed IConfiguration keys
         if (db.TryGetValue(NodeSettingKeys.Dicom.AllowedAeTitles, out var aeTitlesJson) &&
             !string.IsNullOrWhiteSpace(aeTitlesJson) && aeTitlesJson != ConfigDefaults.EmptyJsonArray)
         {
@@ -144,6 +159,22 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
                 {
                     for (var i = 0; i < titles.Length; i++)
                         cfg[$"{ConfigPaths.DicomAllowedCallingPrefix}:{i}"] = titles[i];
+                }
+            }
+            catch { /* malformed JSON — skip */ }
+        }
+
+        // AeTitleAliases — JSON array → indexed IConfiguration keys
+        if (db.TryGetValue(NodeSettingKeys.Dicom.AeTitleAliases, out var aliasesJson) &&
+            !string.IsNullOrWhiteSpace(aliasesJson) && aliasesJson != ConfigDefaults.EmptyJsonArray)
+        {
+            try
+            {
+                var aliases = System.Text.Json.JsonSerializer.Deserialize<string[]>(aliasesJson);
+                if (aliases is { Length: > 0 })
+                {
+                    for (var i = 0; i < aliases.Length; i++)
+                        cfg[$"{ConfigPaths.DicomAeTitleAliasesPrefix}:{i}"] = aliases[i];
                 }
             }
             catch { /* malformed JSON — skip */ }

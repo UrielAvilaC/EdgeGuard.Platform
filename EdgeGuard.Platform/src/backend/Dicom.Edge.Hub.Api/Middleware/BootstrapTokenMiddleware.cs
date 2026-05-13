@@ -1,3 +1,4 @@
+using Dicom.Edge.Contracts.Edge;
 using Dicom.Edge.Hub.Application.Edge;
 using Dicom.Edge.Security.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -7,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Dicom.Edge.Hub.Api.Middleware;
 
 /// <summary>
-/// Validates the bootstrap token for POST /edge/register.
+/// Validates the bootstrap token for POST /api/edge/register.
 /// Tokens are one-time use, stored as SHA-256 hashes in the database.
 /// Generated via POST /api/nodes/bootstrap-tokens (admin endpoint).
 /// </summary>
@@ -17,7 +18,7 @@ public sealed class BootstrapTokenMiddleware(
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        if (context.Request.Path.Value is "/edge/register"
+        if (context.Request.Path.Value is HubApiRoutes.Register
             && HttpMethods.IsPost(context.Request.Method))
         {
             if (!context.Request.Headers.TryGetValue(

@@ -95,6 +95,17 @@ public class EdgeController : ControllerBase
         });
     }
 
+    /// <summary>POST /edge/studies/progress — Node reports incremental study progress while receiving.</summary>
+    [HttpPost("studies/progress")]
+    public async Task<IActionResult> StudyProgress([FromBody] StudyProgressNotifyRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessStudyProgressAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new { acknowledged = result.Acknowledged, studyId = result.StudyId });
+    }
+
     /// <summary>POST /edge/health — Node reports health metrics.</summary>
     [HttpPost("health")]
     public async Task<IActionResult> HealthReport([FromBody] NodeHealthReportRequest request, CancellationToken ct)
@@ -104,6 +115,28 @@ public class EdgeController : ControllerBase
             return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
 
         return Ok(new HealthReportAckDto { Acknowledged = result.Acknowledged });
+    }
+
+    /// <summary>POST /edge/telemetry — Node reports periodic association + study-metrics telemetry.</summary>
+    [HttpPost("telemetry")]
+    public async Task<IActionResult> Telemetry([FromBody] NodeTelemetryRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessTelemetryAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new NodeTelemetryAckDto { Acknowledged = result.Acknowledged, ServerTimeUtc = result.ServerTimeUtc });
+    }
+
+    /// <summary>POST /edge/pacs-echo — Node reports PACS C-ECHO connectivity results.</summary>
+    [HttpPost("pacs-echo")]
+    public async Task<IActionResult> PacsEchoReport([FromBody] NodePacsEchoReportRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessPacsEchoReportAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new { acknowledged = result.Acknowledged });
     }
 
     /// <summary>GET /edge/configuration — Node pulls its config as key-value pairs.</summary>

@@ -1,4 +1,5 @@
 using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 
@@ -51,4 +52,22 @@ public static class NodeMappingProfile
             dto.Location,
             dto.FacilityName,
             dto.HealthCheckIntervalSeconds);
+
+    public static NodeTelemetryDto ToDto(this NodeTelemetryRecord r) => new()
+    {
+        Id                        = r.Id,
+        NodeId                    = r.NodeId,
+        ReportedAt                = r.ReportedAt,
+        PeriodStart               = r.PeriodStart,
+        PeriodEnd                 = r.PeriodEnd,
+        TotalAssociations         = r.TotalAssociations,
+        AcceptedAssociations      = r.AcceptedAssociations,
+        RejectedAssociations      = r.RejectedAssociations,
+        AbortedAssociations       = r.AbortedAssociations,
+        TotalImagesReceived       = r.TotalImagesReceived,
+        CompletedStudies          = r.CompletedStudies,
+        TotalBytesReceived        = r.TotalBytesReceived,
+        AverageReceptionDurationMs = r.AverageReceptionDurationMs,
+        AverageThroughputMbps     = r.AverageThroughputMbps,
+    };
 }

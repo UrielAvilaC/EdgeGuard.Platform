@@ -30,6 +30,7 @@ export interface Hl7MessageSummary {
   status: Hl7MessageStatus;
   processedAt: string | null;
   errorMessage: string | null;
+  canReprocess: boolean;
 }
 
 export interface Hl7MessageDetail extends Hl7MessageSummary {

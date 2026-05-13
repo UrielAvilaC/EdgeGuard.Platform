@@ -25,9 +25,9 @@ export class UsersStore {
   readonly hasData = computed(() => this._users().length > 0);
   readonly activeCount = computed(() => this._users().filter(u => u.isActive).length);
 
-  setUsers(users: UserDto[], total: number): void {
+  setUsers(users: UserDto[], page: number, pageSize: number, total: number): void {
     this._users.set(users);
-    this._pagination.update(p => ({ ...p, total }));
+    this._pagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

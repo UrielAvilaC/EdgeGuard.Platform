@@ -101,9 +101,9 @@ export class Hl7Store {
   }
 
   // ── Mutations: Rules ──
-  setRules(rules: RoutingRule[], total: number): void {
+  setRules(rules: RoutingRule[], page: number, pageSize: number, total: number): void {
     this._rules.set(rules);
-    this._rulesPagination.update(p => ({ ...p, total }));
+    this._rulesPagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

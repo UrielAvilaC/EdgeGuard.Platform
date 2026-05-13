@@ -46,7 +46,7 @@ export class PatientsFacade {
       finalize(() => this.store.setLoading(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (result) => this.store.setPatients(result.items, result.total),
+      next: (result) => this.store.setPatients(result.items, result.page, result.pageSize, result.total),
       error: () => {
         this.store.setError('Error al cargar pacientes');
         this.toast.error('No se pudieron cargar los pacientes');

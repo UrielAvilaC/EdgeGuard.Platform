@@ -1,3 +1,5 @@
+using Dicom.Edge.Contracts.Configuration;
+using Dicom.Edge.Node.Persistence.Repositories;
 using Dicom.Edge.Node.Router;
 using Dicom.Edge.Node.Sender;
 using Dicom.Edge.Node.Persistence.Diagnostics;
@@ -10,6 +12,7 @@ namespace Dicom.Edge.Node.Persistence.Services;
 /// </summary>
 public sealed class RoutingRuleLoaderService(
     IDbContextFactory<EdgeNodeDbContext> factory,
+    INodePacsServerRepository pacsServerRepository,
     RuleBasedStudyRouter router,
     INodeSettingsService settingsService,
     ILogger<RoutingRuleLoaderService> logger) : BackgroundService
@@ -49,52 +52,81 @@ public sealed class RoutingRuleLoaderService(
     {
         await using var ctx = await factory.CreateDbContextAsync(ct);
 
+        // Build a lookup of AeTitle → NodePacsServer for host/port resolution
+        var pacsServers = await pacsServerRepository.GetAllEnabledAsync(ct);
+        var pacsLookup  = pacsServers.ToDictionary(p => p.AeTitle, StringComparer.OrdinalIgnoreCase);
+
         var dbRules = await ctx.RoutingRules
             .Where(r => r.IsEnabled)
             .OrderBy(r => r.Priority)
             .AsNoTracking()
             .ToListAsync(ct);
 
-        var routingRules = dbRules.Select(r => new Router.RoutingRule
+        var routingRules = dbRules.Select(r =>
         {
-            Id = r.Id,
-            Name = r.Name,
-            Priority = r.Priority,
-            IsEnabled = r.IsEnabled,
-            ModalityFilter = r.Modality,
-            SourceAeTitleFilter = r.SourceAeTitle,
-            InstitutionFilter = r.InstitutionName,
-            UrgentOnly = false,
-            Destination = new PacsDestination
+            pacsLookup.TryGetValue(r.DestinationAeTitle, out var pacs);
+            return new Router.RoutingRule
             {
-                Id = r.Id,
-                AeTitle = r.DestinationAeTitle,
-                Host = "localhost",
-                Port = 104
-            }
+                Id                   = r.Id,
+                Name                 = r.Name,
+                Priority             = r.Priority,
+                IsEnabled            = r.IsEnabled,
+                ModalityFilter       = r.Modality,
+                SourceAeTitleFilter  = r.SourceAeTitle,
+                InstitutionFilter    = r.InstitutionName,
+                UrgentOnly           = false,
+                Destination          = new PacsDestination
+                {
+                    Id      = r.Id,
+                    AeTitle = r.DestinationAeTitle,
+                    Host    = pacs?.Host ?? "localhost",
+                    Port    = pacs?.Port ?? 104,
+                },
+            };
         }).ToList();
 
-        // Try to resolve the default destination from node settings
-        PacsDestination? defaultDestination = null;
-        var defaultAe = await settingsService.GetAsync<string>("pacs.default_destination_ae", string.Empty, ct);
-        if (!string.IsNullOrEmpty(defaultAe))
-        {
-            var defaultHost = await settingsService.GetAsync<string>("pacs.default_destination_host", "localhost", ct);
-            var defaultPort = await settingsService.GetAsync<int>("pacs.default_destination_port", 104, ct);
+        // Default destinations: all enabled PACS servers ordered by priority.
+        // When no routing rule matches a study, it is sent to every default destination in parallel.
+        List<PacsDestination> defaultDestinations = [];
 
-            defaultDestination = new PacsDestination
+        if (pacsServers.Count > 0)
+        {
+            defaultDestinations = pacsServers
+                .OrderBy(p => p.Priority)
+                .Select(p => new PacsDestination
+                {
+                    Id      = p.Id,
+                    AeTitle = p.AeTitle,
+                    Host    = p.Host,
+                    Port    = p.Port,
+                })
+                .ToList();
+        }
+        else
+        {
+            // Canonical settings keys read by RoutingRuleLoaderService
+            var defaultAe = await settingsService.GetAsync<string>(SharedNodeSettingKeys.PacsDestination.AeTitle, string.Empty, ct);
+            if (!string.IsNullOrEmpty(defaultAe))
             {
-                Id = "default",
-                AeTitle = defaultAe,
-                Host = defaultHost,
-                Port = defaultPort
-            };
+                var defaultHost = await settingsService.GetAsync<string>(SharedNodeSettingKeys.PacsDestination.Host, "localhost", ct);
+                var defaultPort = await settingsService.GetAsync<int>(SharedNodeSettingKeys.PacsDestination.Port, 104, ct);
+
+                defaultDestinations.Add(new PacsDestination
+                {
+                    Id      = "default",
+                    AeTitle = defaultAe,
+                    Host    = defaultHost,
+                    Port    = defaultPort,
+                });
+            }
         }
 
-        router.LoadRules(routingRules, defaultDestination);
+        router.LoadRules(routingRules, defaultDestinations);
 
         logger.LogInformation(
-            "Loaded {RuleCount} routing rules from database (default destination: {DefaultAe})",
-            routingRules.Count, defaultDestination?.AeTitle ?? "none");
+            "Loaded {RuleCount} routing rules from database ({DefaultCount} default destination(s): [{DefaultAes}])",
+            routingRules.Count,
+            defaultDestinations.Count,
+            string.Join(", ", defaultDestinations.Select(d => d.AeTitle)));
     }
 }

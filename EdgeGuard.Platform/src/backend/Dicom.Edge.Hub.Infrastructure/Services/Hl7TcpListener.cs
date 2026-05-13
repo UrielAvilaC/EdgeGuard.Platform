@@ -93,6 +93,14 @@ public class Hl7TcpListener : IHl7Listener
         {
             _logger.LogInformation("HL7 Listener stopping...");
         }
+        catch (SocketException se) when (
+            se.SocketErrorCode == SocketError.OperationAborted ||
+            cancellationToken.IsCancellationRequested)
+        {
+            // IIS app pool recycle or host shutdown sends SocketError.OperationAborted (995)
+            // instead of OperationCanceledException on Windows — treat as graceful stop.
+            _logger.LogInformation("HL7 Listener stopped (socket operation aborted by host shutdown)");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in HL7 Listener");
@@ -116,6 +124,8 @@ public class Hl7TcpListener : IHl7Listener
         _isRunning = false;
         _listener?.Stop();
         _messageChannel.Writer.Complete();
+        _listener?.Dispose();
+        _listener = null;
 
         _logger.LogInformation("HL7 Listener stopped");
     }

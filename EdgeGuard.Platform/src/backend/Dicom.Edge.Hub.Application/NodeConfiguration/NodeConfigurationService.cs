@@ -54,6 +54,91 @@ public sealed class NodeConfigurationService(
         return true;
     }
 
+    public async Task<IReadOnlyList<string>> GetCategoriesAsync(
+        string nodeId, CancellationToken ct = default)
+    {
+        await EnsureInitializedAsync(nodeId, ct);
+        var profiles = await repository.GetByNodeIdAsync(nodeId, ct);
+        return profiles.Select(p => p.Category)
+                       .Distinct(StringComparer.OrdinalIgnoreCase)
+                       .OrderBy(c => c)
+                       .ToList();
+    }
+
+    public async Task<BatchUpdateNodeSettingsResponse> UpdateBatchAsync(
+        string nodeId, BatchUpdateNodeSettingsRequest request, CancellationToken ct = default)
+    {
+        var updated = 0;
+        var notFound = 0;
+        var failedKeys = new List<string>();
+
+        foreach (var item in request.Settings)
+        {
+            try
+            {
+                var profile = await repository.GetByNodeAndKeyAsync(nodeId, item.Key, ct);
+                if (profile is null)
+                {
+                    notFound++;
+                    failedKeys.Add(item.Key);
+                    logger.LogWarning("Batch update: setting {Key} not found for node {NodeId}", item.Key, nodeId);
+                    continue;
+                }
+
+                profile.UpdateValue(item.Value);
+                updated++;
+            }
+            catch (Exception ex)
+            {
+                failedKeys.Add(item.Key);
+                logger.LogError(ex, "Batch update: failed to update {Key} for node {NodeId}", item.Key, nodeId);
+            }
+        }
+
+        if (updated > 0)
+            await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Batch update for node {NodeId}: Updated={Updated}, NotFound={NotFound}",
+            nodeId, updated, notFound);
+
+        return new BatchUpdateNodeSettingsResponse
+        {
+            Updated = updated,
+            NotFound = notFound,
+            FailedKeys = failedKeys
+        };
+    }
+
+    public async Task<int> ResetCategoryAsync(
+        string nodeId, string category, CancellationToken ct = default)
+    {
+        var profiles = await repository.GetByNodeAndCategoryAsync(nodeId, category, ct);
+        if (profiles.Count == 0) return 0;
+
+        var defaultsByKey = SharedNodeSettingDefaults.All
+            .ToDictionary(d => d.Key, d => d.DefaultValue, StringComparer.OrdinalIgnoreCase);
+
+        var count = 0;
+        foreach (var profile in profiles)
+        {
+            if (defaultsByKey.TryGetValue(profile.SettingKey, out var defaultValue))
+            {
+                profile.ResetToDefault(defaultValue);
+                count++;
+            }
+        }
+
+        if (count > 0)
+            await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Reset {Count} settings in category '{Category}' for node {NodeId}",
+            count, category, nodeId);
+
+        return count;
+    }
+
     public async Task<bool> ResetSettingAsync(
         string nodeId, string settingKey, CancellationToken ct = default)
     {
@@ -115,7 +200,12 @@ public sealed class NodeConfigurationService(
         string nodeId, CancellationToken ct = default)
     {
         var profiles = await repository.GetByNodeIdAsync(nodeId, ct);
-        var settings = profiles.ToDictionary(p => p.SettingKey, p => p.Value);
+
+        // hub.api_key is never included in sync payloads — the hub only stores the hash,
+        // not the raw key, so pushing an empty value would overwrite the node's stored key.
+        var settings = profiles
+            .Where(p => !p.SettingKey.Equals(SharedNodeSettingKeys.Hub.ApiKey, StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(p => p.SettingKey, p => p.Value);
         var version = ComputeHash(profiles);
 
         return new NodeConfigSyncDto

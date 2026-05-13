@@ -15,7 +15,7 @@ internal static class NodeSettingsSeed
     /// without touching keys that already exist (safe for upgrades).
     /// </summary>
     public static async Task SeedMissingAsync(
-        EdgeNodeDbContext ctx, CancellationToken ct = default)
+        EdgeNodeDbContext ctx,ILogger logger, CancellationToken ct = default)
     {
         var existing = await ctx.NodeSettings
             .Select(s => s.Key)
@@ -70,6 +70,7 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Hub.Port,                  "443",     Cat.Hub, "Hub Port",                      VT.Int),
         Row(NodeSettingKeys.Hub.BasePath,              "/api",    Cat.Hub, "Hub API Base Path",             VT.String),
         Row(NodeSettingKeys.Hub.ApiKey,                "",        Cat.Hub, "Hub API Key",                   VT.String),
+        Row(NodeSettingKeys.Hub.NodeId,                "",        Cat.Hub, "Hub Node ID",                   VT.String),
         Row(NodeSettingKeys.Hub.TimeoutSeconds,        "30",      Cat.Hub, "Hub Request Timeout (sec)",     VT.Int),
         Row(NodeSettingKeys.Hub.HeartbeatIntervalSec,  "60",      Cat.Hub, "Heartbeat Interval (sec)",      VT.Int),
         Row(NodeSettingKeys.Hub.RegisterOnStartup,     "true",    Cat.Hub, "Register on Startup",           VT.Bool),
@@ -80,17 +81,21 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Hub.ReconnectDelaySeconds, "30",      Cat.Hub, "Reconnect Delay (sec)",         VT.Int),
 
         // ── DICOM ────────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Dicom.Enabled,                   "true",      Cat.Dicom, "DICOM Server Enabled",            VT.Bool),
-        Row(NodeSettingKeys.Dicom.ValidateCallingAe,         "false",     Cat.Dicom, "Validate Calling AE Title",       VT.Bool),
-        Row(NodeSettingKeys.Dicom.AllowedAeTitles,           "[]",        Cat.Dicom, "Allowed AE Titles (JSON array)",  VT.Json),
-        Row(NodeSettingKeys.Dicom.MaxAssociations,           "50",        Cat.Dicom, "Max Concurrent Associations",     VT.Int),
-        Row(NodeSettingKeys.Dicom.Port,                      "11112",     Cat.Dicom, "DICOM Listen Port",               VT.Int),
-        Row(NodeSettingKeys.Dicom.AeTitle,                   "EDGE_NODE", Cat.Dicom, "DICOM AE Title",                  VT.String),
-        Row(NodeSettingKeys.Dicom.StudyCompletionTimeoutSec, "30",        Cat.Dicom, "Study Completion Timeout (sec)",   VT.Int),
-        Row(NodeSettingKeys.Dicom.AssociationTimeoutSec,     "30",        Cat.Dicom, "Association Timeout (sec)",        VT.Int),
-        Row(NodeSettingKeys.Dicom.DimseTimeoutSec,           "600",       Cat.Dicom, "DIMSE Timeout (sec)",              VT.Int),
-        Row(NodeSettingKeys.Dicom.MaxPduLength,              "262144",    Cat.Dicom, "Max PDU Length (bytes)",            VT.Int),
-        Row(NodeSettingKeys.Dicom.MwlEnabled,                "true",      Cat.Dicom, "MWL C-FIND SCP Enabled",           VT.Bool),
+        Row(NodeSettingKeys.Dicom.Enabled,                   "true",      Cat.Dicom, "DICOM Server Enabled",              VT.Bool),
+        Row(NodeSettingKeys.Dicom.ValidateCallingAe,         "false",     Cat.Dicom, "Validate Calling AE Title",         VT.Bool),
+        Row(NodeSettingKeys.Dicom.ValidateCalledAe,          "true",      Cat.Dicom, "Validate Called AE Title",          VT.Bool),
+        Row(NodeSettingKeys.Dicom.AllowedAeTitles,           "[]",        Cat.Dicom, "Allowed Calling AE Titles (JSON)",  VT.Json),
+        Row(NodeSettingKeys.Dicom.AeTitleAliases,            "[]",        Cat.Dicom, "AE Title Aliases (JSON)",           VT.Json),
+        Row(NodeSettingKeys.Dicom.MaxAssociations,           "50",        Cat.Dicom, "Max Concurrent Associations",       VT.Int),
+        Row(NodeSettingKeys.Dicom.Port,                      "11112",     Cat.Dicom, "DICOM Listen Port",                 VT.Int),
+        Row(NodeSettingKeys.Dicom.AeTitle,                   "EDGE_NODE", Cat.Dicom, "DICOM AE Title",                    VT.String),
+        Row(NodeSettingKeys.Dicom.StudyCompletionTimeoutSec, "30",        Cat.Dicom, "Study Completion Timeout (sec)",    VT.Int),
+        Row(NodeSettingKeys.Dicom.AssociationTimeoutSec,     "30",        Cat.Dicom, "Association Timeout (sec)",         VT.Int),
+        Row(NodeSettingKeys.Dicom.DimseTimeoutSec,           "600",       Cat.Dicom, "DIMSE Timeout (sec)",               VT.Int),
+        Row(NodeSettingKeys.Dicom.MaxPduLength,              "262144",    Cat.Dicom, "Max PDU Length (bytes)",             VT.Int),
+        Row(NodeSettingKeys.Dicom.MwlEnabled,                "true",      Cat.Dicom, "MWL C-FIND SCP Enabled",            VT.Bool),
+        Row(NodeSettingKeys.Dicom.CEchoEnabled,              "true",      Cat.Dicom, "C-ECHO (Verification) SCP Enabled", VT.Bool),
+        Row(NodeSettingKeys.Dicom.QrEnabled,                 "true",      Cat.Dicom, "QR C-FIND SCP Enabled",             VT.Bool),
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Cleanup.Enabled,            "true",  Cat.Cleanup, "Auto-Cleanup Enabled",          VT.Bool),

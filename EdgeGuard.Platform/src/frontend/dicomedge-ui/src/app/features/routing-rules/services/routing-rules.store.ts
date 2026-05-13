@@ -39,9 +39,9 @@ export class RoutingRulesStore {
   );
 
   // ── Mutations ──
-  setRules(rules: RoutingRule[], total: number): void {
+  setRules(rules: RoutingRule[], page: number, pageSize: number, total: number): void {
     this._rules.set(rules);
-    this._pagination.update(p => ({ ...p, total }));
+    this._pagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

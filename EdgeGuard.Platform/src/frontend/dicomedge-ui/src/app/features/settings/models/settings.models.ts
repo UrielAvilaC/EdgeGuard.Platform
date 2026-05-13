@@ -29,6 +29,16 @@ export interface ConfigPushResultDto {
   message: string;
 }
 
+export interface BatchUpdateNodeSettingsRequest {
+  settings: { key: string; value: string }[];
+}
+
+export interface BatchUpdateNodeSettingsResponse {
+  updated: number;
+  notFound: number;
+  failedKeys: string[];
+}
+
 export const SETTING_CATEGORIES: { key: string; label: string; icon: string }[] = [
   { key: 'General', label: 'General', icon: 'cog' },
   { key: 'HL7', label: 'HL7', icon: 'chart-bar' },

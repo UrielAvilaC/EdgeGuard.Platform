@@ -144,6 +144,43 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         return study;
     }
 
+    /// <summary>
+    /// Merges a real DICOM study arrival into a study that was pre-created from an HL7 worklist message.
+    /// Replaces the synthetic <see cref="StudyInstanceUid"/> with the authoritative UID that arrived
+    /// embedded in the DICOM instances, transitions the status to <see cref="StudyStatus.Receiving"/>,
+    /// and enriches any origin fields that were unknown at scheduling time.
+    /// </summary>
+    /// <remarks>
+    /// This is the resolution point for the ORM→DICOM UID mismatch:
+    /// <list type="number">
+    ///   <item>HL7 ORM arrives → study created with synthetic UID, keyed by AccessionNumber.</item>
+    ///   <item>DICOM images arrive → Edge Node notifies Hub with real UID + same AccessionNumber.</item>
+    ///   <item>Hub looks up by real UID (miss), falls back to AccessionNumber, calls this method.</item>
+    /// </list>
+    /// </remarks>
+    public void MergeFromDicom(
+        DicomUid realStudyInstanceUid,
+        string? sourceNodeId = null,
+        string? sourceAeTitle = null)
+    {
+        var previousUid = StudyInstanceUid.Value;
+
+        StudyInstanceUid = realStudyInstanceUid;
+
+        if (sourceNodeId is not null) SourceNodeId = sourceNodeId;
+        if (sourceAeTitle is not null) SourceAeTitle = sourceAeTitle.Trim();
+
+        var old = Status;
+        Status = StudyStatus.Receiving;
+        CurrentStatusSince = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        RecordStatusChange(old, Status, sourceNodeId,
+            $"Merged: synthetic UID {previousUid} replaced by real DICOM UID {realStudyInstanceUid.Value}");
+
+        AddDomainEvent(new StudyReceivedEvent(Id, realStudyInstanceUid.Value, PatientId, sourceNodeId));
+    }
+
     public void MarkAsScheduled()
     {
         var old = Status;
@@ -153,7 +190,18 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         RecordStatusChange(old, Status, null, "Re-scheduled");
     }
 
-    public void RecordImagesReceived(int count, long sizeBytes, string? modalityAeTitle = null)
+    /// <summary>
+    /// Updates study-level metadata (date, description) when received from the node.
+    /// Only overwrites if the incoming value is non-null.
+    /// </summary>
+    public void UpdateStudyMetadata(DateTime? studyDate, string? studyDescription)
+    {
+        if (studyDate.HasValue) StudyDate = studyDate;
+        if (!string.IsNullOrWhiteSpace(studyDescription)) StudyDescription = studyDescription;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void RecordImagesReceived(int count, long sizeBytes, string? modalityAeTitle = null, int seriesCount = 0)
     {
         if (count <= 0) return;
 
@@ -162,6 +210,9 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         LastImageReceivedAt = DateTime.UtcNow;
         FirstImageReceivedAt ??= DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+
+        if (seriesCount > SeriesCount)
+            SeriesCount = seriesCount;
 
         AddDomainEvent(new StudyImagesReceivedEvent(Id, count, sizeBytes, modalityAeTitle));
     }

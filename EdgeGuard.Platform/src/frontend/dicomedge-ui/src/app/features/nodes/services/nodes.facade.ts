@@ -5,7 +5,7 @@ import { finalize } from 'rxjs';
 import { ToastService } from '../../../core/services/toast.service';
 import { SortParams } from '../../../shared/models/sort.model';
 import { NodesApiService } from '../infrastructure/nodes-api.service';
-import { CreateNodeRequest, NodeFilter, UpdateNodeRequest } from '../models/node.models';
+import { AssignPacsRequest, CreateNodeRequest, NodeFilter, UpdateNodeRequest } from '../models/node.models';
 import { NodesStore } from './nodes.store';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class NodesFacade {
       finalize(() => this.store.setLoading(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (result) => this.store.setNodes(result.items, result.total),
+      next: (result) => this.store.setNodes(result.items, result.page, result.pageSize, result.total),
       error: () => {
         this.store.setError('Error al cargar nodos');
         this.toast.error('No se pudieron cargar los nodos');
@@ -138,6 +138,34 @@ export class NodesFacade {
         this.loadNodes();
       },
       error: () => this.toast.error('No se pudo deshabilitar el nodo'),
+    });
+  }
+
+  assignPacs(nodeId: string, pacsId: string, request: AssignPacsRequest): void {
+    this.store.setSelectedLoading(true);
+    this.api.assignPacs(nodeId, pacsId, request).pipe(
+      finalize(() => this.store.setSelectedLoading(false)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.toast.success('PACS asignado correctamente');
+        this.loadNodeById(nodeId);
+      },
+      error: () => this.toast.error('No se pudo asignar el servidor PACS'),
+    });
+  }
+
+  unassignPacs(nodeId: string, pacsId: string): void {
+    this.store.setSelectedLoading(true);
+    this.api.unassignPacs(nodeId, pacsId).pipe(
+      finalize(() => this.store.setSelectedLoading(false)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.toast.success('PACS desvinculado correctamente');
+        this.loadNodeById(nodeId);
+      },
+      error: () => this.toast.error('No se pudo desvincular el servidor PACS'),
     });
   }
 }

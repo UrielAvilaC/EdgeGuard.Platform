@@ -41,9 +41,9 @@ export class PatientsStore {
   });
 
   // ── Mutations ──
-  setPatients(patients: Patient[], total: number): void {
+  setPatients(patients: Patient[], page: number, pageSize: number, total: number): void {
     this._patients.set(patients);
-    this._pagination.update(p => ({ ...p, total }));
+    this._pagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

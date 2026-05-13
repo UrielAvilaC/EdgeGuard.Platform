@@ -52,6 +52,61 @@ public sealed record NodePacsAssignmentDto
     public bool InheritedFromHub { get; init; }
 }
 
+// ── Telemetry ────────────────────────────────────────────────────────────────
+
+public sealed record NodeTelemetryDto
+{
+    public required string Id        { get; init; }
+    public required string NodeId    { get; init; }
+    public DateTime ReportedAt       { get; init; }
+    public DateTime PeriodStart      { get; init; }
+    public DateTime PeriodEnd        { get; init; }
+    public int  TotalAssociations    { get; init; }
+    public int  AcceptedAssociations { get; init; }
+    public int  RejectedAssociations { get; init; }
+    public int  AbortedAssociations  { get; init; }
+    public int  TotalImagesReceived  { get; init; }
+    public int  CompletedStudies     { get; init; }
+    public long TotalBytesReceived   { get; init; }
+    public double? AverageReceptionDurationMs { get; init; }
+    public double? AverageThroughputMbps      { get; init; }
+}
+
+public sealed record NodeTelemetryAckDto
+{
+    public bool     Acknowledged  { get; init; }
+    public DateTime ServerTimeUtc { get; init; }
+}
+
+// ── PACS C-ECHO status (Hub-side, per node) ───────────────────────────────────
+
+/// <summary>
+/// Hub-side DTO that groups the latest C-ECHO results for a node, returned by
+/// <c>GET /api/nodes/{id}/pacs-echo</c>.
+/// </summary>
+public sealed record NodePacsCEchoStatusDto
+{
+    public required string NodeId        { get; init; }
+    public required DateTime ReportedAtUtc { get; init; }
+    public required IReadOnlyList<PacsCEchoDestinationDto> Destinations { get; init; }
+    public int TotalChecked   => Destinations.Count;
+    public int TotalReachable => Destinations.Count(d => d.Success);
+}
+
+public sealed record PacsCEchoDestinationDto
+{
+    public required string AeTitle      { get; init; }
+    public required string Host         { get; init; }
+    public required int    Port         { get; init; }
+    public required bool   Success      { get; init; }
+    public double?         LatencyMs    { get; init; }
+    /// <summary>Human-readable error (network, timeout, etc.).</summary>
+    public string?         Error        { get; init; }
+    /// <summary>Structured DICOM rejection reason, e.g. "CalledAENotRecognized".</summary>
+    public string?         ErrorReason  { get; init; }
+    public required DateTime CheckedAtUtc { get; init; }
+}
+
 // ── Studies ──────────────────────────────────────────────────────────────────
 
 public sealed record StudyDto
@@ -258,7 +313,8 @@ public sealed record Hl7MessageSummaryDto(
     string? ClientEndpoint,
     string Status,
     DateTime? ProcessedAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool CanReprocess);
 
 public sealed record Hl7MessageDetailDto(
     Guid Id,
@@ -270,7 +326,8 @@ public sealed record Hl7MessageDetailDto(
     string? ClientEndpoint,
     string Status,
     DateTime? ProcessedAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool CanReprocess);
 
 // ── Generic ──────────────────────────────────────────────────────────────────
 

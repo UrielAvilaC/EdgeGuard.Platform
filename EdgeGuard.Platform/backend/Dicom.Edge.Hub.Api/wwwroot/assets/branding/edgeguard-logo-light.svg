@@ -1,0 +1,15 @@
+<svg width="512" height="108" viewBox="0 0 512 108" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="egLightGradient" x1="10" y1="10" x2="86" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B74D1" />
+      <stop offset="1" stop-color="#00A3A3" />
+    </linearGradient>
+  </defs>
+
+  <path d="M48 6L90 24V50C90 74 73.8 93.7 48 102C22.2 93.7 6 74 6 50V24L48 6Z" fill="url(#egLightGradient)" />
+  <path d="M48 21L75 33V49.5C75 65.1 64.6 79 48 84.9C31.4 79 21 65.1 21 49.5V33L48 21Z" fill="white" fill-opacity="0.17" />
+  <path d="M35 55.5L44.5 65L63.5 46" stroke="white" stroke-width="7.2" stroke-linecap="round" stroke-linejoin="round" />
+
+  <text x="118" y="52" fill="#0F172A" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="38" font-weight="800" letter-spacing="0.3">EdgeGuard</text>
+  <text x="118" y="80" fill="#475569" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" letter-spacing="2.8">DICOM PLATFORM</text>
+</svg>

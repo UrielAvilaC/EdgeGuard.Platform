@@ -46,7 +46,7 @@ public sealed class DicomStatusController(
             PatientId = i.PatientId ?? string.Empty,
             PatientName = i.PatientName ?? string.Empty,
             ScheduledDate = i.ReceivedAt,
-            Modality = string.Empty,
+            Modality = i.Modality ?? string.Empty,
             ProcedureDescription = i.MessageType
         }).ToList();
 

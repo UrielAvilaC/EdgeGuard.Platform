@@ -37,6 +37,10 @@ export const API_ROUTES = {
     ENABLE: (id: string) => `/nodes/${id}/enable`,
     DISABLE: (id: string) => `/nodes/${id}/disable`,
     COUNT: '/nodes/count',
+    ASSIGN_PACS: (nodeId: string, pacsId: string) => `/nodes/${nodeId}/pacs/${pacsId}`,
+    UNASSIGN_PACS: (nodeId: string, pacsId: string) => `/nodes/${nodeId}/pacs/${pacsId}`,
+    TELEMETRY: (id: string) => `/nodes/${id}/telemetry`,
+    PACS_ECHO: (id: string) => `/nodes/${id}/pacs-echo`,
   },
   PACS_SERVERS: {
     LIST: '/pacs-servers',
@@ -55,6 +59,7 @@ export const API_ROUTES = {
     STATUS: '/hl7-status/status',
     RECENT_MESSAGES: '/hl7-status/recent-messages',
     MESSAGE_DETAIL: (id: string) => `/hl7-status/messages/${id}`,
+    REPROCESS: (id: string) => `/hl7-status/messages/${id}/reprocess`,
   },
   QUEUE_MONITORING: {
     SUMMARY: '/queue-monitoring/summary',
@@ -94,7 +99,9 @@ export const API_ROUTES = {
     BY_NODE: (nodeId: string) => `/node-configuration/${nodeId}`,
     BY_CATEGORY: (nodeId: string, category: string) => `/node-configuration/${nodeId}/category/${category}`,
     UPDATE: (nodeId: string, key: string) => `/node-configuration/${nodeId}/${key}`,
+    BATCH_UPDATE: (nodeId: string) => `/node-configuration/${nodeId}/batch`,
     RESET: (nodeId: string, key: string) => `/node-configuration/${nodeId}/reset/${key}`,
+    RESET_CATEGORY: (nodeId: string, category: string) => `/node-configuration/${nodeId}/reset-category/${category}`,
     PUSH: (nodeId: string) => `/node-configuration/${nodeId}/push`,
     VERSION: (nodeId: string) => `/node-configuration/${nodeId}/version`,
   },

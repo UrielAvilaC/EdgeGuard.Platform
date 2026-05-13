@@ -1,5 +1,4 @@
 import { DestroyRef, inject, Injectable, NgZone, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -7,7 +6,7 @@ import {
   LogLevel,
   HttpTransportType,
 } from '@microsoft/signalr';
-import { Observable, Subject, timer } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 import { ENVIRONMENT } from '../config/environment.config';
 import { AuthStore } from '../auth/store/auth.store';
@@ -69,10 +68,8 @@ export class SignalRService {
       this.zone.run(() => this.connected.set(false));
     });
 
-    // Cleanup on destroy
-    timer(0).pipe(takeUntilDestroyed(destroyRef)).subscribe({
-      complete: () => this.stop(),
-    });
+    // Cleanup on destroy — using onDestroy directly to avoid timer-based races
+    destroyRef.onDestroy(() => { this.stop(); });
 
     try {
       await this.connection.start();

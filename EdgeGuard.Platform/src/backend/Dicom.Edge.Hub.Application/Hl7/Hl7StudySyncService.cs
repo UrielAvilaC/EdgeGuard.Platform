@@ -1,3 +1,4 @@
+using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -10,13 +11,26 @@ namespace Dicom.Edge.Hub.Application.Hl7;
 /// </summary>
 public sealed class Hl7StudySyncService(
     IStudyRepository studyRepository,
+    IUnitOfWork unitOfWork,
     ILogger<Hl7StudySyncService> logger) : IHl7StudySyncService
 {
+    // Only ORM (Order) and SIU (Scheduling) messages carry study scheduling info
+    private static readonly HashSet<string> _supportedMessageTypes =
+        new(StringComparer.OrdinalIgnoreCase) { "ORM", "SIU", "OMG", "OML" };
+
     public async Task SyncFromHl7Async(Hl7Message message, CancellationToken ct = default)
     {
+        if (!_supportedMessageTypes.Contains(message.MessageType))
+        {
+            logger.LogInformation(
+                "Study sync skipped for {MessageId}: message type {MessageType} does not carry scheduling data",
+                message.Id, message.MessageType);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(message.AccessionNumber))
         {
-            logger.LogDebug(
+            logger.LogInformation(
                 "Study sync skipped for {MessageId}: no AccessionNumber in message",
                 message.Id);
             return;
@@ -31,22 +45,34 @@ public sealed class Hl7StudySyncService(
             return;
         }
 
+        // Parse study date from OBR-7 (yyyyMMdd[HHmmss])
         DateTime? studyDate = null;
-        // HL7 date fields arrive as yyyyMMdd[HHmmss]
-        if (!string.IsNullOrWhiteSpace(message.PatientBirthDate) is false) { /* not study date */ }
+        if (!string.IsNullOrWhiteSpace(message.StudyDate) &&
+            DateTime.TryParseExact(
+                message.StudyDate[..Math.Min(14, message.StudyDate.Length)],
+                "yyyyMMddHHmmss",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out var parsedDate))
+        {
+            studyDate = DateTime.SpecifyKind(parsedDate, DateTimeKind.Utc);
+        }
 
         var study = Study.CreateFromWorklist(
-            accessionNumber:   message.AccessionNumber,
-            patientId:         message.PatientId,
-            patientName:       message.PatientName,
-            sendingFacility:   message.SendingFacility,
-            studyDate:         studyDate,
+            accessionNumber:    message.AccessionNumber,
+            patientId:          message.PatientId,
+            patientName:        message.PatientName,
+            sendingFacility:    message.SendingFacility,
+            studyDate:          studyDate,
+            studyDescription:   message.ProcedureDescription,
             referringPhysician: null);
 
         await studyRepository.AddAsync(study, ct);
+        
+        
 
         logger.LogInformation(
-            "Created scheduled study {StudyId} (AccessionNumber={AccessionNumber}) from HL7 message {MessageId}",
-            study.Id, message.AccessionNumber, message.Id);
+            "Created scheduled study {StudyId} (AccessionNumber={AccessionNumber}) from HL7 {MessageType} message {MessageId}",
+            study.Id, message.AccessionNumber, message.MessageType, message.Id);
     }
 }

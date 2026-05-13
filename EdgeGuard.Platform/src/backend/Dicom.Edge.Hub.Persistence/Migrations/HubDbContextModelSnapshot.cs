@@ -328,6 +328,101 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.ToTable("health_check_records", (string)null);
                 });
 
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.NodeTelemetryRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AbortedAssociations")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("aborted_associations");
+
+                    b.Property<int>("AcceptedAssociations")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("accepted_associations");
+
+                    b.Property<double?>("AverageReceptionDurationMs")
+                        .HasColumnType("double precision")
+                        .HasColumnName("average_reception_duration_ms");
+
+                    b.Property<double?>("AverageThroughputMbps")
+                        .HasColumnType("double precision")
+                        .HasColumnName("average_throughput_mbps");
+
+                    b.Property<int>("CompletedStudies")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("completed_studies");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("NodeId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("node_id");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start");
+
+                    b.Property<int>("RejectedAssociations")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("rejected_associations");
+
+                    b.Property<DateTime>("ReportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reported_at");
+
+                    b.Property<int>("TotalAssociations")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("total_associations");
+
+                    b.Property<long>("TotalBytesReceived")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("total_bytes_received");
+
+                    b.Property<int>("TotalImagesReceived")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("total_images_received");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_node_telemetry_records");
+
+                    b.HasIndex("NodeId")
+                        .HasDatabaseName("ix_node_telemetry_records_node_id");
+
+                    b.HasIndex("ReportedAt")
+                        .HasDatabaseName("ix_node_telemetry_records_reported_at");
+
+                    b.ToTable("node_telemetry_records", (string)null);
+                });
+
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.PacsCEchoResult", b =>
                 {
                     b.Property<string>("Id")
@@ -1827,6 +1922,11 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("message_type");
 
+                    b.Property<string>("Modality")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("modality");
+
                     b.Property<string>("PatientBirthDate")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
@@ -1860,6 +1960,16 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("integer")
                         .HasColumnName("priority");
+
+                    b.Property<string>("ProcedureDescription")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("procedure_description");
+
+                    b.Property<string>("ProcedureId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("procedure_id");
 
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1896,6 +2006,11 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
+
+                    b.Property<string>("StudyDate")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("study_date");
 
                     b.Property<string>("TargetNodeId")
                         .HasMaxLength(100)

@@ -31,7 +31,7 @@ export default class LoginPage {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
-  protected readonly currentYear = new Date().getFullYear();
+  protected readonly currentYear = signal(new Date().getFullYear());
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly isLocked = signal(false);
@@ -66,6 +66,7 @@ export default class LoginPage {
         this.isLocked.set(false);
         const reason = err.error?.failureReason;
         this.errorMessage.set(reason ?? 'Credenciales inválidas. Intente nuevamente.');
+        console.error('Login error:', err);
       },
     });
   }

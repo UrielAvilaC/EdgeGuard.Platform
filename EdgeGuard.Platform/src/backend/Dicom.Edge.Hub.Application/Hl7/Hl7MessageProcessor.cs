@@ -74,6 +74,7 @@ public class Hl7MessageProcessor : IHl7MessageProcessor
             // ── Step 1.5: Sync patient and study from HL7 segments ────────────
             try
             {
+
                 await _patientSyncService.SyncFromHl7Async(message, cancellationToken);
             }
             catch (Exception ex)
@@ -83,6 +84,7 @@ public class Hl7MessageProcessor : IHl7MessageProcessor
 
             try
             {
+                _logger.LogInformation("Starting study sync for {MessageId}", message.Id);
                 await _studySyncService.SyncFromHl7Async(message, cancellationToken);
             }
             catch (Exception ex)

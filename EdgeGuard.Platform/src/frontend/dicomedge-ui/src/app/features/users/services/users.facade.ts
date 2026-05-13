@@ -48,7 +48,7 @@ export class UsersFacade {
       finalize(() => this.store.setLoading(false)),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: result => this.store.setUsers(result.items, result.total),
+      next: result => this.store.setUsers(result.items, result.page, result.pageSize, result.total),
       error: () => {
         this.store.setError('Error al cargar usuarios');
         this.toast.error('No se pudieron cargar los usuarios');

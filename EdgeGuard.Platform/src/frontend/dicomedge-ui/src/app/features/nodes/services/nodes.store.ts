@@ -43,9 +43,9 @@ export class NodesStore {
   );
 
   // ── Mutations ──
-  setNodes(nodes: Node[], total: number): void {
+  setNodes(nodes: Node[], page: number, pageSize: number, total: number): void {
     this._nodes.set(nodes);
-    this._pagination.update(p => ({ ...p, total }));
+    this._pagination.update(p => ({ ...p, page, pageSize, total }));
     this._error.set(null);
   }
 

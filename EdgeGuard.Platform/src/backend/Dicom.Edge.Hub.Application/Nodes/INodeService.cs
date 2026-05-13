@@ -21,4 +21,13 @@ public interface INodeService
 
     /// <summary>Disables a node. Returns false if the node was not found.</summary>
     Task<bool> DisableAsync(string id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Assigns a PACS server to a node. Returns false if node or PACS was not found.
+    /// Idempotent: if the assignment already exists and is active, it returns true.
+    /// </summary>
+    Task<bool> AssignPacsAsync(string nodeId, string pacsId, AssignPacsRequest request, CancellationToken ct = default);
+
+    /// <summary>Removes the active assignment of a PACS server from a node. Returns false if not found.</summary>
+    Task<bool> UnassignPacsAsync(string nodeId, string pacsId, CancellationToken ct = default);
 }

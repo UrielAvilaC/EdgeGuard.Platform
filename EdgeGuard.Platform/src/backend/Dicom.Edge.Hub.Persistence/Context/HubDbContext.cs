@@ -34,8 +34,9 @@ public class HubDbContext : DbContext
     public DbSet<Study> Studies => Set<Study>();
     public DbSet<StudySeries> StudySeries => Set<StudySeries>();
     public DbSet<StudyStatusAudit> StudyStatusAudits => Set<StudyStatusAudit>();
-    public DbSet<HealthCheckRecord> HealthCheckRecords => Set<HealthCheckRecord>();
-    public DbSet<PacsCEchoResult> PacsCEchoResults => Set<PacsCEchoResult>();
+    public DbSet<HealthCheckRecord>   HealthCheckRecords  => Set<HealthCheckRecord>();
+    public DbSet<NodeTelemetryRecord> NodeTelemetryRecords => Set<NodeTelemetryRecord>();
+    public DbSet<PacsCEchoResult>     PacsCEchoResults    => Set<PacsCEchoResult>();
     public DbSet<StudyCleanupPolicy> StudyCleanupPolicies => Set<StudyCleanupPolicy>();
     public DbSet<Hl7Message> Hl7Messages => Set<Hl7Message>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();

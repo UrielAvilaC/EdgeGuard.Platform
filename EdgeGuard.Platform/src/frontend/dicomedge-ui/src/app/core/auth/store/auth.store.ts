@@ -14,13 +14,13 @@ export class AuthStore {
   readonly accessToken = this._accessToken.asReadonly();
   readonly refreshToken = this._refreshToken.asReadonly();
   readonly user = this._user.asReadonly();
-  readonly isAuthenticated = computed(() => this._accessToken() !== null);
-  readonly permissions = computed(() => this._user()?.permissions ?? []);
-  readonly roles = computed(() => this._user()?.roles ?? []);
   readonly isTokenExpired = computed(() => {
     const exp = this._expiresAt();
     return exp !== null && Date.now() >= exp;
   });
+  readonly isAuthenticated = computed(() => this._accessToken() !== null && !this.isTokenExpired());
+  readonly permissions = computed(() => this._user()?.permissions ?? []);
+  readonly roles = computed(() => this._user()?.roles ?? []);
 
   setAuth(accessToken: string, refreshToken: string, expiresIn: number, user: UserProfile): void {
     const expiresAt = Date.now() + expiresIn * 1000;

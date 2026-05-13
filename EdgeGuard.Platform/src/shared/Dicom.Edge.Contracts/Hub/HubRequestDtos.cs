@@ -62,6 +62,28 @@ public sealed class NodeHeartbeatRequest
     public int? ErrorsLast24Hours { get; init; }
 }
 
+public sealed class NodeTelemetryRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    public DateTime PeriodStart { get; init; }
+    public DateTime PeriodEnd   { get; init; }
+
+    // ── Associations (from dicom_associations) ────────────────────────────
+    [Range(0, int.MaxValue)] public int TotalAssociations    { get; init; }
+    [Range(0, int.MaxValue)] public int AcceptedAssociations { get; init; }
+    [Range(0, int.MaxValue)] public int RejectedAssociations { get; init; }
+    [Range(0, int.MaxValue)] public int AbortedAssociations  { get; init; }
+    [Range(0, int.MaxValue)] public int TotalImagesReceived  { get; init; }
+
+    // ── Study metrics (from study_metrics) ───────────────────────────────
+    [Range(0, int.MaxValue)]  public int    CompletedStudies           { get; init; }
+    [Range(0, long.MaxValue)] public long   TotalBytesReceived         { get; init; }
+    public double? AverageReceptionDurationMs { get; init; }
+    public double? AverageThroughputMbps      { get; init; }
+}
+
 public sealed class StudyNotifyRequest
 {
     [Required, StringLength(36, MinimumLength = 1)]
@@ -84,6 +106,50 @@ public sealed class StudyNotifyRequest
 
     [Range(0, long.MaxValue)]
     public long TotalSizeBytes { get; init; }
+
+    public DateTime? StudyDate { get; init; }
+
+    [StringLength(512)]
+    public string? StudyDescription { get; init; }
+
+    [Range(0, int.MaxValue)]
+    public int SeriesCount { get; init; }
+}
+
+/// <summary>
+/// Sent by the Edge Node on each received C-STORE
+/// Used for incremental UI updates and HL7 merge reconciliation.
+/// </summary>
+public sealed class StudyProgressNotifyRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    [Required, StringLength(64, MinimumLength = 1)]
+    public required string StudyInstanceUid { get; init; }
+
+    [StringLength(64)]
+    public string? AccessionNumber { get; init; }
+
+    [StringLength(64)]
+    public string? PatientId { get; init; }
+
+    [StringLength(256)]
+    public string? PatientName { get; init; }
+
+    [Range(0, int.MaxValue)]
+    public int InstanceCount { get; init; }
+
+    [Range(0, long.MaxValue)]
+    public long TotalSizeBytes { get; init; }
+
+    public DateTime? StudyDate { get; init; }
+
+    [StringLength(512)]
+    public string? StudyDescription { get; init; }
+
+    [Range(0, int.MaxValue)]
+    public int SeriesCount { get; init; }
 }
 
 public sealed class NodeHealthReportRequest
@@ -159,6 +225,14 @@ public sealed class CreatePacsServerRequest
 
     [Range(5, 300)]
     public int TimeoutSeconds { get; init; } = 30;
+}
+
+// ── Node PACS Assignments ─────────────────────────────────────────────────────
+
+public sealed class AssignPacsRequest
+{
+    [Range(5, 86400)]
+    public int CEchoIntervalSeconds { get; init; } = 300;
 }
 
 // ── Routing Rules ────────────────────────────────────────────────────────────
@@ -308,6 +382,50 @@ public sealed class UpdateStudyRequest
     public bool? IsUrgent { get; init; }
 }
 
+// ── PACS C-ECHO report (Node → Hub) ─────────────────────────────────────────
+
+/// <summary>
+/// Node reports the latest PACS C-ECHO results to the Hub so the SPA can display connectivity status.
+/// </summary>
+public sealed class NodePacsEchoReportRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    public required IReadOnlyList<PacsEchoDestinationResult> Results { get; init; }
+
+    public DateTime ReportedAtUtc { get; init; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Per-destination result inside a <see cref="NodePacsEchoReportRequest"/>.
+/// </summary>
+public sealed class PacsEchoDestinationResult
+{
+    [Required, StringLength(16, MinimumLength = 1)]
+    public required string AeTitle { get; init; }
+
+    [Required]
+    public required string Host { get; init; }
+
+    public required int Port { get; init; }
+
+    public required bool Success { get; init; }
+
+    public double? LatencyMs { get; init; }
+
+    /// <summary>Human-readable exception or DICOM status message.</summary>
+    public string? Error { get; init; }
+
+    /// <summary>
+    /// Structured DICOM rejection reason, e.g. "CalledAENotRecognized".
+    /// Null when successful or the failure is non-DICOM.
+    /// </summary>
+    public string? ErrorReason { get; init; }
+
+    public required DateTime CheckedAtUtc { get; init; }
+}
+
 // ── Update Study Status (manual) ─────────────────────────────────────────────
 
 public sealed class UpdateStudyStatusRequest
@@ -325,6 +443,25 @@ public sealed class UpdateNodeSettingRequest
 {
     [Required]
     public required string Value { get; init; }
+}
+
+/// <summary>Saves multiple node settings in a single Hub call.</summary>
+public sealed class BatchUpdateNodeSettingsRequest
+{
+    [Required, MinLength(1)]
+    public required List<NodeSettingUpdateItem> Settings { get; init; }
+}
+
+public sealed record NodeSettingUpdateItem(
+    [Required] string Key,
+    [Required] string Value);
+
+/// <summary>Result of a batch update operation.</summary>
+public sealed class BatchUpdateNodeSettingsResponse
+{
+    public int Updated { get; init; }
+    public int NotFound { get; init; }
+    public List<string> FailedKeys { get; init; } = [];
 }
 
 // ── Node Bootstrap Tokens ─────────────────────────────────────────────────────
