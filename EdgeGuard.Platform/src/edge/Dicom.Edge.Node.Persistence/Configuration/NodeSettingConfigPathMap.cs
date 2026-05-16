@@ -67,10 +67,5 @@ internal static class NodeSettingConfigPathMap
             // ── PACS C-ECHO ──────────────────────────────────────────────────
             [NodeSettingKeys.PacsCEcho.Enabled]                    = ConfigPaths.PacsCEchoEnabled,
             [NodeSettingKeys.PacsCEcho.IntervalSeconds]            = ConfigPaths.PacsCEchoIntervalSeconds,
-
-            // ── PACS Destination ─────────────────────────────────────────────
-            [NodeSettingKeys.PacsDestination.Host]                 = ConfigPaths.PacsDestinationHost,
-            [NodeSettingKeys.PacsDestination.Port]                 = ConfigPaths.PacsDestinationPort,
-            [NodeSettingKeys.PacsDestination.AeTitle]              = ConfigPaths.PacsDestinationAeTitle,
         };
 }

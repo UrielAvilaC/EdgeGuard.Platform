@@ -109,6 +109,7 @@ export default class RoutingRulesPage implements OnInit {
   protected openCreateDialog(): void {
     this.dialog.open(RoutingRuleFormDialog, {
       data: { nodeOptions: this.nodeOptions } satisfies RoutingRuleFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: CreateRoutingRuleRequest | null) => {
       if (result) {
         this.facade.createRule(result);
@@ -119,6 +120,7 @@ export default class RoutingRulesPage implements OnInit {
   protected openEditDialog(rule: RoutingRule): void {
     this.dialog.open(RoutingRuleFormDialog, {
       data: { rule, nodeOptions: this.nodeOptions } satisfies RoutingRuleFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdateRoutingRuleRequest | null) => {
       if (result) {
         this.facade.updateRule(rule.id, result);

@@ -34,11 +34,39 @@ public sealed class DicomStatusController(
 
     /// <summary>
     /// GET /api/dicom/worklist — Returns active worklist items as DTOs.
+    /// Supports optional query parameters: modality, patientId, accessionNumber, from, to.
     /// </summary>
     [HttpGet("worklist")]
-    public async Task<IActionResult> GetWorklistItems(CancellationToken ct)
+    public async Task<IActionResult> GetWorklistItems(
+        [FromQuery] string? modality,
+        [FromQuery] string? patientId,
+        [FromQuery] string? accessionNumber,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        CancellationToken ct)
     {
-        var items = await worklistManager.GetActiveItemsAsync(ct);
+        var hasFilter = !string.IsNullOrEmpty(modality)
+            || !string.IsNullOrEmpty(patientId)
+            || !string.IsNullOrEmpty(accessionNumber)
+            || from.HasValue
+            || to.HasValue;
+
+        IReadOnlyList<Dicom.Edge.Node.Worklist.WorklistItem> items;
+
+        if (hasFilter)
+        {
+            items = await worklistManager.QueryAsync(from, to, modality, ct);
+
+            if (!string.IsNullOrEmpty(patientId))
+                items = items.Where(i => string.Equals(i.PatientId, patientId, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (!string.IsNullOrEmpty(accessionNumber))
+                items = items.Where(i => string.Equals(i.AccessionNumber, accessionNumber, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        else
+        {
+            items = await worklistManager.GetActiveItemsAsync(ct);
+        }
 
         var dtos = items.Select(i => new WorklistItemDto
         {

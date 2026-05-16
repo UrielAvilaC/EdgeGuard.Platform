@@ -172,6 +172,7 @@ export default class NodeDetailPage {
 
     this.dialog.open(NodeFormDialog, {
       data: { node } satisfies NodeFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdateNodeRequest | null) => {
       if (result) {
         this.facade.updateNode(node.id, result);

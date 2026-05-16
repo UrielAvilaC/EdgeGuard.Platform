@@ -56,7 +56,6 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             MapDicomServer(dbSettings, data);
             MapPacsSender(dbSettings, data);
             MapPacsCEcho(dbSettings, data);
-            MapPacsDestination(dbSettings, data);
         }
         catch
         {
@@ -236,17 +235,6 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             }
             catch { /* malformed JSON — skip */ }
         }
-    }
-
-    // ── PacsDestination ──────────────────────────────────────────────────────
-
-    private static void MapPacsDestination(
-        Dictionary<string, string> db,
-        Dictionary<string, string?> cfg)
-    {
-        Map(db, cfg, NodeSettingKeys.PacsDestination.Host,    ConfigPaths.PacsDestinationHost);
-        Map(db, cfg, NodeSettingKeys.PacsDestination.Port,    ConfigPaths.PacsDestinationPort);
-        Map(db, cfg, NodeSettingKeys.PacsDestination.AeTitle, ConfigPaths.PacsDestinationAeTitle);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

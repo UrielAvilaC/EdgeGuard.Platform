@@ -313,7 +313,7 @@
                           }
                           @if (d.error && d.error !== d.errorReason) {
                             <p class="mt-0.5 text-gray-500 dark:text-gray-400 break-all leading-tight">
-                              {{ d.error | slice:0:120 }}{{ (d.error?.length ?? 0) > 120 ? '…' : '' }}
+                              {{ d.error | slice:0:120 }}{{ (d?.error?.length ?? 0) > 120 ? '…' : '' }}
                             </p>
                           }
                         </div>
