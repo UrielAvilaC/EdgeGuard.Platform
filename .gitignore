@@ -85,3 +85,4 @@
 /EdgeGuard.Platform/src/edge/Dicom.Edge.Node/persistence/edge-node-dev.db
 /EdgeGuard.Platform/src/edge/Dicom.Edge.Node/persistence/edge-node-dev.db-shm
 /EdgeGuard.Platform/src/edge/Dicom.Edge.Node/persistence/edge-node-dev.db-wal
+/EdgeGuard.Platform/src/backend/Dicom.Edge.Hub.Api/wwwroot
