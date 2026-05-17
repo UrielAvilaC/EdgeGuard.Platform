@@ -11,13 +11,15 @@ namespace Dicom.Edge.Node.Sender;
 /// <summary>
 /// fo-dicom C-STORE SCU implementation. Reads DICOM files from local storage
 /// and sends them to the target PACS via C-STORE association.
+/// Uses <see cref="IOptionsMonitor{T}"/> so that sender settings pushed from the Hub
+/// (timeouts, retries) are picked up without restarting the service.
 /// </summary>
 public sealed class FoDicomPacsSender(
     IStorageProvider storageProvider,
-    IOptions<PacsSenderOptions> options,
+    IOptionsMonitor<PacsSenderOptions> optionsMonitor,
     ILogger<FoDicomPacsSender> logger) : IPacsSender
 {
-    private readonly PacsSenderOptions _opts = options.Value;
+    private PacsSenderOptions Opts => optionsMonitor.CurrentValue;
 
     public async Task<PacsSendResult> SendStudyAsync(
         string studyInstanceUid,
@@ -46,9 +48,9 @@ public sealed class FoDicomPacsSender(
         {
             var client = DicomClientFactory.Create(
                 destination.Host, destination.Port,
-                destination.UseTls, _opts.LocalAeTitle, destination.AeTitle);
+                destination.UseTls, Opts.LocalAeTitle, destination.AeTitle);
 
-            client.ClientOptions.AssociationRequestTimeoutInMs = _opts.TimeoutSeconds * 1000;
+            client.ClientOptions.AssociationRequestTimeoutInMs = Opts.TimeoutSeconds * 1000;
 
             var sent = 0;
             var failed = 0;
@@ -92,33 +94,52 @@ public sealed class FoDicomPacsSender(
         }
     }
 
-    public async Task<bool> VerifyConnectionAsync(PacsDestination destination, CancellationToken ct = default)
+    public async Task<PacsCEchoVerifyResult> VerifyConnectionAsync(PacsDestination destination, CancellationToken ct = default)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             var client = DicomClientFactory.Create(
                 destination.Host, destination.Port,
-                destination.UseTls, _opts.LocalAeTitle, destination.AeTitle);
+                destination.UseTls, Opts.LocalAeTitle, destination.AeTitle);
 
-            client.ClientOptions.AssociationRequestTimeoutInMs = _opts.TimeoutSeconds * 1000;
+            client.ClientOptions.AssociationRequestTimeoutInMs = Opts.TimeoutSeconds * 1000;
 
             var echoRequest = new DicomCEchoRequest();
-            var success = false;
+            var dicomSuccess = false;
+            string? dicomStatusDescription = null;
             echoRequest.OnResponseReceived += (_, response) =>
             {
-                success = response.Status == DicomStatus.Success;
+                dicomSuccess = response.Status == DicomStatus.Success;
+                if (!dicomSuccess)
+                    dicomStatusDescription = response.Status?.Description ?? response.Status?.ToString();
             };
 
             await client.AddRequestAsync(echoRequest);
             await client.SendAsync(ct);
+            sw.Stop();
 
-            return success;
+            return dicomSuccess
+                ? PacsCEchoVerifyResult.Ok(sw.Elapsed.TotalMilliseconds)
+                : PacsCEchoVerifyResult.Fail(
+                    $"C-ECHO returned non-success status: {dicomStatusDescription}",
+                    dicomStatusDescription);
+        }
+        catch (DicomAssociationRejectedException ex)
+        {
+            sw.Stop();
+            // Extract the structured rejection reason from the DICOM exception
+            var reason = ex.RejectReason.ToString();
+            logger.LogWarning(ex, "C-ECHO to {AeTitle}@{Host}:{Port} failed — AssociationRejected Reason={Reason}",
+                destination.AeTitle, destination.Host, destination.Port, reason);
+            return PacsCEchoVerifyResult.Fail(ex.Message, reason);
         }
         catch (Exception ex)
         {
+            sw.Stop();
             logger.LogWarning(ex, "C-ECHO to {AeTitle}@{Host}:{Port} failed",
                 destination.AeTitle, destination.Host, destination.Port);
-            return false;
+            return PacsCEchoVerifyResult.Fail(ex.Message);
         }
     }
 }

@@ -29,5 +29,18 @@ public enum AuditEventType
     NodeConfigChanged,
     NodeConfigPushed,
     NodeConfigAcknowledged,
-    NodeConfigPushFailed
+    NodeConfigPushFailed,
+
+    // Identity & Security
+    LoginSuccess,
+    LoginFailed,
+    AccountLocked,
+    AccountUnlocked,
+    PasswordChanged,
+    TokenRevoked,
+    PermissionDenied,
+    UserCreated,
+    UserDeactivated,
+    RoleAssigned,
+    RoleRemoved
 }

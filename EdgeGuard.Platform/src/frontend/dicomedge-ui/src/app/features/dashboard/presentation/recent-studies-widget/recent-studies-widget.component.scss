@@ -1,0 +1,119 @@
+.widget-card {
+      padding: 0 !important;
+      overflow: hidden;
+    }
+
+    .widget-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--eg-border-subtle);
+    }
+
+    .widget-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .widget-icon {
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+
+    .widget-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--eg-text-primary);
+      margin: 0;
+    }
+
+    .widget-link {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--eg-accent, #0078d4);
+      text-decoration: none;
+      transition: color var(--eg-transition-fast);
+
+      &:hover { color: var(--eg-accent-hover, #106ebe); }
+    }
+
+    .studies-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .study-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--eg-border-subtle);
+      transition: background var(--eg-transition-fast);
+
+      &:last-child { border-bottom: none; }
+      &:hover { background: var(--eg-surface-container); }
+    }
+
+    .study-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .study-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+
+    .study-patient {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--eg-text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .urgent-badge {
+      font-size: 0.625rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #dc2626;
+      color: #fff;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    .study-meta {
+      font-size: 0.75rem;
+      color: var(--eg-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .meta-separator {
+      opacity: 0.5;
+    }
+
+    .study-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .study-instances {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--eg-text-muted);
+      font-variant-numeric: tabular-nums;
+    }

@@ -15,12 +15,23 @@ using Dicom.Edge.Node.Storage.Extensions;
 using Dicom.Edge.Node.Worklist;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 BootstrapLogger.Initialize(NodeConstants.BootstrapLogPath);
 
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // ── Windows Service support (Production only) ────────────────────────
+    if (builder.Environment.IsProduction())
+    {
+        builder.Host.UseWindowsService(options =>
+        {
+            options.ServiceName = "EdgeGuardNode";
+        });
+    }
+
     builder.Configuration.AddJsonFile(NodeConstants.DiagnosticsSettingsFile, optional: true, reloadOnChange: true);
 
     // ── Resolve SQLite connection string (env var → ConnectionStrings → default) ─
@@ -31,7 +42,7 @@ try
           ?? NodeConstants.DefaultConnectionString;
 
     // ── Load operational settings from SQLite database ────────────────────
-    builder.Configuration.AddNodeDatabaseConfiguration(sqliteConnectionString);
+    builder.Configuration.AddNodeDatabaseConfiguration(sqliteConnectionString, builder.Services);
 
     // ── Kestrel configuration for Node API endpoints ─────────────────────
     var nodeApiPort = builder.Configuration.GetValue(NodeConstants.NodeApiPortKey, NodeConstants.DefaultNodeApiPort);
@@ -64,6 +75,11 @@ try
 
     // ── DICOM Instance Handler (C-STORE callback → save + enqueue) ─────
     builder.Services.AddSingleton<IDicomInstanceHandler, DicomInstanceHandler>();
+
+    // ── DICOM Association Tracker (per-association audit + metrics) ──────
+    builder.Services.AddSingleton<IDicomAssociationTracker, DicomAssociationTracker>();
+    // ── Study Root C-FIND handler (Query/Retrieve) ───────────────────────
+    builder.Services.AddSingleton<IStudyRootCFindHandler, StudyRootCFindHandler>();
 
     // ── DICOM Server (C-STORE SCP + MWL C-FIND SCP) ─────────────────────
     builder.Services.AddNodeDicomServer(builder.Configuration);

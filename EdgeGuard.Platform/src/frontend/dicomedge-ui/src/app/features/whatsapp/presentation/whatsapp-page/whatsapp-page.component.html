@@ -1,0 +1,188 @@
+<div class="space-y-6">
+      <ui-page-header
+        title="WhatsApp"
+        description="Configuración de templates, reglas de envío automático y notificaciones."
+      >
+        <ui-button variant="secondary" size="sm" [icon]="faSync" (clicked)="refreshAll()">
+          Actualizar
+        </ui-button>
+      </ui-page-header>
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" [dismissible]="true" />
+      }
+
+      <!-- Config Status Card -->
+      @if (facade.configStatus(); as cfg) {
+        <div class="p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Configuración</h3>
+            <div class="flex items-center gap-2">
+              <ui-chip [color]="cfg.enabled ? 'success' : 'danger'">
+                <fa-icon [icon]="faCircle" class="mr-1 text-[8px]" />
+                {{ cfg.enabled ? 'Habilitado' : 'Deshabilitado' }}
+              </ui-chip>
+              @if (cfg.providerConfigured) {
+                <ui-chip color="info">{{ cfg.provider }}</ui-chip>
+              }
+            </div>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Envío automático</div>
+              <div class="text-sm font-medium" [class]="cfg.automaticDeliveryEnabled ? 'text-emerald-600' : 'text-gray-400'">
+                {{ cfg.automaticDeliveryEnabled ? 'Activo' : 'Inactivo' }}
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Templates activos</div>
+              <div class="text-sm font-bold text-gray-900 dark:text-white">{{ cfg.activeTemplatesCount }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Reglas activas</div>
+              <div class="text-sm font-bold text-gray-900 dark:text-white">{{ cfg.activeRulesCount }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Pendientes / Fallidas</div>
+              <div class="text-sm font-bold">
+                <span class="text-amber-600">{{ cfg.pendingNotifications }}</span>
+                /
+                <span class="text-red-600">{{ cfg.failedNotifications }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Tabs -->
+      <div class="border-b border-gray-200 dark:border-gray-700" role="tablist" aria-label="Secciones WhatsApp">
+        @for (tab of tabs; track tab.key) {
+          <button
+            type="button"
+            role="tab"
+            [attr.aria-selected]="facade.activeTab() === tab.key"
+            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors"
+            [class]="facade.activeTab() === tab.key
+              ? 'border-azure-600 text-azure-600 dark:text-azure-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'"
+            (click)="onTabChange(tab.key)"
+          >
+            <fa-icon [icon]="tab.icon" />
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+
+      <!-- Tab Content -->
+      @switch (facade.activeTab()) {
+        @case ('templates') {
+          <div class="space-y-4">
+            <div class="flex justify-end">
+              <ui-button size="sm" [icon]="faPlus" (clicked)="openCreateTemplateDialog()">
+                Nuevo template
+              </ui-button>
+            </div>
+
+            @if (facade.loading()) {
+              <p class="text-gray-400 text-sm">Cargando templates...</p>
+            }
+
+            <div class="grid gap-4">
+              @for (tpl of facade.templates(); track tpl.id) {
+                <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-azure-300 transition-colors">
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium text-gray-900 dark:text-white">{{ tpl.name }}</span>
+                      <ui-chip [color]="tpl.isActive ? 'success' : 'default'">
+                        {{ tpl.isActive ? 'Activo' : 'Inactivo' }}
+                      </ui-chip>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <ui-icon-button [icon]="faPen" tooltip="Editar" ariaLabel="Editar template" (clicked)="openEditTemplateDialog(tpl)" />
+                      <ui-icon-button [icon]="faTrash" tooltip="Eliminar" ariaLabel="Eliminar template" (clicked)="confirmDeleteTemplate(tpl)" />
+                    </div>
+                  </div>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                    <span class="font-mono text-xs">{{ tpl.contentSid }}</span>
+                  </p>
+                  @if (tpl.description) {
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">{{ tpl.description }}</p>
+                  }
+                  @if (tpl.variables.length > 0) {
+                    <div class="flex flex-wrap gap-1">
+                      @for (v of tpl.variables; track v.position) {
+                        <ui-chip color="info">{{ v.tag }}</ui-chip>
+                      }
+                    </div>
+                  }
+                </div>
+              } @empty {
+                @if (!facade.loading()) {
+                  <p class="text-gray-400 text-center py-8">No hay templates configurados.</p>
+                }
+              }
+            </div>
+          </div>
+        }
+        @case ('rules') {
+          <div class="space-y-4">
+            <div class="flex justify-end">
+              <ui-button size="sm" [icon]="faPlus" (clicked)="openCreateRuleDialog()">
+                Nueva regla
+              </ui-button>
+            </div>
+
+            @if (facade.loading()) {
+              <p class="text-gray-400 text-sm">Cargando reglas...</p>
+            }
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Trigger (Status)</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Template</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                    <th class="text-center py-2 px-3 text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (rule of facade.autoSendRules(); track rule.id) {
+                    <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td class="py-2.5 px-3 font-medium text-gray-900 dark:text-white">
+                        {{ getStudyStatusLabel(rule.studyStatus) }}
+                      </td>
+                      <td class="py-2.5 px-3 text-gray-600 dark:text-gray-400">{{ rule.templateName || rule.templateId }}</td>
+                      <td class="py-2.5 px-3">
+                        <ui-chip [color]="rule.isEnabled ? 'success' : 'default'">
+                          {{ rule.isEnabled ? 'Habilitada' : 'Deshabilitada' }}
+                        </ui-chip>
+                      </td>
+                      <td class="py-2.5 px-3 text-gray-500 max-w-[200px] truncate">{{ rule.description || '—' }}</td>
+                      <td class="py-2.5 px-3">
+                        <div class="flex items-center justify-center gap-1">
+                          <ui-icon-button [icon]="faPen" tooltip="Editar" ariaLabel="Editar regla" (clicked)="openEditRuleDialog(rule)" />
+                          @if (rule.isEnabled) {
+                            <ui-icon-button [icon]="faToggleOff" tooltip="Deshabilitar" ariaLabel="Deshabilitar regla" (clicked)="toggleRule(rule, false)" />
+                          } @else {
+                            <ui-icon-button [icon]="faToggleOn" tooltip="Habilitar" ariaLabel="Habilitar regla" (clicked)="toggleRule(rule, true)" />
+                          }
+                          <ui-icon-button [icon]="faTrash" tooltip="Eliminar" ariaLabel="Eliminar regla" (clicked)="confirmDeleteRule(rule)" />
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    @if (!facade.loading()) {
+                      <tr>
+                        <td colspan="5" class="py-8 text-center text-gray-400">No hay reglas configuradas.</td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      }
+    </div>

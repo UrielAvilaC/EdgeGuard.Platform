@@ -58,10 +58,10 @@ public sealed class ConfigurationController(
 
             return Ok(new ConfigSyncResultDto
             {
-                Accepted = true,
+                Accepted       = true,
                 AppliedVersion = payload.ConfigVersion,
-                UpdatedCount = payload.Settings.Count,
-                AppliedAtUtc = DateTime.UtcNow
+                UpdatedCount   = payload.Settings.Count,
+                AppliedAtUtc   = DateTime.UtcNow
             });
         }
         catch (Exception ex)

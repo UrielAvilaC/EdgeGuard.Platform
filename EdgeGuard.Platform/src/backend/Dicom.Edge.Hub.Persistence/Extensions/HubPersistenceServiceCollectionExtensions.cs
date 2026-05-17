@@ -3,6 +3,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Cleanup;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
+using Dicom.Edge.Hub.Domain.Aggregates.Identity;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
@@ -57,16 +58,19 @@ public static class HubPersistenceServiceCollectionExtensions
         // Repositories
         services.AddScoped<IPatientRepository, PatientRepository>();
         services.AddScoped<INodeRepository, NodeRepository>();
+        services.AddScoped<INodeBootstrapTokenRepository, NodeBootstrapTokenRepository>();
         services.AddScoped<IPacsServerRepository, PacsServerRepository>();
         services.AddScoped<IStudyRepository, StudyRepository>();
         services.AddScoped<IStudyStatusAuditRepository, StudyStatusAuditRepository>();
         services.AddScoped<IHealthCheckRepository, HealthCheckRepository>();
+        services.AddScoped<INodeTelemetryRepository, NodeTelemetryRepository>();
         services.AddScoped<IStudyCleanupPolicyRepository, StudyCleanupPolicyRepository>();
 
         // HL7 / Configuration / Routing repositories
         services.AddScoped<IHl7MessageRepository, EfHl7MessageRepository>();
         services.AddScoped<ISystemSettingRepository, SystemSettingRepository>();
         services.AddScoped<IHl7RoutingRuleRepository, Hl7RoutingRuleRepository>();
+        services.AddScoped<INodeDicomRoutingRuleRepository, NodeDicomRoutingRuleRepository>();
 
         // Audit / Notification / PACS audit repositories
         services.AddScoped<IHubAuditLogRepository, HubAuditLogRepository>();
@@ -77,6 +81,9 @@ public static class HubPersistenceServiceCollectionExtensions
 
         // Node configuration profiles
         services.AddScoped<INodeConfigurationProfileRepository, NodeConfigurationProfileRepository>();
+
+        // Identity
+        services.AddScoped<IUserRepository, UserRepository>();
 
         // Database health check (readiness probe)
         services.AddHealthChecks()
@@ -109,5 +116,19 @@ public static class HubPersistenceServiceCollectionExtensions
         using var scope = serviceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
         await HubSettingsSeed.SeedMissingAsync(ctx, ct);
+    }
+
+    /// <summary>
+    /// Seeds the default super-administrator user on first run.
+    /// Safe to call on every startup — skips if the admin user already exists.
+    /// </summary>
+    public static async Task SeedAdminUserAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<Dicom.Edge.Security.Cryptography.IPasswordHasher>();
+        var logger = scope.ServiceProvider.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            ?.CreateLogger(typeof(AdminUserSeed).FullName!);
+        await AdminUserSeed.SeedAsync(ctx, passwordHasher, logger, ct);
     }
 }

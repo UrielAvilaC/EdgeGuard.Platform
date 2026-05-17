@@ -35,7 +35,8 @@ public sealed class Hl7MonitoringService : IHl7MonitoringService
                 m.ClientEndpoint,
                 m.Status.ToString(),
                 m.ProcessedAt,
-                m.ErrorMessage))
+                m.ErrorMessage,
+                CanReprocess: m.Status == Hl7MessageStatus.Failed))
             .ToList();
     }
 
@@ -55,7 +56,8 @@ public sealed class Hl7MonitoringService : IHl7MonitoringService
                 message.ClientEndpoint,
                 message.Status.ToString(),
                 message.ProcessedAt,
-                message.ErrorMessage);
+                message.ErrorMessage,
+                CanReprocess: message.Status == Hl7MessageStatus.Failed);
     }
 
     public async Task<QueueSummaryDto> GetQueueSummaryAsync(CancellationToken cancellationToken = default)

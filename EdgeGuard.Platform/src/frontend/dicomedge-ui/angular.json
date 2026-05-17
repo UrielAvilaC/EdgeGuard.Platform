@@ -11,14 +11,7 @@
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
-          "style": "scss",
-          "standalone": false
-        },
-        "@schematics/angular:directive": {
-          "standalone": false
-        },
-        "@schematics/angular:pipe": {
-          "standalone": false
+          "style": "scss"
         }
       },
       "root": "",
@@ -31,6 +24,10 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "outputPath": {
+              "base": "../../backend/Dicom.Edge.Hub.Api/wwwroot",
+              "browser": ""
+            },
             "assets": [
               {
                 "glob": "**/*",
@@ -44,8 +41,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1MB",
-                  "maximumError": "1.5MB"
+                  "maximumWarning": "5MB",
+                  "maximumError": "10MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -73,10 +70,12 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "dicomedge-ui:build:production"
+              "buildTarget": "dicomedge-ui:build:production",
+              "proxyConfig": "proxy.conf.json"
             },
             "development": {
-              "buildTarget": "dicomedge-ui:build:development"
+              "buildTarget": "dicomedge-ui:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

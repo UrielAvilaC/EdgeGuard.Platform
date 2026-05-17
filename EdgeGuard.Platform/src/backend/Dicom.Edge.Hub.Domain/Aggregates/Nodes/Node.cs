@@ -30,6 +30,11 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
     public DateTime? DeletedAt { get; private set; }
 
     /// <summary>
+    /// BCrypt hash of the node's API key. Set once during registration.
+    /// </summary>
+    public string? ApiKeyHash { get; private set; }
+
+    /// <summary>
     /// Configurable healthcheck interval in seconds.
     /// </summary>
     public int HealthCheckIntervalSeconds { get; private set; }
@@ -192,4 +197,21 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
         DeletedAt = null;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Sets the API key hash. Can only be set once (immutable after first registration).
+    /// </summary>
+    public void SetApiKeyHash(string hash)
+    {
+        if (string.IsNullOrWhiteSpace(hash))
+            throw new ArgumentException("API key hash cannot be empty.", nameof(hash));
+
+        ApiKeyHash = hash;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Returns true if the node has an API key assigned.
+    /// </summary>
+    public bool HasApiKey => !string.IsNullOrEmpty(ApiKeyHash);
 }

@@ -15,7 +15,7 @@ namespace Dicom.Edge.Node.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.5");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
 
             modelBuilder.Entity("Dicom.Edge.Models.Audit.AuditLog", b =>
                 {
@@ -841,6 +841,9 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("comments");
 
+                    b.Property<string>("Email")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("InstitutionName")
                         .HasMaxLength(128)
                         .HasColumnType("TEXT")
@@ -869,6 +872,9 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                     b.Property<double?>("PatientWeightKg")
                         .HasColumnType("REAL")
                         .HasColumnName("patient_weight_kg");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ReferringPhysician")
                         .HasMaxLength(256)
@@ -1277,6 +1283,73 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                         .HasDatabaseName("ix_worklist_scheduled_date_modality");
 
                     b.ToTable("worklist_items", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Node.Persistence.Entities.NodePacsServer", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AeTitle")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ae_title");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("host");
+
+                    b.Property<bool>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("port");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(10)
+                        .HasColumnName("priority");
+
+                    b.Property<DateTime>("SyncedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("synced_at");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AeTitle")
+                        .HasDatabaseName("ix_node_pacs_servers_ae_title");
+
+                    b.HasIndex("IsEnabled")
+                        .HasDatabaseName("ix_node_pacs_servers_is_enabled");
+
+                    b.HasIndex("Priority")
+                        .HasDatabaseName("ix_node_pacs_servers_priority");
+
+                    b.ToTable("node_pacs_servers", (string)null);
                 });
 
             modelBuilder.Entity("Dicom.Edge.Node.Persistence.Entities.NodeRegistrationEntity", b =>

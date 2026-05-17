@@ -1,0 +1,39 @@
+<div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Tipo</th>
+            <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Facility</th>
+            <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Aplicación</th>
+            <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Estado</th>
+            <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">Recibido</th>
+            <th class="text-center py-2 px-3 text-xs font-medium text-gray-500 uppercase">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (msg of messages(); track msg.id) {
+            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <td class="py-2.5 px-3 font-medium text-gray-900 dark:text-white">{{ msg.messageType }}</td>
+              <td class="py-2.5 px-3 text-gray-600 dark:text-gray-400">{{ msg.sendingFacility || '—' }}</td>
+              <td class="py-2.5 px-3 text-gray-600 dark:text-gray-400">{{ msg.sendingApplication || '—' }}</td>
+              <td class="py-2.5 px-3">
+                <ui-chip [color]="getStatusColor(msg.status)">{{ getStatusLabel(msg.status) }}</ui-chip>
+              </td>
+              <td class="py-2.5 px-3 text-gray-500">{{ msg.receivedAt | relativeTime }}</td>
+              <td class="py-2.5 px-3 text-center">
+                <ui-icon-button
+                  [icon]="faEye"
+                  tooltip="Ver detalle"
+                  ariaLabel="Ver detalle del mensaje"
+                  (clicked)="viewDetail.emit(msg.id)"
+                />
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="py-8 text-center text-gray-400">No hay mensajes recientes.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>

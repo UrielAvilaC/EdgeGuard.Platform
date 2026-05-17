@@ -20,6 +20,7 @@ public class NodeConfiguration : IEntityTypeConfiguration<Node>
         builder.Property(n => n.TimeZone).HasMaxLength(64);
         builder.Property(n => n.Version).HasMaxLength(32);
         builder.Property(n => n.Status).HasConversion<string>().HasMaxLength(32);
+        builder.Property(n => n.ApiKeyHash).HasMaxLength(128);
 
         builder.OwnsOne(n => n.AeTitle, vo =>
         {

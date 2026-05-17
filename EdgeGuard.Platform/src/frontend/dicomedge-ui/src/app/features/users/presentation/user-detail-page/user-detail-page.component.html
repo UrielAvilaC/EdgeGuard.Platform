@@ -1,0 +1,73 @@
+<div class="space-y-6">
+      <ui-page-header
+        subtitle="Usuarios"
+        [title]="facade.selectedUser()?.fullName ?? 'Cargando...'"
+        [description]="facade.selectedUser()?.username ?? ''"
+      >
+        <ui-button variant="secondary" size="sm" [icon]="faArrowLeft" (clicked)="router.navigate(['/users'])">
+          Volver
+        </ui-button>
+      </ui-page-header>
+
+      @if (facade.selectedUser(); as user) {
+        <!-- Status card -->
+        <div class="p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Estado</div>
+              <ui-chip [color]="user.isActive ? 'success' : 'danger'">
+                {{ user.isActive ? 'Activo' : 'Inactivo' }}
+              </ui-chip>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Bloqueo</div>
+              <ui-chip [color]="user.isLocked ? 'warning' : 'default'">
+                {{ user.isLocked ? 'Bloqueado' : 'Desbloqueado' }}
+              </ui-chip>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Último login</div>
+              <div class="text-sm text-gray-900 dark:text-white">
+                {{ user.lastLoginAt ? (user.lastLoginAt | relativeTime) : 'Nunca' }}
+              </div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 mb-1">Creado</div>
+              <div class="text-sm text-gray-900 dark:text-white">{{ user.createdAt | relativeTime }}</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            @if (user.isActive) {
+              <ui-button variant="secondary" size="sm" [icon]="faToggleOff" (clicked)="confirmDeactivate()">
+                Desactivar
+              </ui-button>
+            } @else {
+              <ui-button variant="secondary" size="sm" [icon]="faToggleOn" (clicked)="facade.activateUser(user.id)">
+                Activar
+              </ui-button>
+            }
+            @if (user.isLocked) {
+              <ui-button variant="secondary" size="sm" [icon]="faLockOpen" (clicked)="facade.unlockUser(user.id)">
+                Desbloquear
+              </ui-button>
+            }
+            <ui-button variant="secondary" size="sm" [icon]="faKey" (clicked)="openResetPasswordDialog()">
+              Restablecer contraseña
+            </ui-button>
+          </div>
+        </div>
+
+        <!-- Roles & Permissions -->
+        <div class="p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <app-role-permission-panel
+            [roles]="user.roles"
+            [permissions]="user.directPermissions"
+            (addRoleClicked)="facade.assignRole(user.id, $event)"
+            (removeRoleClicked)="facade.removeRole(user.id, $event)"
+            (grantPermissionClicked)="facade.grantPermission(user.id, $event)"
+            (revokePermissionClicked)="facade.revokePermission(user.id, $event)"
+          />
+        </div>
+      }
+    </div>

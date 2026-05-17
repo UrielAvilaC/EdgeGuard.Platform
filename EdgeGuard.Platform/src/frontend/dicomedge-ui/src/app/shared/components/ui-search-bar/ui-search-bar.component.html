@@ -1,0 +1,15 @@
+<mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      <fa-icon matPrefix [icon]="searchIcon" class="search-prefix" />
+      <input
+        matInput
+        [placeholder]="placeholder()"
+        [ngModel]="value()"
+        (ngModelChange)="onInput($event)"
+        [attr.aria-label]="placeholder()"
+      />
+      @if (value()) {
+        <button matSuffix type="button" class="clear-btn" (click)="clear()" aria-label="Limpiar búsqueda">
+          <fa-icon [icon]="clearIcon" />
+        </button>
+      }
+    </mat-form-field>

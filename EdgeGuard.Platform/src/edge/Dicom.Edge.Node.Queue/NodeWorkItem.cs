@@ -14,6 +14,16 @@ public sealed class NodeWorkItem
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public int RetryCount { get; set; }
     public string? LastError { get; set; }
+
+    // ── Study metadata for Hub notification (populated at enqueue time) ────────
+    public string? PatientId { get; init; }
+    public string? PatientName { get; init; }
+    public string? AccessionNumber { get; init; }
+    public long TotalSizeBytes { get; init; }
+    public int InstanceCount { get; init; }
+    public DateTime? StudyDate { get; init; }
+    public string? StudyDescription { get; init; }
+    public int SeriesCount { get; init; }
 }
 
 public enum NodeWorkItemType
@@ -23,3 +33,4 @@ public enum NodeWorkItemType
     WorklistProcess,
     StudyCleanup
 }
+

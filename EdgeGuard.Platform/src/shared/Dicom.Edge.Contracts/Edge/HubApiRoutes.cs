@@ -8,25 +8,40 @@ namespace Dicom.Edge.Contracts.Edge;
 public static class HubApiRoutes
 {
     /// <summary>POST — Node registration. Returns <c>NodeRegistrationResponse</c>.</summary>
-    public const string Register = "/edge/register";
+    public const string Register = "/api/edge/register";
 
     /// <summary>DELETE — Node deregistration.</summary>
-    public const string Deregister = "/edge/deregister";
+    public const string Deregister = "/api/edge/deregister";
 
     /// <summary>POST — Periodic heartbeat. Returns optional <c>HeartbeatResponse</c>.</summary>
-    public const string Heartbeat = "/edge/heartbeat";
+    public const string Heartbeat = "/api/edge/heartbeat";
 
     /// <summary>GET — Pull latest configuration for this node. Returns <c>NodeConfigurationDto</c>.</summary>
-    public const string ConfigurationPull = "/edge/configuration";
+    public const string ConfigurationPull = "/api/edge/configuration";
 
     /// <summary>POST — Notify Hub a study was received. Returns acknowledgment.</summary>
-    public const string StudyNotify = "/edge/studies";
+    public const string StudyNotify = "/api/edge/studies";
+
+    /// <summary>POST — Send incremental study progress (per-instance) while receiving. Enables real-time SPA updates and HL7 merge.</summary>
+    public const string StudyProgress = "/api/edge/studies/progress";
 
     /// <summary>POST — Report node health metrics. Returns acknowledgment.</summary>
-    public const string HealthReport = "/edge/health";
+    public const string HealthReport = "/api/edge/health";
+
+    /// <summary>POST — Node reports telemetry (associations + study metrics). Returns acknowledgment.</summary>
+    public const string Telemetry = "/api/edge/telemetry";
 
     /// <summary>GET — Hub version and capability info.</summary>
-    public const string HubInfo = "/info";
+    public const string HubInfo = "/api/info";
+
+    /// <summary>
+    /// POST — Request a self-service bootstrap token (no auth required).
+    /// Returns a short-lived one-time token the node uses to call <see cref="Register"/>.
+    /// </summary>
+    public const string RequestToken = "/api/edge/token";
+
+    /// <summary>POST — Node reports PACS C-ECHO connectivity results. Returns acknowledgment.</summary>
+    public const string PacsEchoReport = "/api/edge/pacs-echo";
 }
 
 /// <summary>
@@ -36,23 +51,30 @@ public static class HubApiRoutes
 public static class NodeApiRoutes
 {
     /// <summary>POST — Hub pushes an HL7 worklist item to the node.</summary>
-    public const string Hl7WorklistPush = "/api/hl7/worklist";
+    public const string Hl7WorklistPush = "/hl7/worklist";
 
     /// <summary>GET — Health check endpoint on the node.</summary>
-    public const string HealthCheck = "/api/health";
+    public const string HealthCheck = "/health";
 
     /// <summary>GET — Active worklist items on the node.</summary>
-    public const string WorklistItems = "/api/dicom/worklist";
+    public const string WorklistItems = "/dicom/worklist";
 
     /// <summary>GET — Active worklist item count.</summary>
-    public const string WorklistCount = "/api/dicom/worklist/count";
+    public const string WorklistCount = "/dicom/worklist/count";
 
     /// <summary>GET — PACS C-ECHO connectivity status.</summary>
-    public const string PacsStatus = "/api/dicom/pacs/status";
+    public const string PacsStatus = "/dicom/pacs/status";
 
     /// <summary>POST — Hub pushes a full configuration snapshot to the node.</summary>
-    public const string ConfigurationApply = "/api/configuration/apply";
+    public const string ConfigurationApply = "/configuration/apply";
 
     /// <summary>GET — Returns the node's current config version hash.</summary>
-    public const string ConfigurationVersion = "/api/configuration/version";
+    public const string ConfigurationVersion = "/configuration/version";
+
+    /// <summary>
+    /// POST — Hub pushes active PACS destinations to the node.
+    /// Triggers an immediate upsert of <c>node_pacs_servers</c> and routing rule reload.
+    /// Called immediately after any PACS assignment change.
+    /// </summary>
+    public const string PacsDestinationsSync = "/pacs-destinations/sync";
 }

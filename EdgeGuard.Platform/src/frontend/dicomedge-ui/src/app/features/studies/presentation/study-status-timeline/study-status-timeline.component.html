@@ -1,0 +1,32 @@
+@if (isFailed()) {
+      <div class="flex items-center gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+        <fa-icon [icon]="faCircleXmark" class="text-red-500 text-xl" />
+        <div>
+          <p class="font-semibold text-red-700 dark:text-red-400">Estado: Fallido</p>
+          <p class="text-sm text-red-600 dark:text-red-300">El estudio falló durante el procesamiento.</p>
+        </div>
+      </div>
+    } @else {
+      <div class="flex items-center gap-0" role="list" aria-label="Timeline de estado del estudio">
+        @for (step of steps; track step.status; let i = $index; let last = $last) {
+          <div class="flex items-center" role="listitem"
+               [attr.aria-current]="step.status === currentStatus() ? 'step' : null">
+            <div class="flex flex-col items-center gap-1.5">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+                   [class]="getStepBgClass(step, i)">
+                <fa-icon [icon]="step.icon" [class]="getStepIconClass(step, i)" />
+              </div>
+              <span class="text-xs font-medium whitespace-nowrap"
+                    [class]="getStepLabelClass(step, i)">
+                {{ step.label }}
+              </span>
+            </div>
+            @if (!last) {
+              <div class="w-12 h-0.5 mx-1 mt-[-18px] transition-colors"
+                   [class]="getConnectorClass(i)">
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }

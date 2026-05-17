@@ -3,6 +3,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Cleanup;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
+using Dicom.Edge.Hub.Domain.Aggregates.Identity;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
@@ -28,16 +29,19 @@ public class HubDbContext : DbContext
     public DbSet<Patient> Patients => Set<Patient>();
     public DbSet<Node> Nodes => Set<Node>();
     public DbSet<NodePacsAssignment> NodePacsAssignments => Set<NodePacsAssignment>();
+    public DbSet<NodeBootstrapToken> NodeBootstrapTokens => Set<NodeBootstrapToken>();
     public DbSet<PacsServer> PacsServers => Set<PacsServer>();
     public DbSet<Study> Studies => Set<Study>();
     public DbSet<StudySeries> StudySeries => Set<StudySeries>();
     public DbSet<StudyStatusAudit> StudyStatusAudits => Set<StudyStatusAudit>();
-    public DbSet<HealthCheckRecord> HealthCheckRecords => Set<HealthCheckRecord>();
-    public DbSet<PacsCEchoResult> PacsCEchoResults => Set<PacsCEchoResult>();
+    public DbSet<HealthCheckRecord>   HealthCheckRecords  => Set<HealthCheckRecord>();
+    public DbSet<NodeTelemetryRecord> NodeTelemetryRecords => Set<NodeTelemetryRecord>();
+    public DbSet<PacsCEchoResult>     PacsCEchoResults    => Set<PacsCEchoResult>();
     public DbSet<StudyCleanupPolicy> StudyCleanupPolicies => Set<StudyCleanupPolicy>();
     public DbSet<Hl7Message> Hl7Messages => Set<Hl7Message>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<Hl7RoutingRule> Hl7RoutingRules => Set<Hl7RoutingRule>();
+    public DbSet<NodeDicomRoutingRule> NodeDicomRoutingRules => Set<NodeDicomRoutingRule>();
     public DbSet<HubAuditLog> HubAuditLogs => Set<HubAuditLog>();
     public DbSet<WhatsAppNotification> WhatsAppNotifications => Set<WhatsAppNotification>();
     public DbSet<WhatsAppTemplate> WhatsAppTemplates => Set<WhatsAppTemplate>();
@@ -45,6 +49,12 @@ public class HubDbContext : DbContext
     public DbSet<WhatsAppAutoSendRule> WhatsAppAutoSendRules => Set<WhatsAppAutoSendRule>();
     public DbSet<PacsSendAudit> PacsSendAudits => Set<PacsSendAudit>();
     public DbSet<NodeConfigurationProfile> NodeConfigurationProfiles => Set<NodeConfigurationProfile>();
+
+    // Identity
+    public DbSet<User> Users => Set<User>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

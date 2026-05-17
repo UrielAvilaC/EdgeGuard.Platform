@@ -3,12 +3,15 @@ using Dicom.Edge.Hub.Api.Mapping;
 using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Domain.Entities;
 using Dicom.Edge.Hub.Domain.Interfaces;
+using Dicom.Edge.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/queue-monitoring")]
+[Authorize(Policy = Policies.ViewQueue)]
 public class QueueMonitoringController : ControllerBase
 {
     private readonly IHl7MessageRepository _messageRepository;

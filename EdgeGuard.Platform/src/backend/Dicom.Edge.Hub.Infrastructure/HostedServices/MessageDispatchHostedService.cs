@@ -110,6 +110,9 @@ public sealed class MessageDispatchHostedService : BackgroundService
                     AccessionNumber = message.AccessionNumber,
                     SendingFacility = message.SendingFacility,
                     SendingApplication = message.SendingApplication,
+                    Modality = message.Modality,
+                    ProcedureDescription = message.ProcedureDescription,
+                    ProcedureId = message.ProcedureId,
                     Priority = message.Priority
                 };
 

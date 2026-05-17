@@ -100,7 +100,7 @@ public sealed class SqliteWorklistManager(
             query = query.Where(w => w.ScheduledDate <= to.Value);
 
         if (!string.IsNullOrEmpty(modality))
-            query = query.Where(w => w.Modality == modality);
+            query = query.Where(w => w.Modality.ToUpper() == modality.ToUpper());
 
         var dbItems = await query
             .OrderBy(w => w.ScheduledDate)
@@ -136,4 +136,23 @@ public sealed class SqliteWorklistManager(
         ExpiresAt = null,
         IsProcessed = false
     };
+
+    public async Task MarkItemsAsQueriedAsync(IEnumerable<string> ids, CancellationToken ct = default)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0) return;
+
+        await using var ctx = await factory.CreateDbContextAsync(ct);
+
+        var items = await ctx.WorklistItems
+            .Where(w => idList.Contains(w.AccessionNumber))
+            .ToListAsync(ct);
+
+        foreach (var item in items)
+            ctx.Entry(item).Property("status").CurrentValue = "queried";
+
+        await ctx.SaveChangesAsync(ct);
+
+        logger.LogInformation("Marked {Count} worklist item(s) as queried", items.Count);
+    }
 }

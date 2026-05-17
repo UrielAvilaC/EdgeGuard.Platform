@@ -8,8 +8,8 @@ $light-theme: mat.define-theme((
     tertiary: mat.$green-palette,
   ),
   typography: (
-    brand-family: 'Roboto',
-    plain-family: 'Roboto',
+    brand-family: 'Inter',
+    plain-family: 'Inter',
   ),
   density: (
     scale: 0,
@@ -24,8 +24,8 @@ $dark-theme: mat.define-theme((
     tertiary: mat.$green-palette,
   ),
   typography: (
-    brand-family: 'Roboto',
-    plain-family: 'Roboto',
+    brand-family: 'Inter',
+    plain-family: 'Inter',
   ),
   density: (
     scale: 0,

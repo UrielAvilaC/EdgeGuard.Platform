@@ -11,13 +11,21 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
 {
     public PatientIdentifier PatientDicomId { get; private set; } = default!;
     public string PatientName { get; private set; } = default!;
-    public DateTime? BirthDate { get; private set; }
+    public DateOnly? BirthDate { get; private set; }
     public string? Sex { get; private set; }
     public string? PhoneNumber { get; private set; }
     public string? Email { get; private set; }
     public string? IssuerOfPatientId { get; private set; }
     public string? OtherPatientIds { get; private set; }
     public string? FacilitySource { get; private set; }
+
+    /// <summary>
+    /// ID of the surviving patient this record was merged into (ADT^A40).
+    /// Non-null means this patient is a prior/deprecated record.
+    /// </summary>
+    public string? MergedIntoPatientId { get; private set; }
+
+    public bool IsMerged => MergedIntoPatientId is not null;
     public string? CreatedByNodeId { get; private set; }
     public DateTime LastUpdatedAt { get; private set; }
     public bool IsActive { get; private set; }
@@ -31,7 +39,7 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
     public static Patient Create(
         PatientIdentifier patientDicomId,
         string patientName,
-        DateTime? birthDate = null,
+        DateOnly? birthDate = null,
         string? sex = null,
         string? issuerOfPatientId = null,
         string? facilitySource = null,
@@ -55,7 +63,8 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
             PhoneNumber = phoneNumber?.Trim(),
             Email = email?.Trim(),
             LastUpdatedAt = DateTime.UtcNow,
-            IsActive = true
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
 
         patient.AddDomainEvent(new PatientRegisteredEvent(
@@ -66,7 +75,7 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
 
     public void UpdateDemographics(
         string patientName,
-        DateTime? birthDate = null,
+        DateOnly? birthDate = null,
         string? sex = null,
         string? issuerOfPatientId = null)
     {
@@ -108,6 +117,21 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
             LastUpdatedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }
+    }
+
+    /// <summary>
+    /// Marks this patient record as merged into the surviving patient (ADT^A40).
+    /// The prior patient is deactivated so lookups resolve to the surviving record.
+    /// </summary>
+    public void MergeInto(string survivingPatientDicomId)
+    {
+        if (string.IsNullOrWhiteSpace(survivingPatientDicomId))
+            throw new ArgumentException("Surviving patient ID cannot be empty.", nameof(survivingPatientDicomId));
+
+        MergedIntoPatientId = survivingPatientDicomId;
+        IsActive = false;
+        LastUpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Deactivate()

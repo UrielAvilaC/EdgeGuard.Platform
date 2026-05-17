@@ -15,6 +15,8 @@ public static class PatientMappingProfile
         PatientName = entity.PatientName,
         BirthDate = entity.BirthDate,
         Sex = entity.Sex,
+        PhoneNumber = entity.PhoneNumber,
+        Email = entity.Email,
         IssuerOfPatientId = entity.IssuerOfPatientId,
         FacilitySource = entity.FacilitySource,
         CreatedByNodeId = entity.CreatedByNodeId,

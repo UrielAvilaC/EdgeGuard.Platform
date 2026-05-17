@@ -15,8 +15,33 @@ public interface IPacsSender
 
     /// <summary>
     /// Performs a C-ECHO verification against a PACS.
+    /// Returns a rich result with success status, latency, and structured error reason.
     /// </summary>
-    Task<bool> VerifyConnectionAsync(PacsDestination destination, CancellationToken ct = default);
+    Task<PacsCEchoVerifyResult> VerifyConnectionAsync(PacsDestination destination, CancellationToken ct = default);
+}
+
+/// <summary>
+/// Rich result of a C-ECHO verification attempt, including the DICOM rejection reason
+/// when the association was refused by the remote AE.
+/// </summary>
+/// <param name="Success">True if C-ECHO responded with DICOM Success status.</param>
+/// <param name="ErrorMessage">Exception or DICOM failure message. Null when successful.</param>
+/// <param name="ErrorReason">
+/// Structured rejection reason extracted from <c>DicomAssociationRejectedException</c>,
+/// e.g. "CalledAENotRecognized". Null when successful or error is non-DICOM.
+/// </param>
+/// <param name="LatencyMs">Round-trip time in milliseconds. Null if the attempt failed before completion.</param>
+public sealed record PacsCEchoVerifyResult(
+    bool Success,
+    string? ErrorMessage = null,
+    string? ErrorReason = null,
+    double? LatencyMs = null)
+{
+    public static PacsCEchoVerifyResult Ok(double latencyMs) =>
+        new(true, LatencyMs: latencyMs);
+
+    public static PacsCEchoVerifyResult Fail(string message, string? reason = null) =>
+        new(false, message, reason);
 }
 
 /// <summary>

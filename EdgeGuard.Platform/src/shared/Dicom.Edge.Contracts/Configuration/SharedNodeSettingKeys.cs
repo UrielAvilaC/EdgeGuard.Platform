@@ -31,6 +31,7 @@ public static class SharedNodeSettingKeys
         public const string Port                  = "hub.port";
         public const string BasePath              = "hub.base_path";
         public const string ApiKey                = "hub.api_key";
+        public const string NodeId                = "hub.node_id";
         public const string TimeoutSeconds        = "hub.timeout_seconds";
         public const string HeartbeatIntervalSec  = "hub.heartbeat_interval_sec";
         public const string RegisterOnStartup     = "hub.register_on_startup";
@@ -46,7 +47,9 @@ public static class SharedNodeSettingKeys
     {
         public const string Enabled                   = "dicom.enabled";
         public const string ValidateCallingAe         = "dicom.validate_calling_ae";
+        public const string ValidateCalledAe          = "dicom.validate_called_ae";
         public const string AllowedAeTitles           = "dicom.allowed_ae_titles";
+        public const string AeTitleAliases            = "dicom.ae_title_aliases";
         public const string MaxAssociations           = "dicom.max_associations";
         public const string Port                      = "dicom.port";
         public const string AeTitle                   = "dicom.ae_title";
@@ -55,6 +58,8 @@ public static class SharedNodeSettingKeys
         public const string DimseTimeoutSec           = "dicom.dimse_timeout_sec";
         public const string MaxPduLength              = "dicom.max_pdu_length";
         public const string MwlEnabled                = "dicom.mwl_enabled";
+        public const string CEchoEnabled              = "dicom.cecho_enabled";
+        public const string QrEnabled                 = "dicom.qr_enabled";
     }
 
     // ── Cleanup ───────────────────────────────────────────────────────────────────
@@ -110,14 +115,6 @@ public static class SharedNodeSettingKeys
         public const string Enabled         = "cecho.enabled";
         public const string IntervalSeconds = "cecho.interval_seconds";
         public const string Destinations    = "cecho.destinations";
-    }
-
-    // ── PACS Destination ──────────────────────────────────────────────────────────
-    public static class PacsDestination
-    {
-        public const string Host    = "pacs_dest.host";
-        public const string Port    = "pacs_dest.port";
-        public const string AeTitle = "pacs_dest.ae_title";
     }
 
     // ── Node API ─────────────────────────────────────────────────────────────────

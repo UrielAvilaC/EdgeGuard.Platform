@@ -1,0 +1,369 @@
+<div class="space-y-6">
+      <ui-page-header [title]="pageTitle()">
+        <ui-button variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
+          Volver a nodos
+        </ui-button>
+        @if (facade.selectedNode(); as n) {
+          <ui-button variant="secondary" size="sm" [icon]="faCog" [routerLink]="['/nodes', n.id, 'config']">
+            Configuración
+          </ui-button>
+          <ui-button variant="secondary" size="sm" [icon]="faPen" (clicked)="openEditDialog()">
+            Editar
+          </ui-button>
+          @if (n.isEnabled) {
+            <ui-button variant="secondary" size="sm" [icon]="faToggleOff" (clicked)="confirmDisable()">
+              Deshabilitar
+            </ui-button>
+          } @else {
+            <ui-button variant="secondary" size="sm" [icon]="faToggleOn" (clicked)="confirmEnable()">
+              Habilitar
+            </ui-button>
+          }
+        }
+      </ui-page-header>
+
+      @if (facade.selectedLoading()) {
+        <ui-loading-spinner [overlay]="true" />
+      }
+
+      @if (facade.error(); as error) {
+        <ui-alert type="error" [title]="error" />
+      }
+
+      @if (facade.selectedNode(); as n) {
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <!-- Main Info -->
+          <div class="xl:col-span-2 space-y-6">
+            <!-- Node Details -->
+            <mat-card class="!p-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                Información del Nodo
+              </h3>
+              <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Nombre</dt>
+                  <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    {{ n.name }}
+                    @if (!n.isEnabled) {
+                      <ui-chip color="default">Deshabilitado</ui-chip>
+                    }
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faServer" class="mr-1" /> AE Title
+                  </dt>
+                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ n.aeTitle }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faNetworkWired" class="mr-1" /> Dirección
+                  </dt>
+                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ n.ipAddress }}:{{ n.port }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">API Endpoint</dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white break-all">{{ n.apiEndpoint ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faLocationDot" class="mr-1" /> Ubicación
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ n.location ?? '—' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faHospital" class="mr-1" /> Facility
+                  </dt>
+                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ n.facilityName ?? '—' }}</dd>
+                </div>
+              </dl>
+            </mat-card>
+
+            <!-- PACS Assignments -->
+            <mat-card class="!p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Servidores PACS asignados
+                </h3>
+                <ui-button
+                  variant="secondary"
+                  size="sm"
+                  [icon]="faPlug"
+                  (clicked)="openPacsAssignDialog()"
+                >
+                  Gestionar
+                </ui-button>
+              </div>
+              @if (n.pacsAssignments.length === 0) {
+                <ui-empty-state
+                  title="Sin asignaciones"
+                  description="Este nodo no tiene servidores PACS asignados."
+                />
+              } @else {
+                <ul class="space-y-3" role="list" aria-label="PACS asignados">
+                  @for (pa of n.pacsAssignments; track pa.pacsId) {
+                    @let pacs = pacsMap().get(pa.pacsId);
+                    @let echo = echoMap().get((pacs?.aeTitle ?? '').toLowerCase());
+
+                    <li class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      <!-- Row principal -->
+                      <div class="flex items-center gap-3 p-3">
+                        <!-- Status dot -->
+                        <span
+                          class="w-2.5 h-2.5 rounded-full shrink-0"
+                          [class]="pa.isActive ? 'bg-emerald-500' : 'bg-gray-400'"
+                          [attr.aria-label]="pa.isActive ? 'Activo' : 'Inactivo'"
+                        ></span>
+
+                        <!-- Server info -->
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {{ pacs?.name ?? pa.pacsId }}
+                          </p>
+                          <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
+                            {{ pacs?.aeTitle ?? '' }}
+                            @if (pacs) { · {{ pacs.hostName }}:{{ pacs.port }} }
+                          </p>
+                        </div>
+
+                        <!-- C-ECHO live badge from Hub -->
+                        @if (echo) {
+                          <div class="shrink-0 text-right">
+                            @if (echo.success) {
+                              <p class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                                <fa-icon [icon]="faCheckCircle" />
+                                <span>{{ echo.latencyMs !== null ? (echo.latencyMs | number:'1.0-0') + ' ms' : 'OK' }}</span>
+                              </p>
+                              <p class="text-xs text-gray-400">{{ echo.checkedAtUtc | relativeTime }}</p>
+                            } @else {
+                              <p class="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
+                                <fa-icon [icon]="faTimesCircle" />
+                                <span>{{ echo.errorReason ?? 'Fallo' }}</span>
+                              </p>
+                              <p class="text-xs text-gray-400">{{ echo.checkedAtUtc | relativeTime }}</p>
+                            }
+                          </div>
+                        } @else if (pa.lastCEchoAt) {
+                          <div class="shrink-0 text-right">
+                            <p
+                              class="flex items-center gap-1 text-xs"
+                              [class]="pa.lastCEchoSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'"
+                            >
+                              <fa-icon [icon]="pa.lastCEchoSuccess ? faCheckCircle : faTimesCircle" />
+                              {{ pa.lastCEchoAt | relativeTime }}
+                            </p>
+                          </div>
+                        } @else {
+                          <p class="flex items-center gap-1 text-xs text-gray-400 shrink-0">
+                            <fa-icon [icon]="faCircleQuestion" />
+                            Sin C-ECHO
+                          </p>
+                        }
+
+                        <!-- Badges + actions -->
+                        <div class="flex items-center gap-2 shrink-0">
+                          @if (pa.inheritedFromHub) {
+                            <ui-chip color="info">
+                              <fa-icon [icon]="faLock" class="mr-1 text-xs" />Hub
+                            </ui-chip>
+                          } @else {
+                            <ui-chip [color]="pa.isActive ? 'success' : 'default'">
+                              {{ pa.isActive ? 'Activo' : 'Inactivo' }}
+                            </ui-chip>
+                          }
+
+                          <!-- Routing rules button (always shown) -->
+                          <ui-icon-button
+                            [icon]="faRoute"
+                            tooltip="Reglas de ruteo DICOM"
+                            ariaLabel="Reglas de ruteo DICOM"
+                            (clicked)="openRoutingRulesDialog(pa.pacsId)"
+                          />
+
+                          @if (!pa.inheritedFromHub) {
+                            <ui-icon-button
+                              [icon]="faTrash"
+                              tooltip="Desvincular PACS"
+                              [ariaLabel]="'Desvincular ' + (pacs?.name ?? pa.pacsId)"
+                              (clicked)="confirmUnassignPacs(pa.pacsId)"
+                            />
+                          }
+                        </div>
+                      </div>
+
+                      <!-- Error detail strip (only shown when failed + has message) -->
+                      @if (echo && !echo.success && echo.error) {
+                        <div class="px-3 py-2 bg-red-50 dark:bg-red-900/20 border-t border-red-100 dark:border-red-800/40 flex items-start gap-2">
+                          <fa-icon [icon]="faExclamationTriangle" class="text-xs text-red-400 mt-0.5 shrink-0" />
+                          <p class="text-xs text-red-700 dark:text-red-300 break-all">{{ echo.error }}</p>
+                        </div>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            </mat-card>
+
+            <!-- Node Studies -->
+            <mat-card class="!p-6">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Estudios Recientes
+              </h3>
+              @if (studiesLoading()) {
+                <ui-loading-spinner [diameter]="32" />
+              } @else if (nodeStudies().length === 0) {
+                <ui-empty-state title="Sin estudios" description="No hay estudios registrados para este nodo." />
+              } @else {
+                <ui-data-table
+                  [columns]="studyColumns"
+                  [data]="nodeStudies()"
+                  emptyMessage="Sin estudios."
+                  (rowClick)="goToStudy($event)"
+                >
+                  <ng-template [uiCellDef]="'status'" let-value="value">
+                    <ui-status-badge [status]="value" />
+                  </ng-template>
+
+                  <ng-template [uiCellDef]="'totalSizeBytes'" let-value="value">
+                    {{ value | fileSize }}
+                  </ng-template>
+
+                  <ng-template [uiCellDef]="'createdAt'" let-value="value">
+                    {{ value | relativeTime }}
+                  </ng-template>
+                </ui-data-table>
+              }
+            </mat-card>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="space-y-6">
+            <!-- Status -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Estado
+              </h3>
+              <div class="flex items-center gap-3 mb-4">
+                <ui-status-badge [status]="n.status" />
+              </div>
+              <dl class="space-y-3">
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faClock" class="mr-1" /> Último Heartbeat
+                  </dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">
+                    {{ n.lastHeartbeatAt ? (n.lastHeartbeatAt | relativeTime) : '—' }}
+                  </dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Health Check</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ n.healthCheckIntervalSeconds }}s</dd>
+                </div>
+              </dl>
+            </mat-card>
+
+            <!-- PACS Connectivity Card -->
+            <mat-card class="!p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <fa-icon [icon]="faWifi" class="mr-1" /> Conectividad PACS
+                </h3>
+                <button
+                  type="button"
+                  class="text-xs text-azure-600 dark:text-azure-400 hover:underline"
+                  (click)="loadPacsEchoStatus()"
+                  [disabled]="pacsEchoLoading()"
+                >
+                  Actualizar
+                </button>
+              </div>
+
+              @if (pacsEchoLoading()) {
+                <p class="text-xs text-gray-400 animate-pulse">Cargando…</p>
+              } @else if (echoSummary(); as s) {
+                <!-- Reachability gauge -->
+                <div class="flex items-end gap-2 mb-3">
+                  <span class="text-3xl font-bold"
+                    [class]="s.reachable === s.total ? 'text-emerald-600 dark:text-emerald-400'
+                           : s.reachable === 0       ? 'text-red-500 dark:text-red-400'
+                                                     : 'text-amber-500 dark:text-amber-400'">
+                    {{ s.reachable }}/{{ s.total }}
+                  </span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400 pb-1">alcanzables</span>
+                </div>
+
+                <!-- Per-destination mini rows -->
+                <ul class="space-y-2">
+                  @for (d of pacsEchoStatus()!.destinations; track d.aeTitle) {
+                    <li class="text-xs">
+                      <div class="flex items-center gap-1.5">
+                        <fa-icon
+                          [icon]="d.success ? faCheckCircle : faTimesCircle"
+                          [class]="d.success ? 'text-emerald-500' : 'text-red-500'"
+                          class="shrink-0"
+                        />
+                        <span class="font-mono font-medium text-gray-800 dark:text-gray-200">{{ d.aeTitle }}</span>
+                        @if (d.success && d.latencyMs !== null) {
+                          <span class="ml-auto text-gray-400">{{ d.latencyMs | number:'1.0-0' }} ms</span>
+                        }
+                      </div>
+                      <!-- Error reason badge -->
+                      @if (!d.success) {
+                        <div class="mt-0.5 ml-5">
+                          @if (d.errorReason) {
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs
+                                         bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-mono">
+                              {{ d.errorReason }}
+                            </span>
+                          }
+                          @if (d.error && d.error !== d.errorReason) {
+                            <p class="mt-0.5 text-gray-500 dark:text-gray-400 break-all leading-tight">
+                              {{ d.error | slice:0:120 }}{{ (d?.error?.length ?? 0) > 120 ? '…' : '' }}
+                            </p>
+                          }
+                        </div>
+                      }
+                    </li>
+                  }
+                </ul>
+
+                <p class="mt-3 text-xs text-gray-400">
+                  Reportado {{ s.reportedAt | relativeTime }}
+                </p>
+              } @else {
+                <div class="flex items-center gap-2 text-gray-400 text-xs">
+                  <fa-icon [icon]="faInfoCircle" />
+                  <span>El nodo aún no ha reportado estado C-ECHO al Hub.</span>
+                </div>
+              }
+            </mat-card>
+
+            <!-- Health Card -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Salud
+              </h3>
+              <app-node-health-card [node]="n" />
+            </mat-card>
+
+            <!-- Timestamps -->
+            <mat-card class="!p-6">
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                Timestamps
+              </h3>
+              <dl class="space-y-3">
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Creado</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ n.createdAt | relativeTime }}</dd>
+                </div>
+                <div class="flex justify-between">
+                  <dt class="text-sm text-gray-500 dark:text-gray-400">Actualizado</dt>
+                  <dd class="text-sm text-gray-900 dark:text-white">{{ n.updatedAt ? (n.updatedAt | relativeTime) : '—' }}</dd>
+                </div>
+              </dl>
+            </mat-card>
+          </div>
+        </div>
+      }
+    </div>

@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Application.Dispatch;
+using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Interfaces;
 using Dicom.Edge.Hub.Infrastructure.Constants;
@@ -36,6 +37,8 @@ public static class Hl7InfrastructureExtensions
 
         // Node configuration push service
         services.AddScoped<INodeConfigPushService, NodeConfigPushService>();
+
+        services.AddScoped<IHl7PatientSyncService, Hl7PatientSyncService>();
 
         return services;
     }

@@ -26,9 +26,9 @@ public sealed class NodeConfigPushService : INodeConfigPushService
         ILogger<NodeConfigPushService> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _configService = configService;
-        _nodeRepository = nodeRepository;
-        _logger = logger;
+        _configService     = configService;
+        _nodeRepository    = nodeRepository;
+        _logger            = logger;
     }
 
     public async Task<ConfigPushResult> PushConfigAsync(

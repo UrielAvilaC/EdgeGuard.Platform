@@ -14,12 +14,7 @@ namespace Dicom.Edge.Security.Authentication
         /// User display name.
         /// </summary>
         public string? UserName { get; set; }
-        
-        /// <summary>
-        /// User email address.
-        /// </summary>
-        public string? Email { get; set; }
-        
+
         /// <summary>
         /// List of roles assigned to the user.
         /// </summary>

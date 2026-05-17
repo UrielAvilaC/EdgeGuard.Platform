@@ -1,0 +1,140 @@
+<div class="space-y-6">
+
+  <ui-page-header
+    title="Telemetría del nodo"
+    description="Historial de métricas de asociaciones DICOM y estudios completados."
+  >
+    <ui-button variant="secondary" size="sm" [icon]="faArrowLeft" [routerLink]="['/nodes', nodeId()]">
+      Volver al nodo
+    </ui-button>
+    <ui-button variant="primary" size="sm" [icon]="faSync" (clicked)="loadTelemetry()">
+      Actualizar
+    </ui-button>
+  </ui-page-header>
+
+  @if (error(); as err) {
+    <ui-alert type="error" [title]="err" />
+  }
+
+  @if (loading()) {
+    <ui-loading-spinner message="Cargando telemetría…" />
+  } @else if (records().length === 0) {
+    <ui-empty-state
+      title="Sin datos de telemetría"
+      description="El nodo aún no ha enviado snapshots de telemetría al Hub. Se envían automáticamente durante el sync periódico."
+      [icon]="faChartBar"
+    />
+  } @else {
+
+    <!-- ── KPI cards (latest snapshot) ──────────────────────────────── -->
+    @if (latest(); as r) {
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Asociaciones totales</p>
+          <p class="mt-1 text-3xl font-bold text-gray-900 dark:text-white">{{ r.totalAssociations }}</p>
+          <p class="mt-1 text-xs text-gray-500">Último período</p>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tasa de aceptación</p>
+          <p class="mt-1 text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+            {{ acceptanceRate() !== null ? acceptanceRate() + '%' : '—' }}
+          </p>
+          <p class="mt-1 text-xs text-gray-500">{{ r.acceptedAssociations }} aceptadas / {{ r.rejectedAssociations }} rechazadas</p>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Imágenes recibidas</p>
+          <p class="mt-1 text-3xl font-bold text-azure-600 dark:text-azure-400">{{ r.totalImagesReceived }}</p>
+          <p class="mt-1 text-xs text-gray-500">{{ r.completedStudies }} estudios completados</p>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Rendimiento promedio</p>
+          <p class="mt-1 text-3xl font-bold text-gray-900 dark:text-white">
+            {{ r.averageThroughputMbps !== null ? (r.averageThroughputMbps | number:'1.1-1') + ' MB/s' : '—' }}
+          </p>
+          <p class="mt-1 text-xs text-gray-500">Duración media: {{ formatDuration(r.averageReceptionDurationMs) }}</p>
+        </div>
+
+      </div>
+    }
+
+    <!-- ── History table ────────────────────────────────────────────── -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+          Historial de snapshots ({{ records().length }})
+        </h3>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <tr>
+              <th class="px-4 py-3">Reportado</th>
+              <th class="px-4 py-3">Período</th>
+              <th class="px-4 py-3 text-right">Asoc. totales</th>
+              <th class="px-4 py-3 text-right">Aceptadas</th>
+              <th class="px-4 py-3 text-right">Rechazadas</th>
+              <th class="px-4 py-3 text-right">Abortadas</th>
+              <th class="px-4 py-3 text-right">Imágenes</th>
+              <th class="px-4 py-3 text-right">Estudios</th>
+              <th class="px-4 py-3 text-right">Datos</th>
+              <th class="px-4 py-3 text-right">Dur. prom.</th>
+              <th class="px-4 py-3 text-right">MB/s prom.</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            @for (r of records(); track r.id) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                <td class="px-4 py-3 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                  {{ r.reportedAt | relativeTime }}
+                </td>
+                <td class="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  {{ formatPeriod(r.periodStart, r.periodEnd) }}
+                </td>
+                <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
+                  {{ r.totalAssociations }}
+                </td>
+                <td class="px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">
+                  {{ r.acceptedAssociations }}
+                </td>
+                <td class="px-4 py-3 text-right"
+                    [class.text-amber-600]="r.rejectedAssociations > 0"
+                    [class.dark:text-amber-400]="r.rejectedAssociations > 0"
+                    [class.text-gray-400]="r.rejectedAssociations === 0">
+                  {{ r.rejectedAssociations }}
+                </td>
+                <td class="px-4 py-3 text-right"
+                    [class.text-red-600]="r.abortedAssociations > 0"
+                    [class.dark:text-red-400]="r.abortedAssociations > 0"
+                    [class.text-gray-400]="r.abortedAssociations === 0">
+                  {{ r.abortedAssociations }}
+                </td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
+                  {{ r.totalImagesReceived | number }}
+                </td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
+                  {{ r.completedStudies }}
+                </td>
+                <td class="px-4 py-3 text-right text-gray-700 dark:text-gray-300">
+                  {{ r.totalBytesReceived | fileSize }}
+                </td>
+                <td class="px-4 py-3 text-right text-gray-500 dark:text-gray-400">
+                  {{ formatDuration(r.averageReceptionDurationMs) }}
+                </td>
+                <td class="px-4 py-3 text-right text-gray-500 dark:text-gray-400">
+                  {{ r.averageThroughputMbps !== null ? (r.averageThroughputMbps | number:'1.1-1') : '—' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  }
+
+</div>

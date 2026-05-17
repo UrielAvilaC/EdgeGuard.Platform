@@ -224,12 +224,6 @@ namespace Dicom.Edge.Security.Authentication
                 claims.Add(new Claim("userName", request.UserName));
             }
 
-            // Email
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                claims.Add(new Claim(JwtRegisteredClaimNames.Email, request.Email));
-            }
-
             // Multiple roles support
             if (request.Roles != null)
             {

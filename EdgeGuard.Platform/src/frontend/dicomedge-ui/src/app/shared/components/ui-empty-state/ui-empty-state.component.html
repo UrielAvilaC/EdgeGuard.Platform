@@ -1,0 +1,10 @@
+<div class="empty-state">
+      <div class="empty-state-icon">
+        <fa-icon [icon]="icon()" />
+      </div>
+      <h3 class="empty-state-title">{{ title() }}</h3>
+      @if (description()) {
+        <p class="empty-state-desc">{{ description() }}</p>
+      }
+      <ng-content />
+    </div>

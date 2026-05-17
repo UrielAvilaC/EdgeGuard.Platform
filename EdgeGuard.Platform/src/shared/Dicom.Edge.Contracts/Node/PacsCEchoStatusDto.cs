@@ -12,7 +12,14 @@ public sealed class PacsCEchoResultDto
     public required bool Success { get; init; }
     public required DateTime CheckedAtUtc { get; init; }
     public double? LatencyMs { get; init; }
+    /// <summary>Human-readable error message (network, timeout, etc.).</summary>
     public string? Error { get; init; }
+    /// <summary>
+    /// Structured DICOM rejection reason extracted from the exception, e.g.
+    /// "CalledAENotRecognized", "NoReasonGiven", "ServiceUserRejection".
+    /// Null when the check succeeded or the failure was non-DICOM.
+    /// </summary>
+    public string? ErrorReason { get; init; }
 }
 
 /// <summary>

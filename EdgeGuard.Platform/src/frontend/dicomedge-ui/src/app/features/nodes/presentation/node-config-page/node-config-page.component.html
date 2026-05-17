@@ -1,0 +1,78 @@
+<div class="space-y-6">
+  <ui-page-header [title]="pageTitle()">
+    <ui-button variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
+      Volver al nodo
+    </ui-button>
+
+    <ui-button
+      variant="secondary"
+      size="sm"
+      [icon]="faSync"
+      [disabled]="loading()"
+      (clicked)="reload()"
+    >
+      Actualizar
+    </ui-button>
+
+    @if (hasPendingChanges()) {
+      <ui-button
+        variant="secondary"
+        size="sm"
+        [icon]="faSave"
+        [loading]="saving()"
+        (clicked)="saveChanges()"
+      >
+        Guardar ({{ pendingChanges().size }})
+      </ui-button>
+    }
+
+    <ui-button
+      size="sm"
+      [icon]="faCloudUploadAlt"
+      [loading]="pushing() || saving()"
+      (clicked)="saveAndPush()"
+    >
+      {{ hasPendingChanges() ? 'Guardar y aplicar' : 'Aplicar al nodo' }}
+    </ui-button>
+  </ui-page-header>
+
+  @if (configVersion(); as version) {
+    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+      <fa-icon [icon]="faCodeBranch" aria-hidden="true" />
+      <span>Versión de config: <code class="font-mono">{{ version }}</code></span>
+    </div>
+  }
+
+  @if (error(); as err) {
+    <ui-alert type="error" [title]="err" [dismissible]="true" />
+  }
+
+  @if (hasPendingChanges()) {
+    <ui-alert
+      type="warning"
+      [title]="pendingChanges().size + ' configuración(es) sin guardar. Guarda antes de salir o usa «Guardar y aplicar»'"
+    />
+  }
+
+  @if (loading()) {
+    <ui-loading-spinner />
+  } @else if (configs().length === 0 && !error()) {
+    <ui-empty-state
+      title="Sin configuraciones"
+      description="Este nodo no tiene configuraciones registradas aún."
+    />
+  } @else {
+    <div class="space-y-4">
+      @for (category of categories(); track category) {
+        <app-node-config-category-panel
+          [category]="category"
+          [label]="categoryLabel(category)"
+          [settings]="configsByCategory(category)"
+          [pendingKeys]="pendingKeysForCategory(category)"
+          (settingChanged)="onSettingChanged($event)"
+          (settingReset)="onSettingReset($event)"
+        />
+      }
+    </div>
+  }
+</div>

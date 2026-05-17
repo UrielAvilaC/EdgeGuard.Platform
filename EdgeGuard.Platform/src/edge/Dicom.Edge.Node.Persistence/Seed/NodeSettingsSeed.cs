@@ -15,7 +15,7 @@ internal static class NodeSettingsSeed
     /// without touching keys that already exist (safe for upgrades).
     /// </summary>
     public static async Task SeedMissingAsync(
-        EdgeNodeDbContext ctx, CancellationToken ct = default)
+        EdgeNodeDbContext ctx,ILogger logger, CancellationToken ct = default)
     {
         var existing = await ctx.NodeSettings
             .Select(s => s.Key)
@@ -51,16 +51,16 @@ internal static class NodeSettingsSeed
     private static List<NodeSettingEntity> BuildDefaults() =>
     [
         // ── General ─────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.General.NodeName,     "EdgeNode-1",   Cat.General,  "Node Name",              VT.String),
-        Row(NodeSettingKeys.General.AeTitle,      "EDGE_NODE",    Cat.General,  "AE Title",               VT.String),
+        Row(NodeSettingKeys.General.NodeName,     "",   Cat.General,  "Node Name",              VT.String),
+        Row(NodeSettingKeys.General.AeTitle,      "",    Cat.General,  "AE Title",               VT.String),
         Row(NodeSettingKeys.General.Description,  "",             Cat.General,  "Description",            VT.String),
         Row(NodeSettingKeys.General.Location,     "",             Cat.General,  "Location",               VT.String),
         Row(NodeSettingKeys.General.FacilityName, "",             Cat.General,  "Facility Name",          VT.String),
         Row(NodeSettingKeys.General.Timezone,     "UTC",          Cat.General,  "Timezone",               VT.String),
-        Row(NodeSettingKeys.General.Version,      "1.0.0",        Cat.General,  "Software Version",       VT.String, readOnly: true),
+        Row(NodeSettingKeys.General.Version,      "",        Cat.General,  "Software Version",       VT.String, readOnly: true),
         Row(NodeSettingKeys.General.ContactEmail, "",             Cat.General,  "Contact Email",          VT.String),
         Row(NodeSettingKeys.General.ContactPhone, "",             Cat.General,  "Contact Phone",          VT.String),
-        Row(NodeSettingKeys.General.IpAddress,    "127.0.0.1",    Cat.General,  "IP Address",             VT.String),
+        Row(NodeSettingKeys.General.IpAddress,    "",    Cat.General,  "IP Address",             VT.String),
         Row(NodeSettingKeys.General.ApiEndpoint,  "",             Cat.General,  "API Endpoint",           VT.String),
 
         // ── Hub ─────────────────────────────────────────────────────────────
@@ -70,6 +70,7 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Hub.Port,                  "443",     Cat.Hub, "Hub Port",                      VT.Int),
         Row(NodeSettingKeys.Hub.BasePath,              "/api",    Cat.Hub, "Hub API Base Path",             VT.String),
         Row(NodeSettingKeys.Hub.ApiKey,                "",        Cat.Hub, "Hub API Key",                   VT.String),
+        Row(NodeSettingKeys.Hub.NodeId,                "",        Cat.Hub, "Hub Node ID",                   VT.String),
         Row(NodeSettingKeys.Hub.TimeoutSeconds,        "30",      Cat.Hub, "Hub Request Timeout (sec)",     VT.Int),
         Row(NodeSettingKeys.Hub.HeartbeatIntervalSec,  "60",      Cat.Hub, "Heartbeat Interval (sec)",      VT.Int),
         Row(NodeSettingKeys.Hub.RegisterOnStartup,     "true",    Cat.Hub, "Register on Startup",           VT.Bool),
@@ -80,17 +81,21 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Hub.ReconnectDelaySeconds, "30",      Cat.Hub, "Reconnect Delay (sec)",         VT.Int),
 
         // ── DICOM ────────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Dicom.Enabled,                   "true",      Cat.Dicom, "DICOM Server Enabled",            VT.Bool),
-        Row(NodeSettingKeys.Dicom.ValidateCallingAe,         "false",     Cat.Dicom, "Validate Calling AE Title",       VT.Bool),
-        Row(NodeSettingKeys.Dicom.AllowedAeTitles,           "[]",        Cat.Dicom, "Allowed AE Titles (JSON array)",  VT.Json),
-        Row(NodeSettingKeys.Dicom.MaxAssociations,           "50",        Cat.Dicom, "Max Concurrent Associations",     VT.Int),
-        Row(NodeSettingKeys.Dicom.Port,                      "11112",     Cat.Dicom, "DICOM Listen Port",               VT.Int),
-        Row(NodeSettingKeys.Dicom.AeTitle,                   "EDGE_NODE", Cat.Dicom, "DICOM AE Title",                  VT.String),
-        Row(NodeSettingKeys.Dicom.StudyCompletionTimeoutSec, "30",        Cat.Dicom, "Study Completion Timeout (sec)",   VT.Int),
-        Row(NodeSettingKeys.Dicom.AssociationTimeoutSec,     "30",        Cat.Dicom, "Association Timeout (sec)",        VT.Int),
-        Row(NodeSettingKeys.Dicom.DimseTimeoutSec,           "600",       Cat.Dicom, "DIMSE Timeout (sec)",              VT.Int),
-        Row(NodeSettingKeys.Dicom.MaxPduLength,              "262144",    Cat.Dicom, "Max PDU Length (bytes)",            VT.Int),
-        Row(NodeSettingKeys.Dicom.MwlEnabled,                "true",      Cat.Dicom, "MWL C-FIND SCP Enabled",           VT.Bool),
+        Row(NodeSettingKeys.Dicom.Enabled,                   "true",      Cat.Dicom, "DICOM Server Enabled",              VT.Bool),
+        Row(NodeSettingKeys.Dicom.ValidateCallingAe,         "false",     Cat.Dicom, "Validate Calling AE Title",         VT.Bool),
+        Row(NodeSettingKeys.Dicom.ValidateCalledAe,          "true",      Cat.Dicom, "Validate Called AE Title",          VT.Bool),
+        Row(NodeSettingKeys.Dicom.AllowedAeTitles,           "[]",        Cat.Dicom, "Allowed Calling AE Titles (JSON)",  VT.Json),
+        Row(NodeSettingKeys.Dicom.AeTitleAliases,            "[]",        Cat.Dicom, "AE Title Aliases (JSON)",           VT.Json),
+        Row(NodeSettingKeys.Dicom.MaxAssociations,           "50",        Cat.Dicom, "Max Concurrent Associations",       VT.Int),
+        Row(NodeSettingKeys.Dicom.Port,                      "11112",     Cat.Dicom, "DICOM Listen Port",                 VT.Int),
+        Row(NodeSettingKeys.Dicom.AeTitle,                   "EDGE_NODE", Cat.Dicom, "DICOM AE Title",                    VT.String),
+        Row(NodeSettingKeys.Dicom.StudyCompletionTimeoutSec, "30",        Cat.Dicom, "Study Completion Timeout (sec)",    VT.Int),
+        Row(NodeSettingKeys.Dicom.AssociationTimeoutSec,     "30",        Cat.Dicom, "Association Timeout (sec)",         VT.Int),
+        Row(NodeSettingKeys.Dicom.DimseTimeoutSec,           "600",       Cat.Dicom, "DIMSE Timeout (sec)",               VT.Int),
+        Row(NodeSettingKeys.Dicom.MaxPduLength,              "262144",    Cat.Dicom, "Max PDU Length (bytes)",             VT.Int),
+        Row(NodeSettingKeys.Dicom.MwlEnabled,                "true",      Cat.Dicom, "MWL C-FIND SCP Enabled",            VT.Bool),
+        Row(NodeSettingKeys.Dicom.CEchoEnabled,              "true",      Cat.Dicom, "C-ECHO (Verification) SCP Enabled", VT.Bool),
+        Row(NodeSettingKeys.Dicom.QrEnabled,                 "true",      Cat.Dicom, "QR C-FIND SCP Enabled",             VT.Bool),
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Cleanup.Enabled,            "true",  Cat.Cleanup, "Auto-Cleanup Enabled",          VT.Bool),
@@ -112,8 +117,8 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Security.AuditRetentionDays, "365",   Cat.Security, "Audit Log Retention (days)",      VT.Int),
 
         // ── Storage ──────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Storage.RootPath,    "./data",    Cat.Storage, "DICOM Storage Root Path", VT.String),
-        Row(NodeSettingKeys.Storage.ArchivePath, "./archive", Cat.Storage, "Archive Root Path",        VT.String),
+        Row(NodeSettingKeys.Storage.RootPath,    "./data",      Cat.Storage, "DICOM Storage Root Path", VT.String),
+        Row(NodeSettingKeys.Storage.ArchivePath, "./workspace", Cat.Storage, "Archive Root Path",        VT.String),
 
         // ── PACS Sender ──────────────────────────────────────────────────────
         Row(NodeSettingKeys.PacsSender.Enabled,                   "true",      Cat.PacsSender, "PACS Sender Enabled",               VT.Bool),
@@ -128,11 +133,6 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.PacsCEcho.Enabled,         "true",  Cat.PacsCEcho, "C-ECHO Monitor Enabled",       VT.Bool),
         Row(NodeSettingKeys.PacsCEcho.IntervalSeconds,  "120",  Cat.PacsCEcho, "C-ECHO Interval (sec)",        VT.Int),
         Row(NodeSettingKeys.PacsCEcho.Destinations,     "[]",   Cat.PacsCEcho, "C-ECHO Destinations (JSON)",   VT.Json),
-
-        // ── PACS Destination ─────────────────────────────────────────────────
-        Row(NodeSettingKeys.PacsDestination.Host,    "",    Cat.PacsDestination, "PACS Destination Host",     VT.String),
-        Row(NodeSettingKeys.PacsDestination.Port,    "104", Cat.PacsDestination, "PACS Destination Port",     VT.Int),
-        Row(NodeSettingKeys.PacsDestination.AeTitle, "",    Cat.PacsDestination, "PACS Destination AE Title", VT.String),
 
         // ── Node API ─────────────────────────────────────────────────────────
         Row(NodeSettingKeys.NodeApi.Port, "5120", Cat.NodeApi, "Node API Port", VT.Int),
@@ -173,7 +173,6 @@ internal static class NodeSettingsSeed
         public const string Storage    = NodeSettingCategories.Storage;
         public const string PacsSender = NodeSettingCategories.PacsSender;
         public const string PacsCEcho       = NodeSettingCategories.PacsCEcho;
-        public const string PacsDestination = NodeSettingCategories.PacsDestination;
         public const string NodeApi         = NodeSettingCategories.NodeApi;
     }
 

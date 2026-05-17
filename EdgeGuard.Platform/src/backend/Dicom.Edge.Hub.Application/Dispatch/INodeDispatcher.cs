@@ -21,6 +21,9 @@ public sealed class NodeDispatchRequest
     public required string? AccessionNumber { get; init; }
     public required string? SendingFacility { get; init; }
     public required string? SendingApplication { get; init; }
+    public string? Modality { get; init; }
+    public string? ProcedureDescription { get; init; }
+    public string? ProcedureId { get; init; }
     public int Priority { get; init; } = 5;
 }
 

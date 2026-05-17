@@ -1,5 +1,7 @@
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
@@ -9,6 +11,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/node-configuration")]
+[Authorize(Policy = Policies.ViewConfiguration)]
 public class NodeConfigurationController : ControllerBase
 {
     private readonly INodeConfigurationService _configService;
@@ -40,6 +43,40 @@ public class NodeConfigurationController : ControllerBase
     {
         var config = await _configService.GetNodeConfigByCategoryAsync(nodeId, category, ct);
         return Ok(config);
+    }
+
+    /// <summary>
+    /// GET /api/node-configuration/{nodeId}/categories — Returns distinct setting categories for a node.
+    /// </summary>
+    [HttpGet("{nodeId}/categories")]
+    public async Task<IActionResult> GetCategories(string nodeId, CancellationToken ct)
+    {
+        var categories = await _configService.GetCategoriesAsync(nodeId, ct);
+        return Ok(categories);
+    }
+
+    /// <summary>
+    /// PUT /api/node-configuration/{nodeId}/batch — Saves multiple settings in one call (Hub DB only).
+    /// Call POST /{nodeId}/push afterwards to propagate changes to the node.
+    /// </summary>
+    [HttpPut("{nodeId}/batch")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> UpdateBatch(
+        string nodeId, [FromBody] BatchUpdateNodeSettingsRequest request, CancellationToken ct)
+    {
+        var result = await _configService.UpdateBatchAsync(nodeId, request, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// POST /api/node-configuration/{nodeId}/reset-category/{category} — Resets all settings in a category to defaults.
+    /// </summary>
+    [HttpPost("{nodeId}/reset-category/{category}")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> ResetCategory(string nodeId, string category, CancellationToken ct)
+    {
+        var count = await _configService.ResetCategoryAsync(nodeId, category, ct);
+        return Ok(new { resetCount = count });
     }
 
     /// <summary>

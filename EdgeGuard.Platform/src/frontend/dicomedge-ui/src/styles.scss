@@ -4,13 +4,357 @@
 @tailwind components;
 @tailwind utilities;
 
+// ── Design Tokens ──────────────────────────────────────────────────────
+:root {
+  --eg-font-sans: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --eg-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  // Elevation
+  --eg-shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --eg-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --eg-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --eg-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.06);
+  --eg-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  // Radius
+  --eg-radius-sm: 6px;
+  --eg-radius-md: 8px;
+  --eg-radius-lg: 12px;
+  --eg-radius-xl: 16px;
+
+  // Sidebar
+  --eg-sidebar-width: 260px;
+  --eg-sidebar-collapsed-width: 68px;
+  --eg-header-height: 56px;
+
+  // Transitions
+  --eg-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --eg-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --eg-transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  // Light surface tokens
+  --eg-surface: #ffffff;
+  --eg-surface-dim: #f8fafc;
+  --eg-surface-container: #f1f5f9;
+  --eg-surface-container-high: #e2e8f0;
+  --eg-border: #e2e8f0;
+  --eg-border-subtle: #f1f5f9;
+  --eg-text-primary: #0f172a;
+  --eg-text-secondary: #475569;
+  --eg-text-muted: #94a3b8;
+  --eg-accent: #0078d4;
+  --eg-accent-hover: #106ebe;
+  --eg-accent-subtle: rgba(0, 120, 212, 0.08);
+}
+
+.dark {
+  --eg-surface: #0f172a;
+  --eg-surface-dim: #020617;
+  --eg-surface-container: #1e293b;
+  --eg-surface-container-high: #334155;
+  --eg-border: #334155;
+  --eg-border-subtle: #1e293b;
+  --eg-text-primary: #f1f5f9;
+  --eg-text-secondary: #94a3b8;
+  --eg-text-muted: #64748b;
+  --eg-accent: #4da6ff;
+  --eg-accent-hover: #3b93eb;
+  --eg-accent-subtle: rgba(77, 166, 255, 0.12);
+}
+
+// ── Global Resets ───────────────────────────────────────────────────────
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html, body {
   height: 100%;
   margin: 0;
-  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  font-family: var(--eg-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 body {
-  background-color: var(--mat-sys-surface, #ffffff);
-  color: var(--mat-sys-on-surface, #1a1a1a);
+  background-color: var(--eg-surface-dim);
+  color: var(--eg-text-primary);
+}
+
+// ── Selection ────────────────────────────────────────────────────────
+::selection {
+  background: rgba(0, 120, 212, 0.2);
+  color: inherit;
+}
+
+.dark ::selection {
+  background: rgba(77, 166, 255, 0.25);
+}
+
+// ── Scrollbar ────────────────────────────────────────────────────────
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--eg-border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--eg-border);
+  border-radius: 3px;
+
+  &:hover {
+    background-color: var(--eg-text-muted);
+  }
+}
+
+// ── Focus Ring (WCAG AA) ─────────────────────────────────────────────
+*:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+// ── Angular Material Overrides ──────────────────────────────────────
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-shape: var(--eg-radius-md);
+  --mdc-outlined-text-field-outline-color: var(--eg-border);
+  --mdc-outlined-text-field-focus-outline-color: #0078d4;
+  --mdc-outlined-text-field-hover-outline-color: var(--eg-text-muted);
+}
+
+.mat-mdc-card {
+  --mdc-elevated-card-container-shape: var(--eg-radius-lg);
+  --mdc-elevated-card-container-elevation: var(--eg-shadow-xs);
+  border: 1px solid var(--eg-border-subtle);
+  transition: box-shadow var(--eg-transition-normal), border-color var(--eg-transition-normal);
+
+  &:hover {
+    box-shadow: var(--eg-shadow-sm);
+    border-color: var(--eg-border);
+  }
+}
+
+.mat-mdc-dialog-surface {
+  border-radius: var(--eg-radius-xl) !important;
+}
+
+.cdk-overlay-backdrop.cdk-overlay-backdrop-showing {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.mat-mdc-table {
+  --mat-table-background-color: var(--eg-surface);
+
+  .mat-mdc-header-row {
+    background: var(--eg-surface-dim);
+    height: 44px;
+  }
+
+  .mat-mdc-row {
+    transition: background-color var(--eg-transition-fast);
+    height: 52px;
+
+    &:hover {
+      background-color: var(--eg-surface-container) !important;
+    }
+
+    &:last-child td.mat-mdc-cell {
+      border-bottom: none;
+    }
+  }
+}
+
+.mat-mdc-paginator {
+  background: transparent;
+  border-top: 1px solid var(--eg-border-subtle);
+  font-size: 0.8125rem;
+}
+
+.mat-mdc-snack-bar-container {
+  border-radius: var(--eg-radius-md) !important;
+}
+
+.mat-mdc-menu-panel {
+  border-radius: var(--eg-radius-lg) !important;
+  border: 1px solid var(--eg-border-subtle);
+  box-shadow: var(--eg-shadow-lg) !important;
+}
+
+.mat-mdc-tab-header {
+  border-bottom: 1px solid var(--eg-border-subtle);
+}
+
+.mat-mdc-dialog-container .mat-mdc-dialog-surface {
+  box-shadow: var(--eg-shadow-xl) !important;
+}
+
+// ── Toast Notifications ─────────────────────────────────────────────
+.toast-success { --mdc-snackbar-container-color: #059669; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-error { --mdc-snackbar-container-color: #dc2626; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-warning { --mdc-snackbar-container-color: #d97706; --mdc-snackbar-supporting-text-color: #fff; }
+.toast-info { --mdc-snackbar-container-color: #0078d4; --mdc-snackbar-supporting-text-color: #fff; }
+
+// ── Skeleton Loading ────────────────────────────────────────────────
+@keyframes eg-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.eg-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--eg-surface-container) 25%,
+    var(--eg-surface-container-high) 37%,
+    var(--eg-surface-container) 63%
+  );
+  background-size: 200% 100%;
+  animation: eg-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--eg-radius-sm);
+}
+
+.eg-skeleton-text {
+  @extend .eg-skeleton;
+  height: 14px;
+  margin-bottom: 8px;
+
+  &:last-child { width: 60%; }
+}
+
+.eg-skeleton-circle {
+  @extend .eg-skeleton;
+  border-radius: 50%;
+}
+
+// ── Enterprise Card Container ───────────────────────────────────────
+.eg-card {
+  background: var(--eg-surface);
+  border: 1px solid var(--eg-border-subtle);
+  border-radius: var(--eg-radius-lg);
+  box-shadow: var(--eg-shadow-xs);
+  transition: box-shadow var(--eg-transition-normal), border-color var(--eg-transition-normal);
+
+  &:hover {
+    box-shadow: var(--eg-shadow-sm);
+    border-color: var(--eg-border);
+  }
+}
+
+.eg-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--eg-border-subtle);
+}
+
+.eg-card-body {
+  padding: 20px;
+}
+
+// ── Enterprise Table Container ──────────────────────────────────────
+.eg-table-container {
+  background: var(--eg-surface);
+  border: 1px solid var(--eg-border-subtle);
+  border-radius: var(--eg-radius-lg);
+  box-shadow: var(--eg-shadow-xs);
+  overflow: hidden;
+}
+
+// ── Utility: Animate In ─────────────────────────────────────────────
+@keyframes eg-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes eg-slide-in-right {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes eg-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.eg-animate-in {
+  animation: eg-fade-in var(--eg-transition-normal) both;
+}
+
+.eg-stagger > * {
+  animation: eg-fade-in var(--eg-transition-normal) both;
+  @for $i from 1 through 12 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 50}ms;
+    }
+  }
+}
+
+// ── Tabular Numbers ─────────────────────────────────────────────────
+.eg-tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+// ── Divider ─────────────────────────────────────────────────────────
+.eg-divider {
+  height: 1px;
+  background: var(--eg-border-subtle);
+  border: none;
+  margin: 0;
+}
+
+// ── Interactive Row Highlight ───────────────────────────────────────
+.eg-interactive-row {
+  cursor: pointer;
+  transition: background-color var(--eg-transition-fast);
+
+  &:hover {
+    background-color: var(--eg-surface-container);
+  }
+
+  &:active {
+    background-color: var(--eg-surface-container-high);
+  }
+}
+
+// ── Tooltip Enhancement ─────────────────────────────────────────────
+.mat-mdc-tooltip .mdc-tooltip__surface {
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--eg-radius-sm) !important;
+  letter-spacing: -0.005em;
+}
+
+// ── Form Field Density ──────────────────────────────────────────────
+.mat-mdc-form-field-subscript-wrapper {
+  font-size: 0.75rem;
+}
+
+// ── Clickable Row Affordance ────────────────────────────────────────
+tr.mat-mdc-row[class*="cursor-pointer"] {
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--eg-accent);
+    outline-offset: -2px;
+    border-radius: 2px;
+  }
+}
+
+// ── Page Spacing Utility ────────────────────────────────────────────
+.eg-page-section {
+  & + & {
+    margin-top: 24px;
+  }
 }

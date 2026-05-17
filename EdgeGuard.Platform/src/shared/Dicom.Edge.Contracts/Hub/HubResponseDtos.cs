@@ -7,7 +7,7 @@ public sealed record PatientDto
     public required string Id { get; init; }
     public required string PatientDicomId { get; init; }
     public required string PatientName { get; init; }
-    public DateTime? BirthDate { get; init; }
+    public DateOnly? BirthDate { get; init; }
     public string? Sex { get; init; }
     public string? PhoneNumber { get; init; }
     public string? Email { get; init; }
@@ -50,6 +50,61 @@ public sealed record NodePacsAssignmentDto
     public required string PacsId { get; init; }
     public bool IsActive { get; init; }
     public bool InheritedFromHub { get; init; }
+}
+
+// ── Telemetry ────────────────────────────────────────────────────────────────
+
+public sealed record NodeTelemetryDto
+{
+    public required string Id        { get; init; }
+    public required string NodeId    { get; init; }
+    public DateTime ReportedAt       { get; init; }
+    public DateTime PeriodStart      { get; init; }
+    public DateTime PeriodEnd        { get; init; }
+    public int  TotalAssociations    { get; init; }
+    public int  AcceptedAssociations { get; init; }
+    public int  RejectedAssociations { get; init; }
+    public int  AbortedAssociations  { get; init; }
+    public int  TotalImagesReceived  { get; init; }
+    public int  CompletedStudies     { get; init; }
+    public long TotalBytesReceived   { get; init; }
+    public double? AverageReceptionDurationMs { get; init; }
+    public double? AverageThroughputMbps      { get; init; }
+}
+
+public sealed record NodeTelemetryAckDto
+{
+    public bool     Acknowledged  { get; init; }
+    public DateTime ServerTimeUtc { get; init; }
+}
+
+// ── PACS C-ECHO status (Hub-side, per node) ───────────────────────────────────
+
+/// <summary>
+/// Hub-side DTO that groups the latest C-ECHO results for a node, returned by
+/// <c>GET /api/nodes/{id}/pacs-echo</c>.
+/// </summary>
+public sealed record NodePacsCEchoStatusDto
+{
+    public required string NodeId        { get; init; }
+    public required DateTime ReportedAtUtc { get; init; }
+    public required IReadOnlyList<PacsCEchoDestinationDto> Destinations { get; init; }
+    public int TotalChecked   => Destinations.Count;
+    public int TotalReachable => Destinations.Count(d => d.Success);
+}
+
+public sealed record PacsCEchoDestinationDto
+{
+    public required string AeTitle      { get; init; }
+    public required string Host         { get; init; }
+    public required int    Port         { get; init; }
+    public required bool   Success      { get; init; }
+    public double?         LatencyMs    { get; init; }
+    /// <summary>Human-readable error (network, timeout, etc.).</summary>
+    public string?         Error        { get; init; }
+    /// <summary>Structured DICOM rejection reason, e.g. "CalledAENotRecognized".</summary>
+    public string?         ErrorReason  { get; init; }
+    public required DateTime CheckedAtUtc { get; init; }
 }
 
 // ── Studies ──────────────────────────────────────────────────────────────────
@@ -258,7 +313,8 @@ public sealed record Hl7MessageSummaryDto(
     string? ClientEndpoint,
     string Status,
     DateTime? ProcessedAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool CanReprocess);
 
 public sealed record Hl7MessageDetailDto(
     Guid Id,
@@ -270,7 +326,8 @@ public sealed record Hl7MessageDetailDto(
     string? ClientEndpoint,
     string Status,
     DateTime? ProcessedAt,
-    string? ErrorMessage);
+    string? ErrorMessage,
+    bool CanReprocess);
 
 // ── Generic ──────────────────────────────────────────────────────────────────
 
@@ -287,4 +344,66 @@ public sealed record MessageDto
 public sealed record ErrorDto
 {
     public required string Error { get; init; }
+}
+
+// ── Audit Logs ───────────────────────────────────────────────────────────────
+
+public sealed record AuditLogDto
+{
+    public required string Id { get; init; }
+    public required string EventType { get; init; }
+    public required string Action { get; init; }
+    public required string Severity { get; init; }
+    public string? UserId { get; init; }
+    public string? UserName { get; init; }
+    public string? IpAddress { get; init; }
+    public string? CorrelationId { get; init; }
+    public string? EntityId { get; init; }
+    public string? EntityType { get; init; }
+    public bool IsSuccess { get; init; }
+    public string? ErrorMessage { get; init; }
+    public string? Details { get; init; }
+    public DateTime CreatedAt { get; init; }
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+
+public sealed record DashboardSummaryDto
+{
+    public int TotalStudies { get; init; }
+    public int TotalPatients { get; init; }
+    public int TotalNodes { get; init; }
+    public int ActiveNodes { get; init; }
+    public int PendingPacsStudies { get; init; }
+    public int FailedStudies { get; init; }
+    public QueueSummaryDto QueueSummary { get; init; } = new();
+    public Hl7ListenerStatusDto? Hl7Status { get; init; }
+    public IReadOnlyList<StudyDto> RecentStudies { get; init; } = [];
+    public IReadOnlyList<NodeDto> Nodes { get; init; } = [];
+}
+
+// ── CSV Import/Export ────────────────────────────────────────────────────────
+
+public sealed record CsvExportResultDto
+{
+    public required byte[] FileContent { get; init; }
+    public required string FileName { get; init; }
+    public required string ContentType { get; init; }
+    public int RecordCount { get; init; }
+}
+
+public sealed record ImportResultDto
+{
+    public int TotalRecords { get; init; }
+    public int SuccessCount { get; init; }
+    public int ErrorCount { get; init; }
+    public IReadOnlyList<ImportRowResult> Rows { get; init; } = [];
+}
+
+public sealed record ImportRowResult
+{
+    public int RowNumber { get; init; }
+    public required string Status { get; init; }
+    public string? Identifier { get; init; }
+    public string? Error { get; init; }
 }

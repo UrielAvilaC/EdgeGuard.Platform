@@ -1,11 +1,14 @@
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.Hl7;
+using Dicom.Edge.Security.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/hl7-status")]
+[Authorize(Policy = Policies.ViewSystemStatus)]
 public class Hl7StatusController : ControllerBase
 {
     private readonly IHl7MonitoringService _monitoringService;

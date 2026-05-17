@@ -17,6 +17,7 @@ internal static class ConfigPaths
 
     public const string HubEnabled                  = $"{ConfigSectionNames.HubConnection}:Enabled";
     public const string HubApiKey                   = $"{ConfigSectionNames.HubConnection}:ApiKey";
+    public const string HubNodeId                   = $"{ConfigSectionNames.HubConnection}:NodeId";
     public const string HubTimeoutSeconds           = $"{ConfigSectionNames.HubConnection}:TimeoutSeconds";
     public const string HubHeartbeatIntervalSeconds = $"{ConfigSectionNames.HubConnection}:HeartbeatIntervalSeconds";
     public const string HubRegisterOnStartup        = $"{ConfigSectionNames.HubConnection}:RegisterOnStartup";
@@ -46,7 +47,12 @@ internal static class ConfigPaths
     public const string DicomDimseTimeout         = $"{ConfigSectionNames.DicomServer}:DimseTimeoutSeconds";
     public const string DicomMaxPduLength         = $"{ConfigSectionNames.DicomServer}:MaxPduLength";
     public const string DicomMwlEnabled           = $"{ConfigSectionNames.DicomServer}:MwlEnabled";
+    public const string DicomCEchoEnabled         = $"{ConfigSectionNames.DicomServer}:CEchoEnabled";
+    public const string DicomQrEnabled            = $"{ConfigSectionNames.DicomServer}:QrEnabled";
+    public const string DicomValidateCallingAe    = $"{ConfigSectionNames.DicomServer}:ValidateCallingAe";
+    public const string DicomValidateCalledAe     = $"{ConfigSectionNames.DicomServer}:ValidateCalledAe";
     public const string DicomAllowedCallingPrefix = $"{ConfigSectionNames.DicomServer}:AllowedCallingAeTitles";
+    public const string DicomAeTitleAliasesPrefix = $"{ConfigSectionNames.DicomServer}:AeTitleAliases";
 
     // ── PacsSender ───────────────────────────────────────────────────────────
 
@@ -63,10 +69,4 @@ internal static class ConfigPaths
     public const string PacsCEchoEnabled         = $"{ConfigSectionNames.PacsCEcho}:Enabled";
     public const string PacsCEchoIntervalSeconds = $"{ConfigSectionNames.PacsCEcho}:IntervalSeconds";
     public const string PacsCEchoDestinations    = $"{ConfigSectionNames.PacsCEcho}:Destinations";
-
-    // ── PacsDestination ──────────────────────────────────────────────────────
-
-    public const string PacsDestinationHost    = $"{ConfigSectionNames.PacsDestination}:Host";
-    public const string PacsDestinationPort    = $"{ConfigSectionNames.PacsDestination}:Port";
-    public const string PacsDestinationAeTitle = $"{ConfigSectionNames.PacsDestination}:AeTitle";
 }

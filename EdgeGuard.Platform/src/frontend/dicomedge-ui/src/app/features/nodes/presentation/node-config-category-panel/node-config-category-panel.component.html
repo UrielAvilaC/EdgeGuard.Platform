@@ -1,0 +1,185 @@
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <button
+    type="button"
+    class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+    (click)="expanded.set(!expanded())"
+    [attr.aria-expanded]="expanded()"
+    [attr.aria-controls]="'panel-' + category()"
+  >
+    <div class="flex items-center gap-3">
+      <fa-icon [icon]="expanded() ? faChevronDown : faChevronRight" class="text-gray-400 text-xs" aria-hidden="true" />
+      <span class="font-semibold text-gray-900 dark:text-white">{{ label() }}</span>
+      <ui-chip color="default">{{ settings().length }}</ui-chip>
+      @if (pendingKeys().size > 0) {
+        <ui-chip color="warning">{{ pendingKeys().size }} pendiente{{ pendingKeys().size > 1 ? 's' : '' }}</ui-chip>
+      }
+    </div>
+  </button>
+
+  @if (expanded()) {
+    <div [id]="'panel-' + category()" class="border-t border-gray-200 dark:border-gray-700">
+      @for (setting of settings(); track setting.settingKey) {
+
+        @if (editingKey() === setting.settingKey && (isJsonArray(setting.valueType) || isJson(setting.valueType))) {
+          <!-- ── Full-width JSON / JSON-array editor ── -->
+          <div
+            class="px-5 py-4 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0 space-y-3"
+            [class.bg-amber-50]="pendingKeys().has(setting.settingKey)"
+            [class.dark:bg-amber-900/10]="pendingKeys().has(setting.settingKey)"
+          >
+            <div class="flex items-start gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                  {{ setting.displayName }}
+                  @if (pendingKeys().has(setting.settingKey)) {
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500" aria-label="Cambio pendiente"></span>
+                  }
+                </div>
+                <div class="text-xs text-gray-400 font-mono mt-0.5">{{ setting.settingKey }}</div>
+              </div>
+              @if (setting.isOverridden) {
+                <ui-chip color="warning">Personalizado</ui-chip>
+              }
+            </div>
+
+            @if (isJsonArray(setting.valueType)) {
+              <!-- JSON Array list editor -->
+              <div class="space-y-1.5">
+                @for (item of editItems(); track $index) {
+                  <div class="flex items-center gap-2">
+                    <input
+                      class="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      type="text"
+                      [ngModel]="item"
+                      (ngModelChange)="updateEditItem($index, $event)"
+                      [attr.aria-label]="'Elemento ' + ($index + 1) + ' de ' + setting.displayName"
+                    />
+                    <ui-icon-button
+                      [icon]="faTrash"
+                      tooltip="Eliminar"
+                      ariaLabel="Eliminar elemento"
+                      (clicked)="removeEditItem($index)"
+                    />
+                  </div>
+                }
+                @if (editItems().length === 0) {
+                  <p class="text-xs text-gray-400 italic py-1">Sin elementos. Agrega uno a continuación.</p>
+                }
+                <div class="flex items-center gap-2 pt-2 border-t border-dashed border-gray-200 dark:border-gray-600">
+                  <input
+                    class="flex-1 text-sm border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    type="text"
+                    placeholder="Nuevo elemento…"
+                    [ngModel]="newItemValue()"
+                    (ngModelChange)="newItemValue.set($event)"
+                    (keyup.enter)="addEditItem()"
+                    aria-label="Nuevo elemento"
+                  />
+                  <ui-icon-button
+                    [icon]="faPlus"
+                    tooltip="Agregar"
+                    ariaLabel="Agregar elemento"
+                    (clicked)="addEditItem()"
+                  />
+                </div>
+              </div>
+            } @else {
+              <!-- JSON textarea editor -->
+              <textarea
+                class="w-full text-sm font-mono border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="6"
+                [ngModel]="editValue()"
+                (ngModelChange)="editValue.set($event)"
+                [attr.aria-label]="'Valor JSON de ' + setting.displayName"
+                spellcheck="false"
+                autocomplete="off"
+              ></textarea>
+              @if (jsonError()) {
+                <p class="text-xs text-red-500 dark:text-red-400" role="alert">{{ jsonError() }}</p>
+              }
+            }
+
+            <div class="flex items-center gap-2">
+              <ui-icon-button [icon]="faCheck" tooltip="Confirmar" ariaLabel="Confirmar cambio" (clicked)="save(setting)" />
+              <ui-icon-button [icon]="faTimes" tooltip="Cancelar" ariaLabel="Cancelar edición" (clicked)="cancelEdit()" />
+              @if (setting.isOverridden) {
+                <ui-icon-button
+                  [icon]="faUndo"
+                  tooltip="Restablecer al valor por defecto"
+                  [ariaLabel]="'Restablecer ' + setting.displayName"
+                  (clicked)="reset(setting.settingKey)"
+                />
+              }
+            </div>
+          </div>
+
+        } @else {
+          <!-- ── Standard inline row ── -->
+          <div
+            class="flex items-start gap-4 px-5 py-3 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
+            [class.bg-amber-50]="pendingKeys().has(setting.settingKey)"
+            [class.dark:bg-amber-900/10]="pendingKeys().has(setting.settingKey)"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                {{ setting.displayName }}
+                @if (pendingKeys().has(setting.settingKey)) {
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500" aria-label="Cambio pendiente"></span>
+                }
+              </div>
+              <div class="text-xs text-gray-400 font-mono mt-0.5">{{ setting.settingKey }}</div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-shrink-0 pt-0.5">
+              @if (editingKey() === setting.settingKey) {
+                @if (setting.valueType.toLowerCase() === 'bool') {
+                  <select
+                    class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    [ngModel]="editValue()"
+                    (ngModelChange)="editValue.set($event)"
+                    [attr.aria-label]="'Valor de ' + setting.displayName"
+                  >
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
+                } @else {
+                  <input
+                    class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-44"
+                    [type]="setting.valueType.toLowerCase() === 'int' ? 'number' : 'text'"
+                    [ngModel]="editValue()"
+                    (ngModelChange)="editValue.set($event)"
+                    [attr.aria-label]="'Valor de ' + setting.displayName"
+                  />
+                }
+                <ui-icon-button [icon]="faCheck" tooltip="Confirmar" ariaLabel="Confirmar cambio" (clicked)="save(setting)" />
+                <ui-icon-button [icon]="faTimes" tooltip="Cancelar" ariaLabel="Cancelar edición" (clicked)="cancelEdit()" />
+              } @else {
+                <code
+                  class="text-sm px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 max-w-[220px] truncate block"
+                  [title]="setting.value"
+                >{{ displayValue(setting) }}</code>
+                @if (setting.isOverridden) {
+                  <ui-chip color="warning">Personalizado</ui-chip>
+                }
+                <ui-icon-button
+                  [icon]="faPen"
+                  tooltip="Editar"
+                  [ariaLabel]="'Editar ' + setting.displayName"
+                  (clicked)="startEdit(setting)"
+                />
+                @if (setting.isOverridden) {
+                  <ui-icon-button
+                    [icon]="faUndo"
+                    tooltip="Restablecer al valor por defecto"
+                    [ariaLabel]="'Restablecer ' + setting.displayName"
+                    (clicked)="reset(setting.settingKey)"
+                  />
+                }
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

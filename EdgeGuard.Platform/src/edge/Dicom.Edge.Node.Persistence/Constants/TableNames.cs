@@ -22,4 +22,5 @@ public static class TableNames
     public const string StudyMetrics           = "study_metrics";
     public const string RoutingRules           = "routing_rules";
     public const string WorklistItems          = "worklist_items";
+    public const string NodePacsServers        = "node_pacs_servers";
 }

@@ -1,0 +1,60 @@
+<div class="dashboard">
+      <ui-page-header
+        title="Dashboard"
+        subtitle="Vista general"
+        description="Resumen del estado de la plataforma DICOM en tiempo real"
+      >
+        @if (facade.lastRefreshedAt(); as ts) {
+          <span class="refresh-ts">
+            <fa-icon icon="clock" class="mr-1"></fa-icon>
+            {{ ts | relativeTime }}
+          </span>
+        }
+        <span class="status-pill"
+              [class.status-pill--connected]="facade.signalRConnected()"
+              [attr.aria-label]="facade.signalRConnected() ? 'Tiempo real activo' : 'Tiempo real desconectado'">
+          <span class="status-dot" [class.status-dot--connected]="facade.signalRConnected()"></span>
+          {{ facade.signalRConnected() ? 'En vivo' : 'Desconectado' }}
+        </span>
+        <ui-button
+          variant="secondary"
+          size="sm"
+          icon="sync"
+          [loading]="facade.loading()"
+          (clicked)="facade.refresh()"
+        >
+          Actualizar
+        </ui-button>
+      </ui-page-header>
+
+      @if (facade.error(); as err) {
+        <ui-alert type="error" [dismissible]="true" class="mb-4 block">
+          {{ err }}
+        </ui-alert>
+      }
+
+      @if (!facade.hasData() && facade.loading()) {
+        <ui-loading-spinner />
+      } @else {
+        <div class="dashboard-grid">
+          <!-- KPIs row -->
+          <section class="grid-full">
+            <app-stats-overview />
+          </section>
+
+          <!-- Main content row -->
+          <section class="grid-main">
+            <app-recent-studies-widget />
+          </section>
+
+          <section class="grid-side">
+            <app-node-status-widget />
+          </section>
+
+          <!-- Full width queue -->
+          <section class="grid-full">
+            <app-queue-summary-widget />
+          </section>
+        </div>
+      }
+    </div>

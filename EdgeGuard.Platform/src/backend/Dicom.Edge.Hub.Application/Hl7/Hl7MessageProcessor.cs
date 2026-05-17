@@ -15,6 +15,7 @@ public class Hl7MessageProcessor : IHl7MessageProcessor
     private readonly IHl7ValidationService _validationService;
     private readonly IHl7RoutingEngine _routingEngine;
     private readonly IHl7PatientSyncService _patientSyncService;
+    private readonly IHl7StudySyncService _studySyncService;
     private readonly ILogger<Hl7MessageProcessor> _logger;
 
     public Hl7MessageProcessor(
@@ -22,12 +23,14 @@ public class Hl7MessageProcessor : IHl7MessageProcessor
         IHl7ValidationService validationService,
         IHl7RoutingEngine routingEngine,
         IHl7PatientSyncService patientSyncService,
+        IHl7StudySyncService studySyncService,
         ILogger<Hl7MessageProcessor> logger)
     {
         _repository = repository;
         _validationService = validationService;
         _routingEngine = routingEngine;
         _patientSyncService = patientSyncService;
+        _studySyncService = studySyncService;
         _logger = logger;
     }
 
@@ -68,14 +71,25 @@ public class Hl7MessageProcessor : IHl7MessageProcessor
                     message.Id, string.Join("; ", validation.Warnings));
             }
 
-            // ── Step 1.5: Sync patient from HL7 PID ──────────────────────────
+            // ── Step 1.5: Sync patient and study from HL7 segments ────────────
             try
             {
+
                 await _patientSyncService.SyncFromHl7Async(message, cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Patient sync failed for {MessageId}, continuing pipeline", message.Id);
+            }
+
+            try
+            {
+                _logger.LogInformation("Starting study sync for {MessageId}", message.Id);
+                await _studySyncService.SyncFromHl7Async(message, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Study sync failed for {MessageId}, continuing pipeline", message.Id);
             }
 
             // ── Step 2: Route to target node ──────────────────────────────────

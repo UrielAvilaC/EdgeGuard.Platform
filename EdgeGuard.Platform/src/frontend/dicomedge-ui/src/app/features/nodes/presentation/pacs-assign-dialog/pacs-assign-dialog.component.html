@@ -1,0 +1,170 @@
+<div class="w-[620px] max-w-full flex flex-col max-h-[80vh]">
+  <!-- Header -->
+  <div class="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+        <fa-icon [icon]="faServer" class="text-azure-600 dark:text-azure-400" />
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Gestionar PACS</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ data.nodeName }}</p>
+      </div>
+    </div>
+    <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+  </div>
+
+  <!-- Body -->
+  <div class="flex-1 overflow-y-auto p-6 space-y-4">
+    @if (loadingServers()) {
+      <div class="flex justify-center py-10">
+        <ui-loading-spinner [diameter]="40" />
+      </div>
+    } @else if (loadError()) {
+      <ui-alert type="error" title="No se pudieron cargar los servidores PACS." />
+    } @else {
+      <!-- Search -->
+      <div class="relative">
+        <fa-icon
+          [icon]="faMagnifyingGlass"
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Buscar servidor PACS..."
+          class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600
+                 bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                 focus:outline-none focus:ring-2 focus:ring-azure-500 focus:border-transparent
+                 placeholder:text-gray-400"
+          aria-label="Buscar servidor PACS"
+        />
+      </div>
+
+      @if (filteredRows().length === 0) {
+        <ui-empty-state
+          title="Sin resultados"
+          description="No se encontraron servidores PACS con ese criterio."
+        />
+      } @else {
+        <!-- PACS list -->
+        <ul class="space-y-2" role="list" aria-label="Servidores PACS disponibles">
+          @for (row of filteredRows(); track row.server.id) {
+            <li
+              class="flex items-start gap-3 p-3 rounded-lg border transition-colors"
+              [class]="row.checked
+                ? 'border-azure-300 bg-azure-50 dark:border-azure-700 dark:bg-azure-900/20'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50'"
+            >
+              <!-- Checkbox / Lock -->
+              @if (row.inheritedFromHub) {
+                <div
+                  class="mt-0.5 w-5 h-5 flex items-center justify-center text-gray-400 shrink-0"
+                  aria-label="Asignado desde el Hub, no modificable"
+                >
+                  <fa-icon [icon]="faLock" class="text-xs" />
+                </div>
+              } @else {
+                <input
+                  type="checkbox"
+                  [id]="'pacs-' + row.server.id"
+                  [checked]="row.checked"
+                  (change)="toggleRow(row)"
+                  [disabled]="saving()"
+                  title="Asignar PACS"
+                  class="mt-0.5 w-4 h-4 shrink-0 rounded accent-azure-600 cursor-pointer"
+                  [attr.aria-label]="'Asignar ' + row.server.name"
+                />
+              }
+
+              <!-- Info -->
+              <label
+                [for]="row.inheritedFromHub ? null : 'pacs-' + row.server.id"
+                class="flex-1 min-w-0"
+                [class.cursor-pointer]="!row.inheritedFromHub"
+              >
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {{ row.server.name }}
+                  </span>
+                  @if (row.inheritedFromHub) {
+                    <ui-chip color="info">Hub</ui-chip>
+                  }
+                  @if (!row.server.isEnabled) {
+                    <ui-chip color="default">Deshabilitado</ui-chip>
+                  }
+                  @if (row.server.isReachable) {
+                    <span class="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      <fa-icon [icon]="faCheckCircle" />
+                      Alcanzable
+                    </span>
+                  } @else {
+                    <span class="flex items-center gap-1 text-xs text-red-500 dark:text-red-400">
+                      <fa-icon [icon]="faTimesCircle" />
+                      No alcanzable
+                    </span>
+                  }
+                </div>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 font-mono">
+                  {{ row.server.aeTitle }} · {{ row.server.hostName }}:{{ row.server.port }}
+                </p>
+              </label>
+
+              <!-- C-ECHO interval (only when checked and not inherited) -->
+              @if (row.checked && !row.inheritedFromHub) {
+                <div class="shrink-0 flex items-center gap-2">
+                  <label [for]="'echo-' + row.server.id" class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    C-ECHO cada
+                  </label>
+                  <input
+                    [id]="'echo-' + row.server.id"
+                    type="number"
+                    [ngModel]="row.cEchoIntervalSeconds"
+                    (ngModelChange)="updateInterval(row, +$event)"
+                    [disabled]="saving()"
+                    min="5"
+                    max="86400"
+                    class="w-20 px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600
+                           bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                           focus:outline-none focus:ring-1 focus:ring-azure-500"
+                    aria-label="Intervalo C-ECHO en segundos"
+                  />
+                  <span class="text-xs text-gray-500 dark:text-gray-400">seg</span>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      @if (pendingChanges() > 0) {
+        <span class="font-medium text-azure-600 dark:text-azure-400">
+          {{ pendingChanges() }} cambio(s) pendiente(s)
+        </span>
+      } @else {
+        Sin cambios
+      }
+    </p>
+    <div class="flex items-center gap-3">
+      <ui-button variant="ghost" size="sm" (clicked)="onCancel()" [disabled]="saving()">
+        Cancelar
+      </ui-button>
+      <ui-button
+        variant="primary"
+        size="sm"
+        [loading]="saving()"
+        [disabled]="saving() || pendingChanges() === 0"
+        (clicked)="onSave()"
+        type="submit"
+      >
+        Guardar cambios
+      </ui-button>
+    </div>
+  </div>
+</div>
