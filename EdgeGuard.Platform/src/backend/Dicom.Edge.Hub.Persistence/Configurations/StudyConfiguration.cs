@@ -25,6 +25,9 @@ public class StudyConfiguration : IEntityTypeConfiguration<Study>
         builder.Property(s => s.TargetPacsId).HasMaxLength(50);
         builder.Property(s => s.PacsSendLastError).HasMaxLength(1024);
 
+        // External image/report links from ORU^R01 OBX segments (newline-separated URLs)
+        builder.Property(s => s.ExternalImageLinks).HasColumnType("text");
+
         builder.OwnsOne(s => s.StudyInstanceUid, vo =>
         {
             vo.Property(v => v.Value)

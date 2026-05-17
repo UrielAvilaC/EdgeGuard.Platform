@@ -100,7 +100,7 @@ public sealed class SqliteWorklistManager(
             query = query.Where(w => w.ScheduledDate <= to.Value);
 
         if (!string.IsNullOrEmpty(modality))
-            query = query.Where(w => w.Modality == modality);
+            query = query.Where(w => w.Modality.ToUpper() == modality.ToUpper());
 
         var dbItems = await query
             .OrderBy(w => w.ScheduledDate)

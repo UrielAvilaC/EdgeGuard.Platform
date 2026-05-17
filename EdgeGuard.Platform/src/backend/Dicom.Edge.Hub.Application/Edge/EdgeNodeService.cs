@@ -333,14 +333,8 @@ public sealed class EdgeNodeService(
                 })
                 .ToArray();
 
-            dict[SharedNodeSettingKeys.PacsDestination.AllDestinations] =
+            dict[SharedNodeSettingKeys.PacsCEcho.Destinations] =
                 JsonSerializer.Serialize(destinations);
-
-            // Primary PACS \u2014 canonical keys read by RoutingRuleLoaderService
-            var primary = destinations[0];
-            dict[SharedNodeSettingKeys.PacsDestination.Host]    = primary.Host;
-            dict[SharedNodeSettingKeys.PacsDestination.Port]    = primary.Port.ToString();
-            dict[SharedNodeSettingKeys.PacsDestination.AeTitle] = primary.AeTitle;
         }
 
         logger.LogInformation(

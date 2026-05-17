@@ -111,6 +111,7 @@ export default class PatientDetailPage {
 
     this.dialog.open(PatientFormDialog, {
       data: { patient } satisfies PatientFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdatePatientRequest | null) => {
       if (result) {
         this.facade.updatePatient(patient.id, result);

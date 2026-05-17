@@ -1,0 +1,156 @@
+<div class="flex flex-col w-[680px] max-w-full max-h-[85vh]">
+  <!-- Header -->
+  <div class="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+        <fa-icon [icon]="faRoute" class="text-azure-600 dark:text-azure-400" />
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Reglas de ruteo DICOM
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          {{ data.pacsName }}
+          <span class="font-mono text-gray-700 dark:text-gray-300 ml-1">· {{ data.pacsAeTitle }}</span>
+        </p>
+      </div>
+    </div>
+    <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar" (clicked)="onClose()" />
+  </div>
+
+  <!-- Body -->
+  <div class="flex-1 overflow-y-auto p-6 space-y-4">
+
+    @if (loading()) {
+      <div class="flex justify-center py-8">
+        <ui-loading-spinner [diameter]="36" />
+      </div>
+    } @else if (error(); as err) {
+      <ui-alert type="error" [title]="err" />
+    } @else if (sortedRules().length === 0) {
+      <ui-empty-state
+        title="Sin reglas de ruteo"
+        description="Aún no hay reglas para este PACS. Crea la primera regla para controlar cómo se envían los estudios."
+      />
+    } @else {
+      <!-- Rules list -->
+      <ul class="space-y-2" role="list">
+        @for (rule of sortedRules(); track rule.id) {
+          <li
+            class="rounded-lg border transition-colors"
+            [class]="rule.isEnabled
+              ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50'
+              : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 opacity-60'"
+          >
+            <div class="flex items-center gap-3 p-3">
+              <!-- Priority badge -->
+              <span
+                class="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold shrink-0
+                       bg-azure-100 dark:bg-azure-900/40 text-azure-700 dark:text-azure-300"
+                [title]="'Prioridad: ' + rule.priority"
+              >
+                {{ rule.priority }}
+              </span>
+
+              <!-- Rule info -->
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {{ rule.name }}
+                </p>
+                <!-- Condition chips -->
+                <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                  @if (rule.matchModality) {
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs
+                                 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono">
+                      {{ rule.matchModality }}
+                    </span>
+                  }
+                  @if (rule.matchSourceAeTitle) {
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs
+                                 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">
+                      from: {{ rule.matchSourceAeTitle }}
+                    </span>
+                  }
+                  @if (rule.matchInstitution) {
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs
+                                 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      {{ rule.matchInstitution }}
+                    </span>
+                  }
+                  @if (rule.matchStudyDesc) {
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs
+                                 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                      desc: {{ rule.matchStudyDesc }}
+                    </span>
+                  }
+                  @if (!rule.matchModality && !rule.matchSourceAeTitle && !rule.matchInstitution && !rule.matchStudyDesc) {
+                    <span class="text-xs text-gray-400 dark:text-gray-500 italic">Sin filtros — aplica a todos</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Action flags -->
+              <div class="flex items-center gap-1.5 shrink-0">
+                @if (rule.sendToPacs) {
+                  <ui-chip color="info">PACS</ui-chip>
+                }
+                @if (rule.sendToHub) {
+                  <ui-chip color="default">Hub</ui-chip>
+                }
+                @if (rule.anonymizeBeforeSend) {
+                  <ui-chip color="warning">Anon</ui-chip>
+                }
+              </div>
+
+              <!-- Match count -->
+              @if (rule.matchCount > 0) {
+                <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0 tabular-nums" [title]="'Coincidencias totales'">
+                  {{ rule.matchCount }} hits
+                </span>
+              }
+
+              <!-- Row actions -->
+              <div class="flex items-center gap-1 shrink-0">
+                <ui-icon-button
+                  [icon]="rule.isEnabled ? faToggleOn : faToggleOff"
+                  [tooltip]="rule.isEnabled ? 'Deshabilitar regla' : 'Habilitar regla'"
+                  [ariaLabel]="rule.isEnabled ? 'Deshabilitar' : 'Habilitar'"
+                  [disabled]="isBusy(rule.id)"
+                  (clicked)="toggleEnabled(rule)"
+                />
+                <ui-icon-button
+                  [icon]="faPen"
+                  tooltip="Editar regla"
+                  ariaLabel="Editar"
+                  [disabled]="isBusy(rule.id)"
+                  (clicked)="openEditDialog(rule)"
+                />
+                <ui-icon-button
+                  [icon]="faTrash"
+                  tooltip="Eliminar regla"
+                  ariaLabel="Eliminar"
+                  [disabled]="isBusy(rule.id)"
+                  (clicked)="confirmDelete(rule)"
+                />
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+
+      <!-- Hint -->
+      <p class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+        <fa-icon [icon]="faCircleInfo" class="shrink-0" />
+        Las reglas se evalúan en orden de prioridad. Si ninguna coincide, el estudio se envía al PACS por defecto.
+      </p>
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 shrink-0">
+    <ui-button variant="secondary" (clicked)="onClose()">Cerrar</ui-button>
+    <ui-button [icon]="faPlus" (clicked)="openCreateDialog()" [disabled]="loading()">
+      Nueva regla
+    </ui-button>
+  </div>
+</div>

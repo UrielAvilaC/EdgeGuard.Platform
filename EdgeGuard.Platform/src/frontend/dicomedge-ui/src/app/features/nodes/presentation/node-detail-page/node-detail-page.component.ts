@@ -23,6 +23,7 @@ import {
   faWifi,
   faExclamationTriangle,
   faInfoCircle,
+  faRoute,
 } from '@fortawesome/free-solid-svg-icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
@@ -30,6 +31,7 @@ import { DecimalPipe, SlicePipe } from '@angular/common';
 
 import { UiPageHeader } from '../../../../shared/components/ui-page-header/ui-page-header.component';
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
+import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
 import { UiLoadingSpinner } from '../../../../shared/components/ui-loading-spinner/ui-loading-spinner.component';
 import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.component';
 import { UiStatusBadge } from '../../../../shared/components/ui-status-badge/ui-status-badge.component';
@@ -52,6 +54,7 @@ import { PacsApiService } from '../../../pacs/infrastructure/pacs-api.service';
 import { PacsServer } from '../../../pacs/models/pacs.models';
 import { PacsAssignDialog, PacsAssignDialogData } from '../pacs-assign-dialog/pacs-assign-dialog.component';
 import { NodesApiService } from '../../infrastructure/nodes-api.service';
+import { NodePacsRoutingRulesDialog, NodePacsRoutingRulesDialogData } from '../node-pacs-routing-rules-dialog/node-pacs-routing-rules-dialog.component';
 
 @Component({
   selector: 'app-node-detail-page',
@@ -63,6 +66,7 @@ import { NodesApiService } from '../../infrastructure/nodes-api.service';
     FontAwesomeModule,
     UiPageHeader,
     UiButton,
+    UiIconButton,
     UiLoadingSpinner,
     UiAlert,
     UiStatusBadge,
@@ -106,6 +110,7 @@ export default class NodeDetailPage {
   protected readonly faWifi = faWifi;
   protected readonly faExclamationTriangle = faExclamationTriangle;
   protected readonly faInfoCircle = faInfoCircle;
+  protected readonly faRoute = faRoute;
 
   protected readonly nodeStudies = signal<Study[]>([]);
   protected readonly studiesLoading = signal(false);
@@ -172,6 +177,7 @@ export default class NodeDetailPage {
 
     this.dialog.open(NodeFormDialog, {
       data: { node } satisfies NodeFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdateNodeRequest | null) => {
       if (result) {
         this.facade.updateNode(node.id, result);
@@ -265,6 +271,22 @@ export default class NodeDetailPage {
           this.facade.loadNodeById(node.id);
         }
       });
+  }
+
+  protected openRoutingRulesDialog(pacsId: string): void {
+    const node = this.facade.selectedNode();
+    if (!node) return;
+
+    const pacs = this.pacsMap().get(pacsId);
+    this.dialog.open(NodePacsRoutingRulesDialog, {
+      data: {
+        nodeId: node.id,
+        nodeName: node.name,
+        pacsName: pacs?.name ?? pacsId,
+        pacsAeTitle: pacs?.aeTitle ?? pacsId,
+      } satisfies NodePacsRoutingRulesDialogData,
+      autoFocus: false,
+    });
   }
 
   protected confirmUnassignPacs(pacsId: string): void {

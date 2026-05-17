@@ -25,6 +25,7 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.Property(p => p.OtherPatientIds).HasMaxLength(512);
         builder.Property(p => p.FacilitySource).HasMaxLength(128);
         builder.Property(p => p.CreatedByNodeId).HasMaxLength(50);
+        builder.Property(p => p.MergedIntoPatientId).HasMaxLength(100);
         builder.Property(p => p.CreatedAt).HasDefaultValueSql("NOW()");
 
         builder.OwnsOne(p => p.PatientDicomId, vo =>
@@ -40,7 +41,11 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
         builder.HasIndex(p => p.PatientName);
         builder.HasIndex(p => p.PhoneNumber);
         builder.HasIndex(p => p.IsActive);
+        builder.HasIndex(p => p.MergedIntoPatientId)
+               .HasFilter("merged_into_patient_id IS NOT NULL")
+               .HasDatabaseName("ix_patients_merged_into");
 
+        builder.Ignore(p => p.IsMerged);
         builder.Ignore(p => p.DomainEvents);
     }
 }

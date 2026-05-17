@@ -33,6 +33,17 @@ public sealed class Hl7MessageConfiguration : IEntityTypeConfiguration<Hl7Messag
         builder.Property(m => m.ProcedureDescription).HasMaxLength(300);
         builder.Property(m => m.ProcedureId).HasMaxLength(100);
 
+        // MRG segment fields (patient/study merge)
+        builder.Property(m => m.MrgPriorPatientId).HasMaxLength(100);
+        builder.Property(m => m.MrgPriorPatientName).HasMaxLength(200);
+        builder.Property(m => m.MrgPriorAccessionNumber).HasMaxLength(100);
+
+        // ORU OBX image links (JSON array of URLs)
+        builder.Property(m => m.ImageLinksJson).HasColumnType("text");
+
+        builder.Ignore(m => m.ImageLinks);
+        builder.Ignore(m => m.HasMrgSegment);
+
         builder.Property(m => m.TargetNodeId).HasMaxLength(100);
         builder.Property(m => m.TargetNodeName).HasMaxLength(200);
         builder.Property(m => m.DispatchError).HasMaxLength(2000);

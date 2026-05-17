@@ -119,14 +119,6 @@ public static class NodeSettingKeys
         public const string Destinations    = SharedNodeSettingKeys.PacsCEcho.Destinations;
     }
 
-    // ── PACS Destination ──────────────────────────────────────────────────────────
-    public static class PacsDestination
-    {
-        public const string Host    = SharedNodeSettingKeys.PacsDestination.Host;
-        public const string Port    = SharedNodeSettingKeys.PacsDestination.Port;
-        public const string AeTitle = SharedNodeSettingKeys.PacsDestination.AeTitle;
-    }
-
     // ── Node API ─────────────────────────────────────────────────────────────────
     public static class NodeApi
     {

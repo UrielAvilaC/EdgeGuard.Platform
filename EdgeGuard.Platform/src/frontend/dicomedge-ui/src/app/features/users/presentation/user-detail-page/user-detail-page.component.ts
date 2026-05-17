@@ -63,7 +63,7 @@ export default class UserDetailPage {
   protected openResetPasswordDialog(): void {
     const user = this.facade.selectedUser();
     if (!user) return;
-    this.dialog.open(ResetPasswordDialog).afterClosed().subscribe((newPassword: string | null) => {
+    this.dialog.open(ResetPasswordDialog, { disableClose: true }).afterClosed().subscribe((newPassword: string | null) => {
       if (newPassword) this.facade.resetPassword(user.id, { newPassword });
     });
   }

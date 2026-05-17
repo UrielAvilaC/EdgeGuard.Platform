@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Dicom.Edge.Hub.Domain.Entities;
 
 /// <summary>
@@ -37,6 +39,33 @@ public class Hl7Message
     public string? ProcedureDescription { get; private set; }
     public string? ProcedureId { get; private set; }
 
+    // ── MRG segment — patient/study merge ────────────────────────────────────
+    /// <summary>MRG.1 — Prior patient ID to be merged into <see cref="PatientId"/>.</summary>
+    public string? MrgPriorPatientId { get; private set; }
+
+    /// <summary>MRG.7 — Prior patient name (family^given).</summary>
+    public string? MrgPriorPatientName { get; private set; }
+
+    /// <summary>MRG.3 — Prior accession number used in ORM order-merge scenarios.</summary>
+    public string? MrgPriorAccessionNumber { get; private set; }
+
+    /// <summary>True when the message contains a MRG segment with a prior patient ID.</summary>
+    public bool HasMrgSegment => !string.IsNullOrEmpty(MrgPriorPatientId);
+
+    // ── ORU OBX image links ───────────────────────────────────────────────────
+    /// <summary>
+    /// JSON-serialized list of image/report URLs extracted from ORU OBX segments
+    /// where OBX-2 is "RP" (Reference Pointer) or "ED" (Encapsulated Data), or
+    /// OBX-5 contains an http/https/wado URL.
+    /// </summary>
+    public string? ImageLinksJson { get; private set; }
+
+    /// <summary>Deserialized view of <see cref="ImageLinksJson"/>.</summary>
+    public IReadOnlyList<string> ImageLinks =>
+        string.IsNullOrEmpty(ImageLinksJson)
+            ? Array.Empty<string>()
+            : JsonSerializer.Deserialize<List<string>>(ImageLinksJson) ?? [];
+
     // ── Dispatch lifecycle ────────────────────────────────────────────────────
     public Hl7DispatchStatus DispatchStatus { get; private set; }
     public string? TargetNodeId { get; private set; }
@@ -59,6 +88,8 @@ public class Hl7Message
 
         var cleanContent = content.Replace("\v", "").Replace("\x1C", "");
 
+        var imageLinks = ExtractObxImageLinks(cleanContent);
+
         return new Hl7Message
         {
             Id = Guid.NewGuid(),
@@ -69,9 +100,9 @@ public class Hl7Message
             SendingFacility = ExtractField(cleanContent, "MSH", 3),
             MessageControlId = ExtractField(cleanContent, "MSH", 9),
             Hl7Version = ExtractField(cleanContent, "MSH", 11),
-            PatientId = ExtractField(cleanContent, "PID", 3),
+            PatientId = ExtractSubField(cleanContent, "PID", 3, componentIndex: 0),
             PatientName = ExtractField(cleanContent, "PID", 5),
-            AccessionNumber = ExtractField(cleanContent, "OBR", 2),
+            AccessionNumber = ExtractSubField(cleanContent, "OBR", 2, componentIndex: 0),
             StudyDate = ExtractField(cleanContent, "OBR", 7),
             Modality = ExtractField(cleanContent, "OBR", 24),
             ProcedureDescription = ExtractSubField(cleanContent, "OBR", 4, componentIndex: 1),
@@ -80,6 +111,14 @@ public class Hl7Message
             PatientEmail = ExtractEmailFromPid(cleanContent),
             PatientSex = ExtractField(cleanContent, "PID", 8),
             PatientBirthDate = ExtractField(cleanContent, "PID", 7),
+            // MRG segment
+            MrgPriorPatientId = ExtractSubField(cleanContent, "MRG", 1, componentIndex: 0),
+            MrgPriorPatientName = ExtractSubField(cleanContent, "MRG", 7, componentIndex: 0),
+            MrgPriorAccessionNumber = ExtractSubField(cleanContent, "MRG", 3, componentIndex: 0),
+            // OBX image links
+            ImageLinksJson = imageLinks.Count > 0
+                ? JsonSerializer.Serialize(imageLinks)
+                : null,
             ReceivedAt = DateTime.UtcNow,
             ClientEndpoint = clientEndpoint,
             ReceivedOnPort = receivedOnPort,
@@ -174,13 +213,11 @@ public class Hl7Message
         try
         {
             var segments = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            var segment = segments.FirstOrDefault(s => s.StartsWith(segmentId + "|") || s.StartsWith(segmentId));
+            var segment = segments.FirstOrDefault(
+                s => s.StartsWith(segmentId + "|", StringComparison.OrdinalIgnoreCase));
             if (segment is null) return null;
 
             var fields = segment.Split('|');
-            if (segmentId == "MSH")
-                return fields.Length > fieldIndex ? NullIfEmpty(fields[fieldIndex]) : null;
-
             return fields.Length > fieldIndex ? NullIfEmpty(fields[fieldIndex]) : null;
         }
         catch
@@ -194,7 +231,7 @@ public class Hl7Message
         var msgType = ExtractField(content, "MSH", 8);
         if (msgType is null) return null;
         var parts = msgType.Split('^');
-        return parts.Length > 1 ? parts[1] : null;
+        return parts.Length > 1 ? NullIfEmpty(parts[1]) : null;
     }
 
     /// <summary>
@@ -212,6 +249,64 @@ public class Hl7Message
 
         var components = repetitions[repetitionIndex].Split('^');
         return components.Length > componentIndex ? NullIfEmpty(components[componentIndex]) : null;
+    }
+
+    /// <summary>
+    /// Scans all OBX segments in the message and collects observation values that
+    /// represent image/report links. Matches OBX where:
+    /// <list type="bullet">
+    ///   <item>OBX-2 is "RP" (Reference Pointer) or "ED" (Encapsulated Data), OR</item>
+    ///   <item>OBX-5 starts with http/https/wado.</item>
+    /// </list>
+    /// Handles multiple OBX repetitions (multi-OBX ORU^R01).
+    /// </summary>
+    private static List<string> ExtractObxImageLinks(string content)
+    {
+        var links = new List<string>();
+
+        var segments = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        foreach (var segment in segments)
+        {
+            if (!segment.StartsWith("OBX|", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var fields = segment.Split('|');
+            if (fields.Length < 6) continue;
+
+            // OBX-2 (value type) is at index 2; OBX-5 (observation value) at index 5
+            var valueType = fields.Length > 2 ? fields[2].Trim() : string.Empty;
+            var rawValue  = fields.Length > 5 ? fields[5].Trim() : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(rawValue)) continue;
+
+            // RP format: application_id^pointer^type^subtype
+            // The actual URL is typically the whole OBX-5 or the first component
+            var isRefPointer = string.Equals(valueType, "RP", StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(valueType, "ED", StringComparison.OrdinalIgnoreCase);
+            var looksLikeUrl = rawValue.StartsWith("http://",  StringComparison.OrdinalIgnoreCase)
+                            || rawValue.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                            || rawValue.StartsWith("wado://",  StringComparison.OrdinalIgnoreCase)
+                            || rawValue.StartsWith("wadors://",StringComparison.OrdinalIgnoreCase);
+
+            if (!isRefPointer && !looksLikeUrl) continue;
+
+            // For RP type: extract URL from first ^ component if it contains a URL
+            var linkValue = rawValue;
+            if (isRefPointer && rawValue.Contains('^'))
+            {
+                var components = rawValue.Split('^');
+                // Find the component that looks most like a URL
+                linkValue = components.FirstOrDefault(c =>
+                    c.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+                    c.StartsWith("wado", StringComparison.OrdinalIgnoreCase))
+                    ?? components[0];
+            }
+
+            if (!string.IsNullOrWhiteSpace(linkValue))
+                links.Add(linkValue.Trim());
+        }
+
+        return links;
     }
 
     /// <summary>
@@ -247,7 +342,6 @@ public class Hl7Message
         {
             var components = repetition.Split('^');
 
-            // Check component 4 (index 3) — email address subcomponent
             if (components.Length > 3)
             {
                 var comp4 = NullIfEmpty(components[3]);
@@ -255,7 +349,6 @@ public class Hl7Message
                     return comp4;
             }
 
-            // Check component 1 with telecom type "Internet"/"NET" (component 3, index 2)
             if (components.Length > 2)
             {
                 var telecomType = NullIfEmpty(components[2]);

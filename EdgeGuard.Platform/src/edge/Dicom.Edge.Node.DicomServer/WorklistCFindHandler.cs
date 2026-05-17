@@ -43,13 +43,19 @@ public sealed class WorklistCFindHandler(
             }
         }
 
+        // ── Parse DICOM date filter into from/to for DB-level pre-filtering ──
+        var (dateFrom, dateTo) = ParseDicomDateRange(scheduledDate);
+
         logger.LogDebug(
             "MWL C-FIND query — PatientId={PatientId}, PatientName={PatientName}, " +
             "AccessionNumber={AccessionNumber}, Modality={Modality}, " +
             "ScheduledDate={Date}, StationAE={StationAe}",
             patientId, patientName, accessionNumber, modality, scheduledDate, scheduledStationAe);
 
-        var items = await worklistManager.GetActiveItemsAsync(ct);
+        // Push modality and date filters to the DB; remaining filters are applied in-memory.
+        var items = await worklistManager.QueryAsync(dateFrom, dateTo,
+            string.IsNullOrEmpty(modality) ? null : modality, ct);
+
         int matchCount = 0;
         var queriedIds = new List<string>();
 
@@ -58,7 +64,7 @@ public sealed class WorklistCFindHandler(
             ct.ThrowIfCancellationRequested();
 
             if (!MatchesQueryKeys(item, patientId, patientName,
-                    accessionNumber, modality, scheduledDate, scheduledStationAe))
+                    accessionNumber, scheduledStationAe))
                 continue;
 
             if (!string.IsNullOrEmpty(item.AccessionNumber))
@@ -77,7 +83,8 @@ public sealed class WorklistCFindHandler(
     // ── Query matching ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Evaluates whether a worklist item matches the DICOM C-FIND query keys.
+    /// Evaluates whether a worklist item matches the remaining in-memory C-FIND query keys.
+    /// Modality and scheduled date are pre-filtered at the DB level by <see cref="IWorklistManager.QueryAsync"/>.
     /// Empty/null query values act as universal matches per the DICOM standard.
     /// Supports DICOM wildcards (* and ? mapped to .* and . in regex).
     /// </summary>
@@ -86,8 +93,6 @@ public sealed class WorklistCFindHandler(
         string patientId,
         string patientName,
         string accessionNumber,
-        string modality,
-        string scheduledDate,
         string scheduledStationAe)
     {
         if (!string.IsNullOrEmpty(patientId) &&
@@ -102,20 +107,9 @@ public sealed class WorklistCFindHandler(
             !WildcardMatch(item.AccessionNumber, accessionNumber))
             return false;
 
-        if (!string.IsNullOrEmpty(modality) &&
-            !string.Equals(item.Modality, modality, StringComparison.OrdinalIgnoreCase))
-            return false;
-
         if (!string.IsNullOrEmpty(scheduledStationAe) &&
             !string.Equals(item.ScheduledStationAeTitle, scheduledStationAe, StringComparison.OrdinalIgnoreCase))
             return false;
-
-        if (!string.IsNullOrEmpty(scheduledDate) && item.ScheduledDateTime.HasValue)
-        {
-            var queryDate = ParseDicomDate(scheduledDate);
-            if (queryDate.HasValue && item.ScheduledDateTime.Value.Date != queryDate.Value.Date)
-                return false;
-        }
 
         return true;
     }
@@ -181,24 +175,40 @@ public sealed class WorklistCFindHandler(
     // ── Utility helpers ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Parses a DICOM DA (date) value — YYYYMMDD or range YYYYMMDD-YYYYMMDD.
-    /// Returns the first date component for single-value matching.
+    /// Parses a DICOM DA value into a <c>(from, to)</c> date range for DB-level filtering.
+    /// Supports:
+    /// <list type="bullet">
+    ///   <item>Single date: <c>YYYYMMDD</c> → same day range.</item>
+    ///   <item>Bounded range: <c>YYYYMMDD-YYYYMMDD</c></item>
+    ///   <item>Open start: <c>-YYYYMMDD</c> → <c>(null, to)</c></item>
+    ///   <item>Open end: <c>YYYYMMDD-</c> → <c>(from, null)</c></item>
+    /// </list>
     /// </summary>
-    private static DateTime? ParseDicomDate(string dicomDate)
+    private static (DateTime? from, DateTime? to) ParseDicomDateRange(string dicomDate)
     {
         if (string.IsNullOrWhiteSpace(dicomDate))
-            return null;
+            return (null, null);
 
-        // Handle range format: take the first date
-        var datePart = dicomDate.Contains('-')
-            ? dicomDate.Split('-')[0]
-            : dicomDate;
+        if (dicomDate.Contains('-'))
+        {
+            var parts = dicomDate.Split('-', 2);
+            var from = ParseSingleDicomDate(parts[0]);
+            var to   = ParseSingleDicomDate(parts[1]);
+            return (from, to);
+        }
 
-        if (datePart.Length < 8)
+        var single = ParseSingleDicomDate(dicomDate);
+        return (single, single);
+    }
+
+    /// <summary>Parses a single DICOM DA string <c>YYYYMMDD</c>; returns <c>null</c> on failure.</summary>
+    private static DateTime? ParseSingleDicomDate(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 8)
             return null;
 
         return DateTime.TryParseExact(
-            datePart[..8], "yyyyMMdd",
+            value[..8], "yyyyMMdd",
             System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None,
             out var result)
