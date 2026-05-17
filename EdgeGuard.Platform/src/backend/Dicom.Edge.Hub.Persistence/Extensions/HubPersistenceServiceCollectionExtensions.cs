@@ -70,6 +70,7 @@ public static class HubPersistenceServiceCollectionExtensions
         services.AddScoped<IHl7MessageRepository, EfHl7MessageRepository>();
         services.AddScoped<ISystemSettingRepository, SystemSettingRepository>();
         services.AddScoped<IHl7RoutingRuleRepository, Hl7RoutingRuleRepository>();
+        services.AddScoped<INodeDicomRoutingRuleRepository, NodeDicomRoutingRuleRepository>();
 
         // Audit / Notification / PACS audit repositories
         services.AddScoped<IHubAuditLogRepository, HubAuditLogRepository>();

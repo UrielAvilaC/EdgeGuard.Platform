@@ -50,6 +50,10 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
     public int PacsSendAttempts { get; private set; }
     public string? PacsSendLastError { get; private set; }
 
+    // External image/report links (from ORU^R01 OBX segments)
+    /// <summary>Newline-separated URLs to external image viewers or report portals, populated from ORU OBX-5 RP values.</summary>
+    public string? ExternalImageLinks { get; private set; }
+
     // Enterprise
     public int Priority { get; private set; }
     public bool IsUrgent { get; private set; }
@@ -313,6 +317,41 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         if (accessionNumber is not null) AccessionNumber = accessionNumber.Trim();
         if (priority.HasValue) Priority = priority.Value;
         if (isUrgent.HasValue) IsUrgent = isUrgent.Value;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Attaches external image/report links received from an ORU^R01 message.
+    /// Merges with any previously stored links (deduplicates by URL).
+    /// </summary>
+    public void AttachImageLinks(IReadOnlyList<string> links)
+    {
+        if (links.Count == 0) return;
+
+        var existing = string.IsNullOrEmpty(ExternalImageLinks)
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(
+                ExternalImageLinks.Split('\n', StringSplitOptions.RemoveEmptyEntries),
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var link in links)
+        {
+            if (!string.IsNullOrWhiteSpace(link))
+                existing.Add(link.Trim());
+        }
+
+        ExternalImageLinks = string.Join('\n', existing);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Reassigns this study to a different patient (used during HL7 patient merge / ORM MRG processing).
+    /// </summary>
+    public void ReassignToPatient(string newPatientId, string? newPatientName)
+    {
+        PatientId = newPatientId;
+        if (!string.IsNullOrWhiteSpace(newPatientName))
+            PatientName = newPatientName.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
 

@@ -161,7 +161,7 @@
                           </p>
                         }
 
-                        <!-- Badges + action -->
+                        <!-- Badges + actions -->
                         <div class="flex items-center gap-2 shrink-0">
                           @if (pa.inheritedFromHub) {
                             <ui-chip color="info">
@@ -171,17 +171,23 @@
                             <ui-chip [color]="pa.isActive ? 'success' : 'default'">
                               {{ pa.isActive ? 'Activo' : 'Inactivo' }}
                             </ui-chip>
-                            <button
-                              type="button"
-                              class="p-1.5 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400
-                                     hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors
-                                     focus:outline-none focus:ring-2 focus:ring-red-400"
-                              (click)="confirmUnassignPacs(pa.pacsId)"
-                              [attr.aria-label]="'Desvincular ' + (pacs?.name ?? pa.pacsId)"
-                              title="Desvincular"
-                            >
-                              <fa-icon [icon]="faTrash" class="text-sm" />
-                            </button>
+                          }
+
+                          <!-- Routing rules button (always shown) -->
+                          <ui-icon-button
+                            [icon]="faRoute"
+                            tooltip="Reglas de ruteo DICOM"
+                            ariaLabel="Reglas de ruteo DICOM"
+                            (clicked)="openRoutingRulesDialog(pa.pacsId)"
+                          />
+
+                          @if (!pa.inheritedFromHub) {
+                            <ui-icon-button
+                              [icon]="faTrash"
+                              tooltip="Desvincular PACS"
+                              [ariaLabel]="'Desvincular ' + (pacs?.name ?? pa.pacsId)"
+                              (clicked)="confirmUnassignPacs(pa.pacsId)"
+                            />
                           }
                         </div>
                       </div>

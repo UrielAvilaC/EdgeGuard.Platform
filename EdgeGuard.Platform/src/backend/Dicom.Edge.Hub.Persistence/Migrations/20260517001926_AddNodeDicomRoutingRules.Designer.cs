@@ -3,6 +3,7 @@ using System;
 using Dicom.Edge.Hub.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dicom.Edge.Hub.Persistence.Migrations
 {
     [DbContext(typeof(HubDbContext))]
-    partial class HubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517001926_AddNodeDicomRoutingRules")]
+    partial class AddNodeDicomRoutingRules
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1467,11 +1470,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_updated_at");
 
-                    b.Property<string>("MergedIntoPatientId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("merged_into_patient_id");
-
                     b.Property<string>("OtherPatientIds")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
@@ -1502,10 +1500,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                     b.HasIndex("IsActive")
                         .HasDatabaseName("ix_patients_is_active");
-
-                    b.HasIndex("MergedIntoPatientId")
-                        .HasDatabaseName("ix_patients_merged_into")
-                        .HasFilter("merged_into_patient_id IS NOT NULL");
 
                     b.HasIndex("PatientName")
                         .HasDatabaseName("ix_patients_patient_name");
@@ -1713,10 +1707,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
-
-                    b.Property<string>("ExternalImageLinks")
-                        .HasColumnType("text")
-                        .HasColumnName("external_image_links");
 
                     b.Property<DateTime?>("FirstImageReceivedAt")
                         .HasColumnType("timestamp with time zone")
@@ -2026,10 +2016,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("hl7_version");
 
-                    b.Property<string>("ImageLinksJson")
-                        .HasColumnType("text")
-                        .HasColumnName("image_links_json");
-
                     b.Property<string>("MessageControlId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -2045,21 +2031,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
                         .HasColumnName("modality");
-
-                    b.Property<string>("MrgPriorAccessionNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("mrg_prior_accession_number");
-
-                    b.Property<string>("MrgPriorPatientId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("mrg_prior_patient_id");
-
-                    b.Property<string>("MrgPriorPatientName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("mrg_prior_patient_name");
 
                     b.Property<string>("PatientBirthDate")
                         .HasMaxLength(16)

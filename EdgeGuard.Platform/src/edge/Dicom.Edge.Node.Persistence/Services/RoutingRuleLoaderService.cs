@@ -24,10 +24,8 @@ public sealed class RoutingRuleLoaderService(
     {
         logger.LogInformation("RoutingRuleLoaderService started");
 
-        // Initial load
         await LoadRulesAsync(stoppingToken);
 
-        // Periodic reload
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -45,6 +43,13 @@ public sealed class RoutingRuleLoaderService(
             }
         }
     }
+
+    /// <summary>
+    /// Forces an immediate reload of routing rules from the database.
+    /// Called by the sync endpoint after a Hub push so rules take effect instantly
+    /// without waiting for the periodic <see cref="ReloadInterval"/>.
+    /// </summary>
+    public Task LoadNowAsync(CancellationToken ct = default) => LoadRulesAsync(ct);
 
     private async Task LoadRulesAsync(CancellationToken ct)
     {
