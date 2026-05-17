@@ -1,4 +1,3 @@
-using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Node.Persistence.Repositories;
 using Dicom.Edge.Node.Router;
 using Dicom.Edge.Node.Sender;
@@ -14,7 +13,6 @@ public sealed class RoutingRuleLoaderService(
     IDbContextFactory<EdgeNodeDbContext> factory,
     INodePacsServerRepository pacsServerRepository,
     RuleBasedStudyRouter router,
-    INodeSettingsService settingsService,
     ILogger<RoutingRuleLoaderService> logger) : BackgroundService
 {
     /// <summary>
@@ -26,10 +24,8 @@ public sealed class RoutingRuleLoaderService(
     {
         logger.LogInformation("RoutingRuleLoaderService started");
 
-        // Initial load
         await LoadRulesAsync(stoppingToken);
 
-        // Periodic reload
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -47,6 +43,13 @@ public sealed class RoutingRuleLoaderService(
             }
         }
     }
+
+    /// <summary>
+    /// Forces an immediate reload of routing rules from the database.
+    /// Called by the sync endpoint after a Hub push so rules take effect instantly
+    /// without waiting for the periodic <see cref="ReloadInterval"/>.
+    /// </summary>
+    public Task LoadNowAsync(CancellationToken ct = default) => LoadRulesAsync(ct);
 
     private async Task LoadRulesAsync(CancellationToken ct)
     {
@@ -87,39 +90,16 @@ public sealed class RoutingRuleLoaderService(
 
         // Default destinations: all enabled PACS servers ordered by priority.
         // When no routing rule matches a study, it is sent to every default destination in parallel.
-        List<PacsDestination> defaultDestinations = [];
-
-        if (pacsServers.Count > 0)
-        {
-            defaultDestinations = pacsServers
-                .OrderBy(p => p.Priority)
-                .Select(p => new PacsDestination
-                {
-                    Id      = p.Id,
-                    AeTitle = p.AeTitle,
-                    Host    = p.Host,
-                    Port    = p.Port,
-                })
-                .ToList();
-        }
-        else
-        {
-            // Canonical settings keys read by RoutingRuleLoaderService
-            var defaultAe = await settingsService.GetAsync<string>(SharedNodeSettingKeys.PacsDestination.AeTitle, string.Empty, ct);
-            if (!string.IsNullOrEmpty(defaultAe))
+        var defaultDestinations = pacsServers
+            .OrderBy(p => p.Priority)
+            .Select(p => new PacsDestination
             {
-                var defaultHost = await settingsService.GetAsync<string>(SharedNodeSettingKeys.PacsDestination.Host, "localhost", ct);
-                var defaultPort = await settingsService.GetAsync<int>(SharedNodeSettingKeys.PacsDestination.Port, 104, ct);
-
-                defaultDestinations.Add(new PacsDestination
-                {
-                    Id      = "default",
-                    AeTitle = defaultAe,
-                    Host    = defaultHost,
-                    Port    = defaultPort,
-                });
-            }
-        }
+                Id      = p.Id,
+                AeTitle = p.AeTitle,
+                Host    = p.Host,
+                Port    = p.Port,
+            })
+            .ToList();
 
         router.LoadRules(routingRules, defaultDestinations);
 

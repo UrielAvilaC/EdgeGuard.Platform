@@ -93,6 +93,7 @@ export default class WhatsappPage {
   protected openCreateTemplateDialog(): void {
     this.dialog.open(TemplateFormDialog, {
       data: { tags: this.facade.tags() } satisfies TemplateFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: CreateWhatsAppTemplateRequest | null) => {
       if (result) this.facade.createTemplate(result);
     });
@@ -101,6 +102,7 @@ export default class WhatsappPage {
   protected openEditTemplateDialog(template: WhatsAppTemplate): void {
     this.dialog.open(TemplateFormDialog, {
       data: { template, tags: this.facade.tags() } satisfies TemplateFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdateWhatsAppTemplateRequest | null) => {
       if (result) this.facade.updateTemplate(template.id, result);
     });
@@ -123,6 +125,7 @@ export default class WhatsappPage {
   protected openCreateRuleDialog(): void {
     this.dialog.open(RuleFormDialog, {
       data: { templates: this.facade.templates() } satisfies RuleFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: CreateWhatsAppAutoSendRuleRequest | null) => {
       if (result) this.facade.createAutoSendRule(result);
     });
@@ -131,6 +134,7 @@ export default class WhatsappPage {
   protected openEditRuleDialog(rule: WhatsAppAutoSendRule): void {
     this.dialog.open(RuleFormDialog, {
       data: { rule, templates: this.facade.templates() } satisfies RuleFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdateWhatsAppAutoSendRuleRequest | null) => {
       if (result) this.facade.updateAutoSendRule(rule.id, result);
     });

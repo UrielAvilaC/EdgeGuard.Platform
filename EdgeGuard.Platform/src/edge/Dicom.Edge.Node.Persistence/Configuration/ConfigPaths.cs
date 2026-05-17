@@ -69,10 +69,4 @@ internal static class ConfigPaths
     public const string PacsCEchoEnabled         = $"{ConfigSectionNames.PacsCEcho}:Enabled";
     public const string PacsCEchoIntervalSeconds = $"{ConfigSectionNames.PacsCEcho}:IntervalSeconds";
     public const string PacsCEchoDestinations    = $"{ConfigSectionNames.PacsCEcho}:Destinations";
-
-    // ── PacsDestination ──────────────────────────────────────────────────────
-
-    public const string PacsDestinationHost    = $"{ConfigSectionNames.PacsDestination}:Host";
-    public const string PacsDestinationPort    = $"{ConfigSectionNames.PacsDestination}:Port";
-    public const string PacsDestinationAeTitle = $"{ConfigSectionNames.PacsDestination}:AeTitle";
 }

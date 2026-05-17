@@ -111,6 +111,13 @@ export const API_ROUTES = {
     BY_CORRELATION: (correlationId: string) => `/audit-logs/by-correlation/${correlationId}`,
     EVENT_TYPES: '/audit-logs/event-types',
   },
+  NODE_DICOM_ROUTING_RULES: {
+    BY_NODE: (nodeId: string) => `/nodes/${nodeId}/dicom-routing-rules`,
+    BY_ID:   (nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}`,
+    ENABLE:  (nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/enable`,
+    DISABLE: (nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/disable`,
+    PRIORITY:(nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/priority`,
+  },
   HUB: {
     RUNTIME: '/hub/runtime',
   },

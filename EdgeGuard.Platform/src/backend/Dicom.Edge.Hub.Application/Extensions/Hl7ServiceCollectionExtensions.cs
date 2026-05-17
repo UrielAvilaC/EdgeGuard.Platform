@@ -49,6 +49,7 @@ public static class HubApplicationServiceCollectionExtensions
         services.AddScoped<INodeService, NodeService>();
         services.AddScoped<IPacsServerService, PacsServerService>();
         services.AddScoped<IRoutingRuleService, RoutingRuleService>();
+        services.AddScoped<INodeDicomRoutingRuleService, NodeDicomRoutingRuleService>();
         services.AddScoped<IStudyService, StudyService>();
 
         // Edge node-facing orchestration service

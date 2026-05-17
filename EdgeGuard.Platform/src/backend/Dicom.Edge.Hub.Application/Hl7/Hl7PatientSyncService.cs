@@ -1,5 +1,7 @@
+using Dicom.Edge.Hub.Application.Constants;
 using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
+using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Entities;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
@@ -7,15 +9,47 @@ using Microsoft.Extensions.Logging;
 namespace Dicom.Edge.Hub.Application.Hl7;
 
 /// <summary>
-/// Syncs patient demographics and contact info from HL7 PID segment.
-/// Creates a new patient if not found, updates contact info if found.
+/// Syncs patient records from HL7 messages.
+///
+/// ADT^A01 — Admission: upsert patient demographics from PID.
+/// ADT^A40 — Merge Patient: mark prior patient (MRG.1) as merged into the surviving patient (PID.3),
+///            then reassign all studies of the prior patient to the surviving record.
+/// ORM+MRG  — If an ORM order arrives with a MRG segment the prior patient's studies are
+///            reassigned to the current patient (PID.3). No patient deactivation (ORM merge
+///            only affects orders/studies, not the patient record itself).
 /// </summary>
 public sealed class Hl7PatientSyncService(
     IPatientRepository patientRepository,
+    IStudyRepository studyRepository,
     IHubAuditLogRepository auditRepository,
     ILogger<Hl7PatientSyncService> logger) : IHl7PatientSyncService
 {
     public async Task SyncFromHl7Async(Hl7Message message, CancellationToken ct = default)
+    {
+        var baseType = message.MessageType.Split('^').FirstOrDefault() ?? message.MessageType;
+        var trigger  = message.TriggerEvent ?? string.Empty;
+
+        if (string.Equals(baseType, Hl7ValidationConstants.AdtMessageType, StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(trigger, Hl7ValidationConstants.AdtMergePatientTrigger, StringComparison.OrdinalIgnoreCase))
+                await HandleAdtMergeAsync(message, ct);
+            else
+                await HandleAdtAdmitAsync(message, ct);
+
+            return;
+        }
+
+        // ORM with MRG: reassign prior patient's studies (patient record itself not merged)
+        if (string.Equals(baseType, Hl7ValidationConstants.OrmMessageType, StringComparison.OrdinalIgnoreCase)
+            && message.HasMrgSegment)
+        {
+            await HandleOrmMrgPatientReassignAsync(message, ct);
+        }
+    }
+
+    // ── ADT^A01 — Patient Admission ───────────────────────────────────────────
+
+    private async Task HandleAdtAdmitAsync(Hl7Message message, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(message.PatientId) ||
             string.IsNullOrWhiteSpace(message.PatientName))
@@ -25,32 +59,21 @@ public sealed class Hl7PatientSyncService(
 
         if (existing is not null)
         {
-            var hasContactChange = false;
-
-            if (!string.IsNullOrWhiteSpace(message.PatientPhone) || !string.IsNullOrWhiteSpace(message.PatientEmail))
-            {
-                existing.UpdateContactInfo(message.PatientPhone, message.PatientEmail);
-                hasContactChange = true;
-            }
+            var hadContact = !string.IsNullOrWhiteSpace(message.PatientPhone) ||
+                             !string.IsNullOrWhiteSpace(message.PatientEmail);
 
             existing.UpdateDemographics(
                 message.PatientName,
                 ParseBirthDate(message.PatientBirthDate),
                 message.PatientSex);
 
+            if (hadContact)
+                existing.UpdateContactInfo(message.PatientPhone, message.PatientEmail);
+
             await patientRepository.UpdateAsync(existing, ct);
 
-            if (hasContactChange)
-            {
-                await auditRepository.AddAsync(HubAuditLog.Create(
-                    AuditEventType.DomainEvent,
-                    "PatientContactUpdatedFromHl7",
-                    entityId: existing.Id,
-                    entityType: "Patient",
-                    details: $"{{\"patientId\":\"{existing.Id}\",\"hasPhone\":{(!string.IsNullOrWhiteSpace(message.PatientPhone)).ToString().ToLowerInvariant()},\"hasEmail\":{(!string.IsNullOrWhiteSpace(message.PatientEmail)).ToString().ToLowerInvariant()},\"hl7MessageId\":\"{message.Id}\"}}"), ct);
-            }
-
-            logger.LogDebug("Updated patient {PatientDicomId} from HL7 message {MessageId}",
+            logger.LogDebug(
+                "Updated patient {PatientDicomId} from ADT^A01 {MessageId}",
                 message.PatientId, message.Id);
         }
         else
@@ -60,27 +83,164 @@ public sealed class Hl7PatientSyncService(
                 message.PatientName,
                 ParseBirthDate(message.PatientBirthDate),
                 message.PatientSex,
-                phoneNumber: message.PatientPhone,
-                email: message.PatientEmail,
+                phoneNumber:    message.PatientPhone,
+                email:          message.PatientEmail,
                 facilitySource: message.SendingFacility);
 
             await patientRepository.AddAsync(patient, ct);
 
-            logger.LogInformation("Created patient {PatientDicomId} from HL7 message {MessageId}",
+            logger.LogInformation(
+                "Created patient {PatientDicomId} from ADT^A01 {MessageId}",
                 message.PatientId, message.Id);
         }
     }
+
+    // ── ADT^A40 — Merge Patient Records ──────────────────────────────────────
+
+    private async Task HandleAdtMergeAsync(Hl7Message message, CancellationToken ct)
+    {
+        // MrgPriorPatientId is guaranteed non-null by Hl7ValidationService for A40
+        var priorId    = message.MrgPriorPatientId!;
+        var survivingId = message.PatientId!;
+
+        if (string.Equals(priorId, survivingId, StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning(
+                "ADT^A40 {MessageId}: prior patient ID equals surviving ID ({Id}), skipping",
+                message.Id, survivingId);
+            return;
+        }
+
+        // 1. Ensure surviving patient exists (upsert)
+        var surviving = await patientRepository.GetByPatientDicomIdAsync(survivingId, ct);
+        if (surviving is null)
+        {
+            surviving = Patient.Create(
+                PatientIdentifier.Create(survivingId),
+                message.PatientName ?? message.MrgPriorPatientName ?? survivingId,
+                ParseBirthDate(message.PatientBirthDate),
+                message.PatientSex,
+                facilitySource: message.SendingFacility);
+
+            await patientRepository.AddAsync(surviving, ct);
+
+            logger.LogInformation(
+                "ADT^A40 {MessageId}: created surviving patient {SurvivingId}",
+                message.Id, survivingId);
+        }
+        else if (!string.IsNullOrWhiteSpace(message.PatientName))
+        {
+            surviving.UpdateDemographics(
+                message.PatientName,
+                ParseBirthDate(message.PatientBirthDate),
+                message.PatientSex);
+            await patientRepository.UpdateAsync(surviving, ct);
+        }
+
+        // 2. Find and deactivate prior patient
+        var prior = await patientRepository.GetByPatientDicomIdAsync(priorId, ct);
+        if (prior is not null && !prior.IsMerged)
+        {
+            prior.MergeInto(survivingId);
+            await patientRepository.UpdateAsync(prior, ct);
+
+            logger.LogInformation(
+                "ADT^A40 {MessageId}: patient {PriorId} merged into {SurvivingId}",
+                message.Id, priorId, survivingId);
+        }
+        else if (prior is null)
+        {
+            logger.LogWarning(
+                "ADT^A40 {MessageId}: prior patient {PriorId} not found in Hub — cannot deactivate",
+                message.Id, priorId);
+        }
+
+        // 3. Reassign all studies that belong to the prior patient
+        var priorStudies = await studyRepository.GetByPatientIdAsync(priorId, ct);
+        if (priorStudies.Count > 0)
+        {
+            foreach (var study in priorStudies)
+            {
+                study.ReassignToPatient(survivingId, message.PatientName);
+                await studyRepository.UpdateAsync(study, ct);
+            }
+
+            logger.LogInformation(
+                "ADT^A40 {MessageId}: reassigned {Count} studies from {PriorId} to {SurvivingId}",
+                message.Id, priorStudies.Count, priorId, survivingId);
+        }
+
+        // 4. Audit
+        await auditRepository.AddAsync(HubAuditLog.Create(
+            AuditEventType.DomainEvent,
+            "PatientMergedFromHl7",
+            entityId:   surviving.Id,
+            entityType: "Patient",
+            details:    $"{{\"survivingId\":\"{survivingId}\",\"priorId\":\"{priorId}\"," +
+                        $"\"studiesReassigned\":{priorStudies.Count},\"hl7MessageId\":\"{message.Id}\"}}"), ct);
+    }
+
+    // ── ORM + MRG — Order-level patient reassignment ──────────────────────────
+
+    private async Task HandleOrmMrgPatientReassignAsync(Hl7Message message, CancellationToken ct)
+    {
+        var priorId     = message.MrgPriorPatientId;
+        var survivingId = message.PatientId;
+
+        if (string.IsNullOrWhiteSpace(priorId) || string.IsNullOrWhiteSpace(survivingId))
+            return;
+
+        if (string.Equals(priorId, survivingId, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        // Reassign studies belonging to the prior patient ID
+        var priorStudies = await studyRepository.GetByPatientIdAsync(priorId, ct);
+
+        // If prior accession is set, restrict to that study
+        if (!string.IsNullOrWhiteSpace(message.MrgPriorAccessionNumber))
+        {
+            priorStudies = priorStudies
+                .Where(s => string.Equals(
+                    s.AccessionNumber, message.MrgPriorAccessionNumber,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (priorStudies.Count == 0)
+        {
+            logger.LogDebug(
+                "ORM+MRG {MessageId}: no studies found for prior patient {PriorId} to reassign",
+                message.Id, priorId);
+            return;
+        }
+
+        var survivingPatient = await patientRepository.GetByPatientDicomIdAsync(survivingId, ct);
+        var survivingName    = survivingPatient?.PatientName ?? message.PatientName;
+
+        foreach (var study in priorStudies)
+        {
+            study.ReassignToPatient(survivingId, survivingName);
+            await studyRepository.UpdateAsync(study, ct);
+        }
+
+        logger.LogInformation(
+            "ORM+MRG {MessageId}: reassigned {Count} studies from {PriorId} to {SurvivingId}",
+            message.Id, priorStudies.Count, priorId, survivingId);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static DateOnly? ParseBirthDate(string? hl7Date)
     {
         if (string.IsNullOrWhiteSpace(hl7Date) || hl7Date.Length < 8)
             return null;
 
-         DateOnly.TryParseExact(hl7Date[..8], "yyyyMMdd",
+        DateOnly.TryParseExact(
+            hl7Date[..8], "yyyyMMdd",
             System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.None,
             out var result);
-        
-            return result;
+
+        return result == default ? null : result;
     }
 }

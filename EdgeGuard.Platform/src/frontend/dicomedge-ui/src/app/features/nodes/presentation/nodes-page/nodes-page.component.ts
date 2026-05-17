@@ -71,6 +71,7 @@ export default class NodesPage {
   protected openCreateDialog(): void {
     this.dialog.open(NodeFormDialog, {
       data: {} satisfies NodeFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: CreateNodeRequest | null) => {
       if (result) {
         this.facade.createNode(result);

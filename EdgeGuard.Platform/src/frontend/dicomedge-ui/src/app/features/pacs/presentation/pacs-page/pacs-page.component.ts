@@ -96,6 +96,7 @@ export default class PacsPage {
   protected openCreateDialog(): void {
     this.dialog.open(PacsFormDialog, {
       data: {} satisfies PacsFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: CreatePacsServerRequest | null) => {
       if (result) {
         this.facade.createServer(result);
@@ -106,6 +107,7 @@ export default class PacsPage {
   protected openEditDialog(server: PacsServer): void {
     this.dialog.open(PacsFormDialog, {
       data: { server } satisfies PacsFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdatePacsServerRequest | null) => {
       if (result) {
         this.facade.updateServer(server.id, result);

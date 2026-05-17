@@ -118,6 +118,7 @@ export default class Hl7Page {
   protected openCreateRuleDialog(): void {
     this.dialog.open(RoutingRuleFormDialog, {
       data: { nodes: this.allNodes } satisfies RoutingRuleFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: CreateRoutingRuleRequest | null) => {
       if (result) this.facade.createRule(result);
     });
@@ -126,6 +127,7 @@ export default class Hl7Page {
   protected openEditRuleDialog(rule: RoutingRule): void {
     this.dialog.open(RoutingRuleFormDialog, {
       data: { rule, nodes: this.allNodes } satisfies RoutingRuleFormDialogData,
+      disableClose: true,
     }).afterClosed().subscribe((result: UpdateRoutingRuleRequest | null) => {
       if (result) this.facade.updateRule(rule.id, result);
     });

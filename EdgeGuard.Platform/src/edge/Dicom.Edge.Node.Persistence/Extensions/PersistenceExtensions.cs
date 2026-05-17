@@ -1,5 +1,6 @@
 using Dicom.Edge.Abstractions.Events;
 using Dicom.Edge.Abstractions.Queue;
+using Dicom.Edge.Node.Persistence.Configuration;
 using Dicom.Edge.Node.Persistence.Interceptors;
 using Dicom.Edge.Node.Persistence.Diagnostics;
 using Dicom.Edge.Node.Persistence.Queue;
@@ -160,6 +161,7 @@ public static class PersistenceExtensions
 internal sealed class PersistenceInitializerService(
     IDbContextFactory<EdgeNodeDbContext> factory,
     INodeSettingsService settingsService,
+    INodeConfigurationReloader configReloader,
     ILogger<PersistenceInitializerService> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -194,7 +196,51 @@ internal sealed class PersistenceInitializerService(
         await settingsService.ReloadAsync(cancellationToken);
         logger.LogInformation("NodeSettings cache warmed ({Count} entries loaded)",
             (await ctx.NodeSettings.CountAsync(cancellationToken)));
+
+        // ── Phase 4: Sync node_pacs_servers → cecho.destinations ─────────────
+        // Ensures PacsCEchoHostedService starts with the correct destinations
+        // even when the Hub has not pushed a sync in this session.
+        await SyncPacsCEchoDestinationsOnStartupAsync(ctx, settingsService, configReloader, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private async Task SyncPacsCEchoDestinationsOnStartupAsync(
+        EdgeNodeDbContext ctx,
+        INodeSettingsService settingsService,
+        INodeConfigurationReloader configReloader,
+        CancellationToken ct)
+    {
+        try
+        {
+            var servers = await ctx.NodePacsServers
+                .Where(p => p.IsEnabled)
+                .OrderBy(p => p.Priority)
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            if (servers.Count == 0)
+            {
+                logger.LogDebug("No enabled PACS servers in node_pacs_servers — skipping cecho.destinations sync");
+                return;
+            }
+
+            var destinations = servers
+                .Select(s => new { s.Id, s.AeTitle, s.Host, s.Port, UseTls = false })
+                .ToArray();
+
+            var json = System.Text.Json.JsonSerializer.Serialize(destinations);
+            await settingsService.SetAsync(Constants.NodeSettingKeys.PacsCEcho.Destinations, json, ct);
+            configReloader.Reload();
+
+            logger.LogInformation(
+                "Startup: cecho.destinations seeded from node_pacs_servers — {Count} destination(s): [{Destinations}]",
+                servers.Count,
+                string.Join(", ", servers.Select(s => $"{s.AeTitle}@{s.Host}:{s.Port}")));
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Startup: failed to sync node_pacs_servers → cecho.destinations");
+        }
+    }
 }

@@ -1467,6 +1467,11 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_updated_at");
 
+                    b.Property<string>("MergedIntoPatientId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("merged_into_patient_id");
+
                     b.Property<string>("OtherPatientIds")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
@@ -1497,6 +1502,10 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                     b.HasIndex("IsActive")
                         .HasDatabaseName("ix_patients_is_active");
+
+                    b.HasIndex("MergedIntoPatientId")
+                        .HasDatabaseName("ix_patients_merged_into")
+                        .HasFilter("merged_into_patient_id IS NOT NULL");
 
                     b.HasIndex("PatientName")
                         .HasDatabaseName("ix_patients_patient_name");
@@ -1579,6 +1588,108 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.ToTable("hl7_routing_rules", (string)null);
                 });
 
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Routing.NodeDicomRoutingRule", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AnonymizeBeforeSend")
+                        .HasColumnType("boolean")
+                        .HasColumnName("anonymize_before_send");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DestinationAeTitle")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("destination_ae_title");
+
+                    b.Property<bool>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_enabled");
+
+                    b.Property<DateTime?>("LastMatchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_matched_at");
+
+                    b.Property<int>("MatchCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("match_count");
+
+                    b.Property<string>("MatchInstitution")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("match_institution");
+
+                    b.Property<string>("MatchModality")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("match_modality");
+
+                    b.Property<string>("MatchSourceAeTitle")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("match_source_ae_title");
+
+                    b.Property<string>("MatchStudyDesc")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("match_study_desc");
+
+                    b.Property<int?>("MaxInstanceCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_instance_count");
+
+                    b.Property<int?>("MinInstanceCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_instance_count");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NodeId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("node_id");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(100)
+                        .HasColumnName("priority");
+
+                    b.Property<bool>("SendToHub")
+                        .HasColumnType("boolean")
+                        .HasColumnName("send_to_hub");
+
+                    b.Property<bool>("SendToPacs")
+                        .HasColumnType("boolean")
+                        .HasColumnName("send_to_pacs");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_node_dicom_routing_rules");
+
+                    b.HasIndex("NodeId", "IsEnabled", "Priority")
+                        .HasDatabaseName("ix_node_dicom_routing_rules_node_active");
+
+                    b.ToTable("node_dicom_routing_rules", (string)null);
+                });
+
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Studies.Study", b =>
                 {
                     b.Property<string>("Id")
@@ -1602,6 +1713,10 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
+
+                    b.Property<string>("ExternalImageLinks")
+                        .HasColumnType("text")
+                        .HasColumnName("external_image_links");
 
                     b.Property<DateTime?>("FirstImageReceivedAt")
                         .HasColumnType("timestamp with time zone")
@@ -1911,6 +2026,10 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("hl7_version");
 
+                    b.Property<string>("ImageLinksJson")
+                        .HasColumnType("text")
+                        .HasColumnName("image_links_json");
+
                     b.Property<string>("MessageControlId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -1926,6 +2045,21 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
                         .HasColumnName("modality");
+
+                    b.Property<string>("MrgPriorAccessionNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("mrg_prior_accession_number");
+
+                    b.Property<string>("MrgPriorPatientId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("mrg_prior_patient_id");
+
+                    b.Property<string>("MrgPriorPatientName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("mrg_prior_patient_name");
 
                     b.Property<string>("PatientBirthDate")
                         .HasMaxLength(16)

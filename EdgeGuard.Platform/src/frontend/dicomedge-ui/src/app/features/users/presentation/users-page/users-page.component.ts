@@ -54,7 +54,7 @@ export default class UsersPage {
   }
 
   protected openCreateDialog(): void {
-    this.dialog.open(UserFormDialog).afterClosed().subscribe((result: CreateUserRequest | null) => {
+    this.dialog.open(UserFormDialog, { disableClose: true }).afterClosed().subscribe((result: CreateUserRequest | null) => {
       if (result) this.facade.createUser(result);
     });
   }
