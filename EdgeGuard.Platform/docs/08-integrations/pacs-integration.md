@@ -68,15 +68,24 @@ The node's own AE Title must be registered as a trusted caller in the PACS syste
 
 ### View or change the node AE Title
 
-The node AE Title is set in `appsettings.json` on the node server:
+The node AE Title is set in `appsettings.json` on the node server. The Edge Node runs as the Windows Service `EdgeGuardNode` with files installed under `C:\EdgeGuard\Node\` (primary deployment target):
 
 ```json
+// C:\EdgeGuard\Node\appsettings.Production.json
 {
   "Dicom": {
     "AeTitle": "EDGEGUARD_SITE_A"
   }
 }
 ```
+
+After editing, restart the service for the change to take effect:
+
+```powershell
+Restart-Service EdgeGuardNode
+```
+
+> **Linux equivalent (alternative):** edit `/opt/edgeguard/node/appsettings.Production.json` and `sudo systemctl restart edgeguard-node`.
 
 This value is also visible in the Hub UI under **Settings → Nodes → [Node] → DICOM Settings**.
 
@@ -124,18 +133,12 @@ C-ECHO (DICOM Verification SOP) tests basic DICOM connectivity and AE Title reco
    - **Success:** Association established and C-ECHO response received.
    - **Failed:** Connection refused, timeout, or association rejection (see error details).
 
-### Via command line (dcmtk)
+### Via command line (Windows, with dcmtk — primary)
 
-```bash
-# Install dcmtk (Linux)
-sudo apt-get install dcmtk
+Install dcmtk (e.g. via Chocolatey: `choco install dcmtk`), then:
 
-# Run C-ECHO from Hub server to PACS
-echoscu \
-  pacs.internal.example.com \    # PACS host
-  11112 \                        # PACS port
-  -aec ORTHANC_PROD \            # Called AE Title (PACS)
-  -aet EDGEGUARD_HUB             # Calling AE Title (EdgeGuard)
+```powershell
+echoscu.exe pacs.internal.example.com 11112 -aec ORTHANC_PROD -aet EDGEGUARD_HUB
 ```
 
 Expected output for success:
@@ -144,10 +147,16 @@ D: DIMSE receiveCommand
 I: Received Echo Response (MsgID 1, Status: Success)
 ```
 
-### Via command line (Windows, with dcmtk)
+### Via command line (Linux dcmtk, alternative)
 
-```powershell
-echoscu.exe pacs.internal.example.com 11112 -aec ORTHANC_PROD -aet EDGEGUARD_HUB
+```bash
+sudo apt-get install dcmtk
+
+echoscu \
+  pacs.internal.example.com \    # PACS host
+  11112 \                        # PACS port
+  -aec ORTHANC_PROD \            # Called AE Title (PACS)
+  -aet EDGEGUARD_HUB             # Calling AE Title (EdgeGuard)
 ```
 
 ---
@@ -229,7 +238,7 @@ Enable TLS for a specific PACS connection:
         "Port": 2762,
         "Tls": {
           "Enabled": true,
-          "CertificatePath": "/etc/edgeguard/dicom-tls.pfx",
+          "CertificatePath": "C:\\EdgeGuard\\Node\\certs\\dicom-tls.pfx",
           "CertificatePassword": "${DICOM_TLS_CERT_PASSWORD}",
           "ValidatePeerCertificate": true
         }
@@ -334,5 +343,23 @@ EdgeGuard has been validated against the following PACS systems:
 
 **Resolution:**
 1. Verify PACS host and port in Hub configuration.
-2. Test TCP connectivity from the node/hub server: `nc -zv <pacs-host> <port>`.
-3. Check firewall allows outbound from Hub/Node IP to PACS IP on the configured port.
+2. Test TCP connectivity from the node/hub server:
+
+   **PowerShell (Windows — primary):**
+   ```powershell
+   Test-NetConnection -ComputerName <pacs-host> -Port <port>
+   ```
+
+   **Bash (Linux, alternative):**
+   ```bash
+   nc -zv <pacs-host> <port>
+   ```
+
+3. Check firewall allows outbound from Hub/Node IP to PACS IP on the configured port. On Windows:
+   ```powershell
+   Get-NetFirewallRule -DisplayName "EdgeGuard*" | Get-NetFirewallPortFilter
+   ```
+4. If the change involved node config, restart the service:
+   ```powershell
+   Restart-Service EdgeGuardNode
+   ```

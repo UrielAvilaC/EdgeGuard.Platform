@@ -46,6 +46,8 @@ flowchart LR
 
 ---
 
+> **Production deployment target:** Hub runs on **Windows Server + IIS** (ASP.NET Core Hosting Bundle + AspNetCoreModuleV2). Each Edge Node runs as a **Windows Service** (`sc.exe` / `New-Service`). See [deployment-hub.md](../07-operations/deployment-hub.md) and [deployment-node.md](../07-operations/deployment-node.md). Linux/Docker deployments are supported as a secondary option.
+
 ## C4 Level 2 — Containers
 
 ```mermaid

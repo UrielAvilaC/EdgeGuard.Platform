@@ -2,6 +2,8 @@
 
 The EdgeGuard Hub is the central coordination point for the platform. It receives HL7 messages from hospital information systems, manages studies and patients, pushes configuration to distributed Edge Nodes, and provides the API and real-time dashboard surface consumed by the web SPA.
 
+> **Hosting:** The Hub is deployed under **IIS** on Windows Server using the ASP.NET Core Hosting Bundle. The HL7 MLLP listener on `:8001` is a raw TCP socket running inside the same `w3wp.exe` process — it does NOT pass through IIS. App pool must be configured with `startMode=AlwaysRunning` and `idleTimeout=00:00:00` to keep the MLLP listener available 24/7. Default install path: `C:\inetpub\EdgeGuard\Hub\`.
+
 ---
 
 ## Project Relationship Diagram

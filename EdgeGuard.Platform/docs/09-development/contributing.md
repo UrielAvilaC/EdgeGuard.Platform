@@ -185,6 +185,8 @@ ng serve
 
 The Hub runs on `http://localhost:5000` and the SPA dev server on `http://localhost:4200` (proxied to Hub API).
 
+> **Local dev runs Kestrel directly** (no IIS). Production deploys to IIS — see [deployment-hub.md](../07-operations/deployment-hub.md). Don't develop against IIS Express; it has subtly different SignalR behaviour than the production AspNetCoreModuleV2 in-process host. To smoke-test the IIS path before merging, publish locally (`dotnet publish -c Release`) and point a temporary IIS site at the output.
+
 ### Run tests
 
 ```bash

@@ -1,252 +1,271 @@
 # Quickstart — Edge Node
 
-This guide covers installing and registering a single Edge Node at an imaging site. Repeat this process for every site that has modalities sending DICOM studies.
+This guide covers installing and registering a single Edge Node at an imaging site as a **Windows Service**. Repeat the process for every site that has modalities sending DICOM studies.
 
-**Prerequisites:** A running Hub instance (see [Quickstart — Hub](quickstart-hub.md)) and a target machine that meets the [Edge Node hardware requirements](prerequisites.md).
+**Prerequisites:** A running Hub instance (see [Quickstart — Hub](quickstart-hub.md)) and a Windows host that meets the [Edge Node hardware requirements](prerequisites.md).
 
 ---
 
 ## Before You Begin
 
-On the Edge Node machine, verify the .NET 10 runtime is installed:
+On the Edge Node host (Windows), verify the .NET 10 Runtime is installed:
 
-```bash
-dotnet --version   # must return 10.x.x
+```powershell
+dotnet --list-runtimes
+# Expected: Microsoft.NETCore.App 10.0.x  [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]
 ```
 
-Confirm network connectivity from the Edge Node machine to the Hub:
+> If missing, install the **.NET 10 Runtime** (not the SDK, not the ASP.NET Core Hosting Bundle) from <https://dotnet.microsoft.com/download/dotnet/10.0>. The Node hosts Kestrel directly — no IIS is needed.
 
-```bash
-# Replace hub.internal with your Hub's hostname or IP
-curl -f http://hub.internal:5000/api/health
-# Expected: {"status":"Healthy"}
+Confirm network connectivity from the Edge Node to the Hub:
+
+```powershell
+Invoke-RestMethod https://hub.your-org.local/health
+# Expected: status = Healthy
 ```
 
-Confirm DICOM port availability:
+Confirm DICOM port `11112` is free:
 
-```bash
-# Linux
-ss -tlnp | grep 11112   # should return nothing (port not yet in use)
-
-# Windows
-netstat -ano | findstr :11112
+```powershell
+Test-NetConnection -ComputerName localhost -Port 11112
+# TcpTestSucceeded = False  (port not yet in use — good)
 ```
 
 ---
 
-## Step 1 — Install on the Target Machine
+## Step 1 — Generate a Bootstrap Token in the Hub UI
 
-### Option A — Copy Published Binaries (Recommended for production)
+1. Log in to the Hub at `https://hub.your-org.local`.
+2. Navigate to **Nodes → Register New Node**.
+3. Fill in:
+   - **Display Name** — `Radiology Wing A`
+   - **Node ID** — `node-rad-a` (must be unique, lowercase, hyphenated)
+4. Click **Generate Bootstrap Token** and **copy the one-time token**.
+
+> The bootstrap token can be redeemed only once. Keep it in a password manager until the Node is registered.
+
+---
+
+## Step 2 — Publish and Copy the Node Binaries
 
 On a build machine with the .NET SDK:
 
-```bash
-dotnet publish src/edge/Dicom.Edge.Node \
-  --configuration Release \
-  --output ./publish/edge-node \
-  --self-contained false
+```powershell
+dotnet publish src\edge\Dicom.Edge.Node `
+  --configuration Release `
+  --runtime win-x64 `
+  --self-contained false `
+  --output C:\publish\EdgeGuard.Node
 ```
 
-Transfer the `publish/edge-node/` directory to the target machine (e.g., via SCP, SMB share, or deployment package).
+Transfer to the Node host (replace target as appropriate):
 
-### Option B — Build and Run from Source
-
-If the .NET SDK is installed on the target machine:
-
-```bash
-git clone https://github.com/your-org/EdgeGuard.Platform.git
-cd EdgeGuard.Platform/EdgeGuard.Platform
+```powershell
+robocopy C:\publish\EdgeGuard.Node \\node-host\C$\EdgeGuard\Node /MIR
 ```
+
+Recommended target directory: `C:\EdgeGuard\Node\`.
 
 ---
 
-## Step 2 — Configure `appsettings.json`
+## Step 3 — Configure `appsettings.Production.json`
 
-Navigate to the Edge Node directory and open `appsettings.json` (or create `appsettings.Production.json` for environment-specific overrides).
+On the Node host, create `C:\EdgeGuard\Node\appsettings.Production.json` (site-specific overrides — NEVER commit):
 
-```json
+```jsonc
 {
-  "ConnectionStrings": {
-    "NodeDatabase": "./persistence/edge-node.db"
-  },
-  "Hub": {
-    "BaseUrl": "http://hub.internal:5000",
-    "NodeId": "EDGE-SITE-01"
-  },
-  "DicomServer": {
-    "AeTitle": "EDGE_SITE01",
-    "Port": 11112,
-    "MaxConcurrentAssociations": 10
+  "Node": {
+    "NodeId":         "node-rad-a",
+    "DisplayName":    "Radiology Wing A",
+    "HubBaseUrl":     "https://hub.your-org.local",
+    "BootstrapToken": "<paste the token from Step 1>"
   },
   "DicomServer": {
-    "InstanceRetentionDays": 7
+    "AeTitle":                 "EDGEGUARD_WINGA",
+    "Port":                    11112,
+    "MaxClients":              10,
+    "ValidateCalledAe":        true,
+    "AllowedCallingAeTitles":  [ "CT_GE_64", "MR_SIEMENS_3T" ],
+    "ValidateCallingAe":       true,
+    "MwlEnabled":              true,
+    "CEchoEnabled":            true,
+    "QrEnabled":               true
   },
   "Diagnostics": {
-    "InstanceId": "NODE-001",
-    "Redaction": {
-      "Mode": "Strict"
-    }
-  }
+    "InstanceId": "NODE-RAD-A",
+    "Redaction":  { "Enabled": true, "Mode": "Strict" }
+  },
+  "NodeAuth": { "Enforce": false }
 }
 ```
 
-### Key Settings Explained
+### Key settings explained
 
-| Key | Example Value | Description |
-|-----|--------------|-------------|
-| `Hub:BaseUrl` | `http://hub.internal:5000` | Full URL of the Hub API. Use HTTPS in production. |
-| `Hub:NodeId` | `EDGE-SITE-01` | Unique identifier for this node across the entire platform. Use a descriptive, stable name. |
-| `DicomServer:AeTitle` | `EDGE_SITE01` | AE Title that modalities and PACS use to address this node. Max 16 characters, no spaces. |
-| `DicomServer:Port` | `11112` | TCP port for the DICOM SCP. Must match the AE configuration on connected modalities. |
-| `DicomServer:InstanceRetentionDays` | `7` | Days to retain delivered DICOM instances in SQLite before automatic deletion. |
-| `Diagnostics:InstanceId` | `NODE-001` | Human-readable identifier included in every log entry from this node. |
-| `Diagnostics:Redaction:Mode` | `Strict` | PHI redaction level. `Strict` (recommended for nodes) redacts all patient fields from logs. |
-
-> **Note:** The `Hub:NodeId` value must be unique across all registered nodes. If you deploy multiple nodes, use site-specific identifiers such as `EDGE-RADIOLOGY-FLOOR2` or `EDGE-CT-SUITE-A`.
-
----
-
-## Step 3 — Start the Edge Node
-
-```bash
-# From the published output directory
-dotnet Dicom.Edge.Node.dll
-
-# Or from source
-dotnet run --project src/edge/Dicom.Edge.Node
-```
-
-Successful startup output:
-
-```
-[INF] EdgeGuard Edge Node starting. NodeId=EDGE-SITE-01 AeTitle=EDGE_SITE01
-[INF] DICOM SCP listening on 0.0.0.0:11112
-[INF] Attempting registration with Hub at http://hub.internal:5000
-[INF] Node registered successfully. NodeToken issued.
-[INF] Edge Node is ready.
-```
-
-> **Troubleshooting:** If you see `Failed to register with Hub: 401 Unauthorized`, the Hub may require a node pre-registration secret. Check whether `Hub:RegistrationSecret` needs to be set (configured in Hub appsettings under `NodeRegistration:Secret`).
-
-> **Troubleshooting:** If DICOM port 11112 fails to bind, another process (e.g., a pre-existing DICOM SCP) may be using the port. Stop the conflicting service or change `DicomServer:Port`.
+| Key | Example | Description |
+|-----|---------|-------------|
+| `Node.NodeId` | `node-rad-a` | Unique across all nodes. Stable for the lifetime of the install. |
+| `Node.HubBaseUrl` | `https://hub.your-org.local` | Full Hub URL. Must be HTTPS in production. |
+| `Node.BootstrapToken` | `eyJ...` | One-time token issued in Step 1. Removed automatically after first successful registration. |
+| `DicomServer.AeTitle` | `EDGEGUARD_WINGA` | Called AE Title for incoming DICOM associations. ≤16 chars, no spaces. |
+| `DicomServer.Port` | `11112` | DICOM SCP TCP port. Must match what modalities are configured to send to. |
+| `DicomServer.AllowedCallingAeTitles` | `[ "CT_GE_64", ... ]` | Whitelist of AE Titles allowed to connect (when `ValidateCallingAe=true`). |
+| `Diagnostics.Redaction.Mode` | `Strict` | PHI redaction in logs. Always `Strict` on Nodes. |
+| `NodeAuth.Enforce` | `false` | **P0-1** — set to `true` once the Hub side rolls out HMAC signing. |
 
 ---
 
-## Step 4 — Register the Node in the Hub UI
+## Step 4 — Open Firewall Ports
 
-1. Log into the Hub SPA at `http://hub.internal:5000`.
-2. Navigate to **Nodes** in the left sidebar.
-3. If auto-registration is enabled (default), the node already appears in the list with status **Healthy**.
-4. If the node is not listed, click **Add Node** and fill in:
-   - **Node ID:** `EDGE-SITE-01` (must match `Hub:NodeId` in the node's appsettings)
-   - **AE Title:** `EDGE_SITE01`
-   - **IP Address / Hostname:** The node's network address as reachable from the Hub
-   - **API Port:** The management API port (default: 5002)
-5. Click **Save**. The Hub performs a connectivity check and marks the node **Healthy** if successful.
-
----
-
-## Step 5 — Hub Pushes PACS Destinations and Routing Rules
-
-After registration, the Hub automatically pushes the node's initial configuration:
-
-- **PACS destinations** matching the node's site or the "all nodes" default list.
-- **Routing rules** applicable to this node.
-
-You can verify the push succeeded from the **Nodes** detail page:
-
-1. Click the node name in the list.
-2. Check the **Last Config Push** timestamp and **Routing Rules** count.
-3. The **Applied Config** section shows the PACS destinations and rules currently active on the node.
-
-To manually trigger a config push (useful after adding a new routing rule):
-
-- Click **Push Config** on the node detail page, or
-- Make a Hub API call: `POST /api/nodes/{nodeId}/push-config`
-
----
-
-## Step 6 — Verify Connectivity with a C-ECHO Test
-
-From your PACS administration tool or a DICOM utility (e.g., `echoscu` from the DCMTK toolkit), send a C-ECHO to the Edge Node:
-
-```bash
-# Using DCMTK echoscu
-echoscu -aet MY_PACS -aec EDGE_SITE01 <node-ip> 11112
-
-# Expected output:
-# I: Requesting Association
-# I: Association Accepted (Max Send PDV: 16366)
-# I: Sending Echo Request (MsgID 1)
-# I: Received Echo Response (Success)
-# I: Releasing Association
-```
-
-A successful C-ECHO confirms:
-- The DICOM port is reachable from the PACS/modality network.
-- The Edge Node's AE Title is correctly configured.
-- DICOM association negotiation succeeds.
-
-> **Troubleshooting:** If the C-ECHO fails with `Connection refused`, verify that the Edge Node process is running and the firewall allows inbound TCP on port 11112. If it fails with `Association Rejected`, check that the calling AE Title (`-aet MY_PACS`) is in the Edge Node's AE Title allow-list (configurable in `DicomServer:AllowedCallingAeTitles`).
-
----
-
-## Long-Running Deployment
-
-### Windows — Register as a Windows Service
+Allow modalities to reach the DICOM SCP and (optionally) admins to reach the health endpoint:
 
 ```powershell
-# Run as Administrator
-$exePath = "C:\EdgeGuard\Dicom.Edge.Node.exe"
-New-Service -Name "EdgeGuardNode" `
-            -BinaryPathName $exePath `
-            -DisplayName "EdgeGuard Edge Node" `
-            -StartupType Automatic
+# DICOM SCP — restrict to modality subnet
+New-NetFirewallRule -DisplayName "EdgeGuard Node - DICOM SCP" `
+  -Direction Inbound -Protocol TCP -LocalPort 11112 `
+  -RemoteAddress 10.10.20.0/24 -Action Allow -Profile Domain,Private
+
+# Admin/health endpoint — restrict to admin subnet
+New-NetFirewallRule -DisplayName "EdgeGuard Node - Admin API" `
+  -Direction Inbound -Protocol TCP -LocalPort 5001 `
+  -RemoteAddress 10.10.99.0/24 -Action Allow -Profile Domain
+```
+
+---
+
+## Step 5 — Pre-Create Data Folders and Grant Permissions
+
+```powershell
+New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\logs        | Out-Null
+New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\persistence | Out-Null
+New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\data        | Out-Null
+
+# Grant the service account Modify on writable folders (default account: NetworkService)
+icacls C:\EdgeGuard\Node\logs        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+icacls C:\EdgeGuard\Node\persistence /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+icacls C:\EdgeGuard\Node\data        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+```
+
+---
+
+## Step 6 — Install as a Windows Service
+
+```powershell
+sc.exe create EdgeGuardNode `
+  binPath= "C:\EdgeGuard\Node\Dicom.Edge.Node.exe" `
+  DisplayName= "EdgeGuard Edge Node" `
+  start= auto `
+  obj= "NT AUTHORITY\NetworkService"
+
+sc.exe description EdgeGuardNode "EdgeGuard Platform Edge Node - DICOM SCP, MWL, PACS routing"
+
+# Recovery — restart after 10s / 30s / 60s on consecutive failures
+sc.exe failure EdgeGuardNode reset= 86400 actions= restart/10000/restart/30000/restart/60000
+sc.exe failureflag EdgeGuardNode 1
 
 Start-Service EdgeGuardNode
 ```
 
-Set environment-specific configuration using the Windows Service environment or a `appsettings.Production.json` file in the same directory as the executable.
+> **Service account:** `NetworkService` is sufficient for outbound HTTP to the Hub and local file/SQLite I/O. If the DICOM SCU must authenticate against AD resources or network shares, use a dedicated AD service account: `obj= "DOMAIN\edgeguard_node_svc" password= "<pwd>"`.
 
-### Linux — Register as a systemd Service
+---
 
-Create `/etc/systemd/system/edgeguard-node.service`:
+## Step 7 — Verify Registration and Health
 
-```ini
-[Unit]
-Description=EdgeGuard Edge Node
-After=network.target
+Tail the rolling log:
 
-[Service]
-Type=simple
-WorkingDirectory=/opt/edgeguard/node
-ExecStart=/usr/bin/dotnet /opt/edgeguard/node/Dicom.Edge.Node.dll
-Restart=always
-RestartSec=10
-User=edgeguard
-Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=DOTNET_ENVIRONMENT=Production
-
-[Install]
-WantedBy=multi-user.target
+```powershell
+Get-Content "C:\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" -Wait -Tail 50
 ```
 
-Enable and start:
+Expected first-run lines:
 
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable edgeguard-node
-sudo systemctl start edgeguard-node
-sudo systemctl status edgeguard-node
+```
+[INF] Starting EdgeGuard Edge Node 1.0.0 (NodeId=node-rad-a)
+[INF] DICOM server listening on port 11112 — TLS=False C-STORE=enabled C-ECHO=True MWL=True QR=True
+[INF] Node registering with Hub https://hub.your-org.local using bootstrap token
+[INF] Node registration succeeded — ApiKey received and stored
+[INF] Configuration sync received: 3 PACS destinations, 5 routing rules
+[INF] Node is ready
 ```
 
-View logs:
+Check the health endpoint:
 
-```bash
-journalctl -u edgeguard-node -f
+```powershell
+Invoke-RestMethod http://localhost:5001/health
+# status: Healthy
+# components: { DICOM: Healthy, SQLite: Healthy, HubConnection: Healthy }
 ```
 
-> **Note:** Create a dedicated `edgeguard` system user without login shell for running the service: `sudo useradd --system --no-create-home --shell /usr/sbin/nologin edgeguard`. Grant ownership of the working directory and persistence folder to this user.
+Verify in the Hub UI: **Nodes → All Nodes** — the node now appears with status **Connected**.
+
+> **Troubleshooting — `401 Unauthorized` during registration:** the bootstrap token has expired or was already consumed. Generate a new token in the Hub UI and update `appsettings.Production.json`.
+>
+> **Troubleshooting — `Port 11112 already in use`:** another DICOM SCP is running. Stop it (`Get-NetTCPConnection -LocalPort 11112` then identify the process) or change `DicomServer:Port`.
+>
+> **Troubleshooting — Service won't start:** check the **Windows Application Event Log** for `EdgeGuardNode` events. Common causes: missing .NET 10 Runtime, insufficient permissions on `logs\`, or invalid JSON in `appsettings.Production.json`.
+
+---
+
+## Step 8 — Verify DICOM Connectivity with C-ECHO
+
+From your PACS or a DICOM utility (DCMTK `echoscu`, dcm4che `storescu`, fo-dicom-test):
+
+```powershell
+# Using DCMTK echoscu on the modality
+echoscu.exe -aet CT_GE_64 -aec EDGEGUARD_WINGA <node-host> 11112
+
+# Expected:
+# I: Requesting Association
+# I: Association Accepted (Max Send PDV: 16366)
+# I: Sending Echo Request (MsgID 1)
+# I: Received Echo Response (Success)
+```
+
+A successful C-ECHO confirms:
+
+- The DICOM port is reachable from the modality subnet.
+- The Node's AE Title is correctly configured.
+- The calling AE is whitelisted (when `ValidateCallingAe=true`).
+- DICOM association negotiation succeeds.
+
+---
+
+## What Gets Auto-Synced from the Hub
+
+Once registered, the Hub pushes these whenever they change:
+
+| Configuration | Sync trigger |
+|---------------|--------------|
+| PACS server list (AE Title, host, port, TLS, anonymize) | Hub PACS settings change |
+| DICOM routing rules | Routing rule create / update / delete |
+| HL7 worklist messages | HIS/RIS sends ORM to Hub |
+| Node display name | Hub UI edit |
+
+The Node also polls `GET /api/nodes/{id}/configuration` every 60s as a safety net if a push was missed.
+
+---
+
+## Manage the Service
+
+```powershell
+Get-Service EdgeGuardNode             # Status
+Stop-Service EdgeGuardNode            # Stop
+Start-Service EdgeGuardNode           # Start
+Restart-Service EdgeGuardNode         # Restart
+
+# Live logs
+Get-Content "C:\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" -Wait -Tail 50
+
+# Uninstall
+Stop-Service EdgeGuardNode
+sc.exe delete EdgeGuardNode
+```
+
+---
+
+## Optional — Linux systemd
+
+For Linux hosts (containerized labs, CI, non-Windows sites), the Node also runs as a systemd service. See [deployment-node.md → Optional — Linux systemd](../07-operations/deployment-node.md#optional--linux-systemd).
 
 ---
 
@@ -254,10 +273,11 @@ journalctl -u edgeguard-node -f
 
 | Step | Action |
 |------|--------|
-| 1 | Install .NET runtime; copy published binaries to target machine |
-| 2 | Configure `appsettings.json` with HubUrl, NodeId, AeTitle, Port |
-| 3 | `dotnet Dicom.Edge.Node.dll` — node auto-registers with Hub |
-| 4 | Verify node appears in Hub UI → Nodes |
-| 5 | Hub pushes PACS destinations and routing rules automatically |
-| 6 | Run C-ECHO from PACS to verify DICOM connectivity |
-| (prod) | Register as Windows Service or systemd unit for persistent operation |
+| 1 | Generate bootstrap token in Hub UI |
+| 2 | `dotnet publish` and copy binaries to `C:\EdgeGuard\Node` |
+| 3 | Create `appsettings.Production.json` with `BootstrapToken`, `NodeId`, `AeTitle` |
+| 4 | Open firewall ports 11112 (modality subnet) and 5001 (admin subnet) |
+| 5 | Pre-create `logs\`, `persistence\`, `data\` and grant Modify to service account |
+| 6 | `sc.exe create EdgeGuardNode … ; Start-Service EdgeGuardNode` |
+| 7 | Verify node shows **Connected** in Hub UI and `/health` returns Healthy |
+| 8 | Run C-ECHO from a modality / PACS to confirm DICOM connectivity |

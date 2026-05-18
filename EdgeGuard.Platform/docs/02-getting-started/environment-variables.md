@@ -8,6 +8,10 @@ This reference covers every configuration key recognized by EdgeGuard Platform c
 
 > **Security note:** Never commit secrets (JWT secret, database passwords, API keys) to source control. Use environment variables, a secrets manager (AWS Secrets Manager, Azure Key Vault, HashiCorp Vault), or the .NET Secret Manager (`dotnet user-secrets`) for local development.
 
+> **Setting env vars on IIS:** On the Hub, environment variables go on the **App Pool** (IIS Manager → Application Pools → EdgeGuardHub → Advanced Settings → Environment Variables). Avoid putting secrets in `appsettings.json`.
+>
+> **Setting env vars on a Windows Service:** For the Node, use `appsettings.Production.json` next to the service binary, OR set machine-wide env vars via `[Environment]::SetEnvironmentVariable("KEY", "value", "Machine")` and restart the service (`Restart-Service EdgeGuardNode`).
+
 ---
 
 ## Hub Configuration
@@ -128,6 +132,28 @@ This reference covers every configuration key recognized by EdgeGuard Platform c
 
 ### Hub — environment variables
 
+**PowerShell (Windows + IIS — primary).** Set per-app-pool so values stay scoped to the Hub worker process:
+
+```powershell
+Import-Module WebAdministration
+$pool = "EdgeGuardHub"
+$vars = @{
+    "HUB_DB_CONNECTION_STRING"   = "Host=pg.internal;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=<redacted>"
+    "Jwt__Secret"                = "<64-character-random-string>"
+    "Diagnostics__InstanceId"    = "HUB-PROD-01"
+    "Cors__AllowedOrigins__0"    = "https://edgeguard.hospital.internal"
+    "NodeRegistration__Secret"   = "<shared-node-secret>"
+}
+foreach ($kv in $vars.GetEnumerator()) {
+    Add-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" `
+        -Filter "system.applicationHost/applicationPools/add[@name='$pool']/environmentVariables" `
+        -Name "." -Value @{ name = $kv.Key; value = $kv.Value }
+}
+Restart-WebAppPool -Name $pool
+```
+
+**Bash (Linux, alternative):**
+
 ```bash
 export HUB_DB_CONNECTION_STRING="Host=pg.internal;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=<redacted>"
 export Jwt__Secret="<64-character-random-string>"
@@ -165,12 +191,14 @@ export NodeRegistration__Secret="<shared-node-secret>"
 }
 ```
 
-### Edge Node — `appsettings.Production.json`
+### Edge Node — `appsettings.Production.json` (Windows Service — primary)
+
+Place next to the service binary at `C:\EdgeGuard\Node\appsettings.Production.json`:
 
 ```json
 {
   "ConnectionStrings": {
-    "NodeDatabase": "/var/lib/edgeguard/node/edge-node.db"
+    "NodeDatabase": "C:\\EdgeGuard\\Node\\persistence\\edge-node.db"
   },
   "Hub": {
     "BaseUrl": "https://edgeguard.hospital.internal",
@@ -183,7 +211,7 @@ export NodeRegistration__Secret="<shared-node-secret>"
     "Port": 11112,
     "AllowedCallingAeTitles": ["CT_SUITE_2", "MR_SUITE_1", "PACS_MAIN"],
     "InstanceRetentionDays": 3,
-    "StoragePath": "/data/dicom-store"
+    "StoragePath": "C:\\EdgeGuard\\Node\\dicom-store"
   },
   "Diagnostics": {
     "InstanceId": "EDGE-RADIOLOGY-FLOOR2",
@@ -193,3 +221,11 @@ export NodeRegistration__Secret="<shared-node-secret>"
   }
 }
 ```
+
+After editing, restart the service:
+
+```powershell
+Restart-Service EdgeGuardNode
+```
+
+**Linux equivalent (alternative)** — use POSIX paths (`/var/lib/edgeguard/node/edge-node.db`, `/data/dicom-store`) and reload via `sudo systemctl restart edgeguard-node`.

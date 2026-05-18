@@ -2,6 +2,8 @@
 
 An EdgeGuard Edge Node is a lightweight, autonomous service deployed on-premises at a clinical site. It receives DICOM studies directly from imaging modalities on port 11112, applies local routing rules, and forwards studies to PACS destinations. It operates in offline-first mode and synchronises state with the Hub when connectivity is available.
 
+> **Hosting:** Each Edge Node is deployed as a **Windows Service** (`Dicom.Edge.Node.exe`, service name `EdgeGuardNode`). The DICOM SCP (port 11112) and the management/health API (Kestrel on 5001) run inside the same service process. No IIS or external web server is required on Node hosts — Kestrel binds directly. Default install path: `C:\EdgeGuard\Node\`. Linux/Docker deployments using `systemd` are supported as a secondary option.
+
 ---
 
 ## Project Relationship Diagram

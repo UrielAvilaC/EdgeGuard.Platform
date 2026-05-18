@@ -1,6 +1,8 @@
 # Edge Node Deployment Guide
 
-This guide covers deploying an EdgeGuard Edge Node as a Windows Service or Linux systemd service.
+EdgeGuard Edge Node is designed to run as a **Windows Service** on the imaging site host. This guide covers the production Windows Service deployment plus the optional Linux systemd alternative.
+
+> **Target environment:** Windows Server 2019 / 2022 (or Windows 10 / 11 Pro for small sites) with .NET 10 Runtime + SQLite (bundled).
 
 ---
 
@@ -9,11 +11,12 @@ This guide covers deploying an EdgeGuard Edge Node as a Windows Service or Linux
 1. [Prerequisites](#prerequisites)
 2. [Data Directory Structure](#data-directory-structure)
 3. [Configuration File](#configuration-file)
-4. [Windows Service Installation](#windows-service-installation)
-5. [Linux systemd Installation](#linux-systemd-installation)
-6. [Hub Registration](#hub-registration)
-7. [Firewall Configuration](#firewall-configuration)
-8. [Update Process](#update-process)
+4. [Windows Service Installation (Production)](#windows-service-installation-production)
+5. [Hub Registration](#hub-registration)
+6. [Firewall Configuration](#firewall-configuration)
+7. [Update Process](#update-process)
+8. [Verifying the Installation](#verifying-the-installation)
+9. [Optional — Linux systemd](#optional--linux-systemd)
 
 ---
 
@@ -21,183 +24,404 @@ This guide covers deploying an EdgeGuard Edge Node as a Windows Service or Linux
 
 | Component | Minimum | Notes |
 |-----------|---------|-------|
-| .NET Runtime | 10.0 | Worker Service host |
-| RAM | 1 GB | 2 GB recommended for busy DICOM AEs |
-| Disk | 10 GB | For temp DICOM files, SQLite, logs |
-| Network | LAN access to Hub | Also needs DICOM port reachable from modalities |
-| OS | Windows 10/Server 2019+ or Linux (systemd) | |
+| Windows Server | 2019 | Or Windows 10 / 11 Pro for small sites |
+| .NET Runtime | 10.0 | Install via `dotnet-runtime-10.0.x-win-x64.exe` (no IIS bundle needed — Node hosts Kestrel directly) |
+| RAM | 2 GB | 4 GB recommended for busy DICOM AEs |
+| Disk | 50 GB | Temp DICOM files + SQLite + rolling logs |
+| Network | LAN access to Hub | Plus reachability from modalities on DICOM port |
+| Administrator rights | Required | For `sc.exe` service install and firewall rules |
+
+### Verify .NET Runtime
+
+```powershell
+dotnet --list-runtimes
+# Expected:
+# Microsoft.NETCore.App   10.0.0  [C:\Program Files\dotnet\shared\Microsoft.NETCore.App]
+```
+
+If missing, download the **.NET Runtime** (not the SDK, not the ASP.NET Core Hosting Bundle) from <https://dotnet.microsoft.com/download/dotnet/10.0>.
 
 ---
 
 ## Data Directory Structure
 
-The node uses a predictable directory layout relative to the installation path:
+The Node uses a predictable directory layout under its installation path. **Recommended root:** `C:\EdgeGuard\Node\`.
 
 ```
-/opt/edgeguard/node/          (or C:\EdgeGuard\Node\ on Windows)
-  ├── Dicom.Edge.Node.dll     # Application binary
-  ├── appsettings.json        # Base configuration
-  ├── appsettings.Production.json  # Environment overrides
-  ├── persistence/
-  │   └── edge-node.db        # SQLite database (node state, routing rules)
-  ├── logs/
-  │   ├── node-20250101.log   # Daily rolling log files
-  │   └── node-20250102.log
-  └── data/
-      └── (temp DICOM files)  # Transient; auto-cleaned after forwarding
+C:\EdgeGuard\Node\
+  ├── Dicom.Edge.Node.exe          # Service host
+  ├── Dicom.Edge.Node.dll          # Application
+  ├── appsettings.json             # Base configuration (committed-in defaults)
+  ├── appsettings.Production.json  # Site-specific overrides (NOT committed)
+  ├── persistence\
+  │   └── edge-node.db             # SQLite DB (routing rules, queue, settings)
+  ├── logs\
+  │   ├── node-20260517.log        # Daily rolling log files
+  │   └── node-20260518.log
+  └── data\
+      └── <StudyInstanceUid>\      # Temp DICOM files in transit (auto-cleaned)
+          └── <SeriesInstanceUid>\
+              └── <SopInstanceUid>.dcm
 ```
 
-> **Note:** The `data/` directory holds DICOM files in transit. Files are removed after successful forwarding to the PACS. This directory can be safely cleared if the node is stopped, though in-flight studies will need to be re-sent from the modality.
+> **Cleanup behaviour:** files under `data\` are removed after successful forwarding to the PACS. This directory can be cleared while the service is stopped — in-flight studies will need to be re-sent from the modality.
 
 ---
 
 ## Configuration File
 
-**appsettings.json** (base — do not put secrets here):
+`appsettings.json` (base — defaults, no secrets):
 
-```json
+```jsonc
 {
   "Node": {
     "NodeId": "node-site-a",
     "DisplayName": "Site A Edge Node",
-    "HubBaseUrl": "https://your-hub-domain.example.com",
-    "RegistrationKey": "YOUR_NODE_REGISTRATION_KEY"
+    "HubBaseUrl": "https://hub.your-org.local"
   },
-  "Dicom": {
+  "DicomServer": {
     "AeTitle": "EDGEGUARD_NODE",
-    "ListenPort": 11112,
-    "MaxConcurrentConnections": 10,
-    "MaxPduSize": 131072
+    "Port": 11112,
+    "MaxClients": 10,
+    "ValidateCalledAe": true,
+    "MwlEnabled": true,
+    "CEchoEnabled": true,
+    "QrEnabled": true,
+
+    // P0-3 — DICOM TLS (optional, opt-in)
+    "Tls": {
+      "Enabled": false,
+      "CertificatePath": null,
+      "CertificatePassword": null,
+      "RequireClientCertificate": false
+    }
+  },
+  "ConnectionStrings": {
+    "NodeDatabase": "Data Source=./persistence/edge-node.db"
   },
   "Diagnostics": {
-    "PHIRedaction": "Strict",
-    "Seq": {
-      "Enabled": false,
-      "Url": "",
-      "ApiKey": ""
-    }
+    "InstanceId": "NODE-001",
+    "Application": "EdgeGuardNode",
+    "Component": "Node",
+    "Redaction": { "Enabled": true, "Mode": "Strict" }
   },
-  "Serilog": {
-    "MinimumLevel": {
-      "Default": "Information",
-      "Override": {
-        "Microsoft": "Warning",
-        "System": "Warning"
-      }
-    }
+  "NodeAuth": {
+    "Enforce": false   // P0-1 — flip to true once Hub deploy with signing is live
   }
 }
 ```
 
-**appsettings.Production.json** (environment-specific, kept on the server):
+`appsettings.Production.json` (site-specific, lives on the server — never commit):
 
-```json
+```jsonc
 {
   "Node": {
-    "HubBaseUrl": "https://hub.internal.example.com",
-    "RegistrationKey": "prod-registration-key-from-hub-ui"
+    "NodeId":     "node-radiology-wing-a",
+    "DisplayName": "Radiology Wing A",
+    "HubBaseUrl":  "https://hub.your-org.local"
   },
-  "Dicom": {
-    "AeTitle": "EDGEGUARD_SITE_A"
+  "DicomServer": {
+    "AeTitle": "EDGEGUARD_WINGA",
+    "AeTitleAliases": [ "OLDEDGE", "RAD_AE" ],
+    "AllowedCallingAeTitles": [ "CT_GE_64", "MR_SIEMENS_3T" ],
+    "ValidateCallingAe": true
   }
 }
 ```
 
-### Key Configuration Settings
+### Key configuration settings
 
 | Setting | Description | Example |
 |---------|-------------|---------|
 | `Node.NodeId` | Unique identifier for this node | `node-radiology-a` |
-| `Node.HubBaseUrl` | URL of the Hub API | `https://hub.example.com` |
-| `Node.RegistrationKey` | One-time key from Hub UI (see [Hub Registration](#hub-registration)) | `ey...` |
-| `Dicom.AeTitle` | DICOM Application Entity Title for this node | `EDGEGUARD_NODE` |
-| `Dicom.ListenPort` | DICOM C-STORE listen port | `11112` |
-| `Dicom.MaxConcurrentConnections` | Max simultaneous DICOM associations | `10` |
+| `Node.HubBaseUrl` | Hub URL | `https://hub.your-org.local` |
+| `DicomServer.AeTitle` | DICOM AE Title for this node's SCP | `EDGEGUARD_NODE` |
+| `DicomServer.Port` | DICOM C-STORE listen port | `11112` |
+| `DicomServer.MaxClients` | Max simultaneous DICOM associations | `10` |
+| `DicomServer.Tls.Enabled` | Enable TLS on the DICOM SCP listener (P0-3) | `true` once certificate is provisioned |
+| `NodeAuth.Enforce` | Reject unsigned Hub→Node requests (P0-1) | `true` after coordinated Hub deploy |
 
 ---
 
-## Windows Service Installation
+## Windows Service Installation (Production)
 
 ### 1. Publish the application
 
+From a build machine with the .NET SDK:
+
 ```powershell
-dotnet publish src/backend/Dicom.Edge.Node `
+dotnet publish src\edge\Dicom.Edge.Node `
   --configuration Release `
   --runtime win-x64 `
   --self-contained false `
   --output C:\EdgeGuard\Node
 ```
 
-### 2. Create and start the service
+> The publish output contains `Dicom.Edge.Node.exe` (the Windows host shim) plus `Dicom.Edge.Node.dll` (the actual app). Both must exist for `sc.exe` to start the service.
 
-```cmd
-sc create EdgeGuardNode ^
-  binPath= "C:\Program Files\dotnet\dotnet.exe C:\EdgeGuard\Node\Dicom.Edge.Node.dll" ^
-  DisplayName= "EdgeGuard Edge Node" ^
-  start= auto ^
+### 2. Pre-create data folders with correct permissions
+
+```powershell
+New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\logs        | Out-Null
+New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\persistence | Out-Null
+New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\data        | Out-Null
+
+# Grant the service account Modify rights on the writable folders.
+# Replace NT AUTHORITY\NetworkService with your dedicated service account if applicable.
+icacls C:\EdgeGuard\Node\logs        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+icacls C:\EdgeGuard\Node\persistence /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+icacls C:\EdgeGuard\Node\data        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+```
+
+### 3. Create and start the service
+
+```powershell
+# Create the service
+sc.exe create EdgeGuardNode `
+  binPath= "C:\EdgeGuard\Node\Dicom.Edge.Node.exe" `
+  DisplayName= "EdgeGuard Edge Node" `
+  start= auto `
   obj= "NT AUTHORITY\NetworkService"
 
-sc description EdgeGuardNode "EdgeGuard Platform Edge Node - DICOM routing and HL7 integration"
-
-sc start EdgeGuardNode
+sc.exe description EdgeGuardNode "EdgeGuard Platform Edge Node - DICOM C-STORE SCP, MWL, and PACS routing"
 ```
 
-### 3. Configure service recovery
+> **Service account:** `NetworkService` is sufficient for outbound calls and local file/SQLite access. For environments where DICOM SCU must authenticate against domain resources or write to network shares, use a dedicated AD service account: `obj= "DOMAIN\edgeguard_node_svc" password= "<pwd>"`.
 
-```cmd
-sc failure EdgeGuardNode reset= 86400 actions= restart/10000/restart/30000/restart/60000
-```
-
-This restarts the service after 10 seconds on first failure, 30 seconds on second, 60 seconds on subsequent failures.
-
-### 4. Verify the service
+### 4. Configure recovery policy
 
 ```powershell
-sc query EdgeGuardNode
-# Expected: STATE: 4 RUNNING
+# Restart after 10s on 1st failure, 30s on 2nd, 60s on subsequent. Reset counter daily.
+sc.exe failure EdgeGuardNode reset= 86400 actions= restart/10000/restart/30000/restart/60000
 
-# Check health
-Invoke-RestMethod http://localhost:5001/health
+# Restart only on unexpected exit (not on graceful Stop)
+sc.exe failureflag EdgeGuardNode 1
 ```
 
-### 5. Configure log viewing
+### 5. Start the service
 
 ```powershell
-# View recent logs
-Get-Content C:\EdgeGuard\Node\logs\node-*.log -Tail 50
+Start-Service EdgeGuardNode
+
+# Verify
+Get-Service EdgeGuardNode
+# Status   Name           DisplayName
+# ------   ----           -----------
+# Running  EdgeGuardNode  EdgeGuard Edge Node
+```
+
+### 6. Tail the log
+
+```powershell
+Get-Content "C:\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" -Wait -Tail 50
+```
+
+Expected first-run lines:
+
+```
+[INF] Starting EdgeGuard Edge Node 1.0.0 (NodeId=node-site-a)
+[INF] DICOM server listening on port 11112 — TLS=False C-STORE=enabled C-ECHO=True MWL=True QR=True
+[INF] Node registered with Hub https://hub.your-org.local — ApiKey received
+[INF] Configuration sync received: 3 PACS destinations, 5 routing rules
 ```
 
 ### Manage the service
 
-```cmd
-sc stop EdgeGuardNode    # Stop
-sc start EdgeGuardNode   # Start
-sc delete EdgeGuardNode  # Uninstall
+```powershell
+Stop-Service    EdgeGuardNode
+Start-Service   EdgeGuardNode
+Restart-Service EdgeGuardNode
+
+# Uninstall completely
+Stop-Service EdgeGuardNode
+sc.exe delete EdgeGuardNode
 ```
 
 ---
 
-## Linux systemd Installation
+## Hub Registration
 
-### 1. Publish the application
+Each Node must register with the Hub before it can receive PACS destinations and routing rules.
+
+### Step 1 — Generate a bootstrap token in the Hub UI
+
+1. Log in to the Hub at `https://hub.your-org.local`.
+2. Navigate to **Nodes → Register New Node**.
+3. Fill in:
+   - **Display Name** — human-readable name (e.g. `Radiology Wing A`)
+   - **Node ID** — unique slug (e.g. `node-rad-a`)
+4. Click **Generate Bootstrap Token** and copy the one-time token.
+
+### Step 2 — Configure the Node
+
+Edit `C:\EdgeGuard\Node\appsettings.Production.json`:
+
+```jsonc
+{
+  "Node": {
+    "NodeId":            "node-rad-a",
+    "BootstrapToken":    "<paste token here>",
+    "HubBaseUrl":        "https://hub.your-org.local"
+  }
+}
+```
+
+### Step 3 — Start (or restart) the service
+
+```powershell
+Restart-Service EdgeGuardNode
+```
+
+On first startup with a valid bootstrap token, the Node:
+
+1. Calls `POST /api/edge/register` on the Hub with the bootstrap token.
+2. Receives a permanent **ApiKey** that is persisted in `node_settings` (key `hub.api_key`).
+3. Removes the consumed `BootstrapToken` from `appsettings.Production.json` automatically (or you can remove it manually).
+4. Appears as **Connected** in the Hub UI.
+
+### What gets auto-synced from the Hub
+
+Once registered, these are pushed automatically whenever changed:
+
+| Configuration | Sync trigger |
+|---------------|--------------|
+| PACS server list (AE Title, host, port, TLS, anonymize) | Hub PACS settings change |
+| DICOM routing rules | Routing rule create / update / delete |
+| HL7 worklist messages | HIS/RIS sends to Hub |
+| Node display name | Hub UI edit |
+
+The Node also polls `GET /api/nodes/{id}/configuration` every 60s as a safety net in case a push was lost while the Node was offline.
+
+---
+
+## Firewall Configuration
+
+### Inbound rules (on the Node host)
+
+| Port | Protocol | Source | Purpose |
+|------|----------|--------|---------|
+| 11112 | TCP | Modality network segment | DICOM C-STORE / C-FIND MWL / C-ECHO |
+| 5001 | TCP | Internal admin subnet | Health / configuration endpoints |
+
+### Outbound rules (from the Node host)
+
+| Destination | Port | Protocol | Purpose |
+|-------------|------|----------|---------|
+| Hub | 443 | TCP | Hub API (registration, sync, telemetry) |
+| PACS | 104 or 11112 | TCP | DICOM C-STORE SCU |
+
+### Windows Firewall rules
+
+```powershell
+# Allow DICOM C-STORE/C-FIND inbound from modality subnet
+New-NetFirewallRule `
+  -DisplayName "EdgeGuard Node - DICOM SCP" `
+  -Direction Inbound `
+  -Protocol TCP `
+  -LocalPort 11112 `
+  -RemoteAddress 10.10.20.0/24 `   # Modality subnet
+  -Action Allow `
+  -Profile Domain,Private
+
+# Allow health/admin endpoints from admin subnet only
+New-NetFirewallRule `
+  -DisplayName "EdgeGuard Node - Admin API" `
+  -Direction Inbound `
+  -Protocol TCP `
+  -LocalPort 5001 `
+  -RemoteAddress 10.10.99.0/24 `   # Admin subnet
+  -Action Allow `
+  -Profile Domain
+```
+
+---
+
+## Update Process
+
+Updates replace the binaries and restart the service. Routing rules, registration, and PACS configuration live in SQLite (`persistence\edge-node.db`) and the Hub, so they survive the upgrade unchanged.
+
+```powershell
+# 1. Stop the service
+Stop-Service EdgeGuardNode
+
+# 2. Optional — back up the SQLite database
+$stamp = Get-Date -Format yyyyMMdd-HHmmss
+Copy-Item C:\EdgeGuard\Node\persistence\edge-node.db `
+          C:\EdgeGuard\Backups\edge-node.$stamp.db
+
+# 3. Publish the new version over the existing directory.
+#    --no-self-contained ensures we only ship binaries (NOT the .NET runtime).
+dotnet publish src\edge\Dicom.Edge.Node `
+  --configuration Release `
+  --runtime win-x64 `
+  --self-contained false `
+  --output C:\EdgeGuard\Node
+
+# 4. Start the service
+Start-Service EdgeGuardNode
+
+# 5. Verify health
+Invoke-RestMethod http://localhost:5001/health
+```
+
+> **Tip:** Migrations on the SQLite DB run automatically at startup. If a migration fails, the service log will report it and the service will exit — restore from backup, fix the issue, and try again.
+
+---
+
+## Verifying the Installation
+
+### Service status
+
+```powershell
+Get-Service EdgeGuardNode
+# Status: Running
+
+# Detailed
+sc.exe queryex EdgeGuardNode
+```
+
+### Health endpoint
+
+```powershell
+Invoke-RestMethod http://localhost:5001/health
+# Expected:
+# status      : Healthy
+# components  : { DICOM: Healthy, SQLite: Healthy, HubConnection: Healthy }
+```
+
+### DICOM C-ECHO verification (from another DICOM tool)
+
+From any DICOM tool that supports C-ECHO (DCMTK, fo-dicom-test, etc.):
 
 ```bash
-dotnet publish src/backend/Dicom.Edge.Node \
+echoscu -aec EDGEGUARD_NODE -aet TEST <node-host> 11112
+# Expected: I: Echo Response: Success [0000h]
+```
+
+### Hub registration
+
+In the Hub UI: **Nodes → All Nodes** — the newly-registered node should appear with status **Connected** and the configured AE Title.
+
+---
+
+## Optional — Linux systemd
+
+For non-Windows environments (containerized labs, Linux-only sites), the Node can also run as a systemd service.
+
+```bash
+# Publish for Linux
+dotnet publish src/edge/Dicom.Edge.Node \
   --configuration Release \
   --runtime linux-x64 \
   --self-contained false \
   --output /opt/edgeguard/node
 
-# Create dedicated user
+# Dedicated user
 sudo useradd --system --no-create-home --shell /sbin/nologin edgeguard-node
-
-# Set ownership
 sudo chown -R edgeguard-node:edgeguard-node /opt/edgeguard/node
 ```
 
-### 2. Create systemd unit file
-
-Create `/etc/systemd/system/edgeguard-node.service`:
+`/etc/systemd/system/edgeguard-node.service`:
 
 ```ini
 [Unit]
@@ -211,18 +435,12 @@ User=edgeguard-node
 Group=edgeguard-node
 WorkingDirectory=/opt/edgeguard/node
 ExecStart=/usr/bin/dotnet /opt/edgeguard/node/Dicom.Edge.Node.dll
-
-# Environment
 Environment=DOTNET_ENVIRONMENT=Production
-
-# Restart policy
 Restart=on-failure
 RestartSec=10
 KillMode=mixed
 KillSignal=SIGTERM
 TimeoutStopSec=30
-
-# Security hardening
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
@@ -232,153 +450,12 @@ ReadWritePaths=/opt/edgeguard/node/logs /opt/edgeguard/node/data /opt/edgeguard/
 WantedBy=multi-user.target
 ```
 
-### 3. Enable and start
-
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable edgeguard-node
-sudo systemctl start edgeguard-node
+sudo systemctl start  edgeguard-node
 sudo systemctl status edgeguard-node
-```
-
-### 4. View logs
-
-```bash
-# Via journald
 journalctl -u edgeguard-node -f
-
-# Via rolling log files
-tail -f /opt/edgeguard/node/logs/node-$(date +%Y%m%d).log
 ```
 
----
-
-## Hub Registration
-
-Each node must register with the Hub before it can receive configuration and routing rules.
-
-### Step 1: Generate a registration key in the Hub UI
-
-1. Log in to the Hub at `https://your-hub-domain.example.com`.
-2. Navigate to **Settings → Nodes → Register New Node**.
-3. Fill in:
-   - **Display Name**: Human-readable name (e.g., `Radiology Wing A`)
-   - **Node ID**: Unique slug (e.g., `node-rad-a`)
-4. Click **Generate Key**. Copy the one-time registration key.
-
-### Step 2: Configure the node
-
-Paste the key into `appsettings.Production.json` under `Node.RegistrationKey`.
-
-### Step 3: Start the node
-
-On first startup with a valid registration key, the node:
-1. Contacts the Hub registration endpoint.
-2. Receives its node certificate and configuration.
-3. The key is consumed and the node appears as **Connected** in the Hub UI.
-
-### What gets auto-synced from the Hub
-
-Once registered, the following are pushed automatically whenever changed:
-
-| Configuration | Sync trigger |
-|---------------|-------------|
-| PACS server list (AE Title, host, port) | Hub PACS settings change |
-| DICOM routing rules | Routing rule create/update/delete |
-| HL7 message type filters | Hub settings update |
-| Node display name | Hub UI edit |
-
-The node polls the Hub every 60 seconds for configuration changes and applies them without restart.
-
----
-
-## Firewall Configuration
-
-### Inbound rules (on the node host)
-
-| Port | Protocol | Source | Purpose |
-|------|----------|--------|---------|
-| 11112 | TCP | Modality network segment | DICOM C-STORE (default, configurable) |
-| 5001 | TCP | Internal only | Health/diagnostics endpoints |
-
-### Outbound rules (from the node host)
-
-| Destination | Port | Protocol | Purpose |
-|-------------|------|----------|---------|
-| Hub host | 443 | TCP | Hub API (registration, config sync) |
-| PACS host | 104 or 11112 | TCP | DICOM C-STORE to PACS |
-
-### Windows Firewall — open DICOM port
-
-```powershell
-New-NetFirewallRule `
-  -DisplayName "EdgeGuard Node DICOM" `
-  -Direction Inbound `
-  -Protocol TCP `
-  -LocalPort 11112 `
-  -Action Allow `
-  -Profile Domain,Private
-```
-
-### Linux iptables / firewalld
-
-```bash
-# firewalld
-sudo firewall-cmd --permanent --add-port=11112/tcp
-sudo firewall-cmd --reload
-
-# or iptables
-sudo iptables -A INPUT -p tcp --dport 11112 -j ACCEPT
-```
-
----
-
-## Update Process
-
-Updating a node involves replacing the binary and restarting the service. Routing rules and PACS configuration are stored in the SQLite database and the Hub, so they are preserved across updates.
-
-### Windows
-
-```powershell
-# 1. Stop the service
-sc stop EdgeGuardNode
-
-# 2. Publish new version over existing directory
-dotnet publish src/backend/Dicom.Edge.Node `
-  --configuration Release `
-  --runtime win-x64 `
-  --self-contained false `
-  --output C:\EdgeGuard\Node
-
-# 3. Start the service
-sc start EdgeGuardNode
-
-# 4. Verify health
-Invoke-RestMethod http://localhost:5001/health
-```
-
-### Linux
-
-```bash
-# 1. Stop the service
-sudo systemctl stop edgeguard-node
-
-# 2. Publish new version
-dotnet publish src/backend/Dicom.Edge.Node \
-  --configuration Release \
-  --runtime linux-x64 \
-  --self-contained false \
-  --output /opt/edgeguard/node
-
-# Fix ownership (publish may create files as current user)
-sudo chown -R edgeguard-node:edgeguard-node /opt/edgeguard/node
-
-# 3. Start the service
-sudo systemctl start edgeguard-node
-
-# 4. Verify
-sudo systemctl status edgeguard-node
-curl http://localhost:5001/health
-```
-
-> **Tip:** The node's SQLite database (`persistence/edge-node.db`) is never overwritten by a publish. Always back up the database before major version upgrades. See [backup-recovery.md](./backup-recovery.md).
+> **Not the primary deployment target.** Windows Service is canonical; Linux is kept for parity and is used by CI/dev environments.

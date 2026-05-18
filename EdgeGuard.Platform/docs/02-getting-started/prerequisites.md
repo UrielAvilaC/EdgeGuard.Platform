@@ -2,28 +2,37 @@
 
 Review and satisfy every item in this checklist before attempting installation. Items marked **Required** will prevent the system from starting if absent; items marked **Recommended** affect production reliability.
 
+> **Target platform:** Windows Server. The Hub deploys on **IIS** and the Edge Node runs as a **Windows Service**. Linux is supported for development / non-standard scenarios — see deployment guides for details.
+
 ---
 
 ## Runtime Software
 
-### Hub Server
+### Hub Server (Windows + IIS)
 
 | Requirement | Version | Status | Notes |
 |-------------|---------|--------|-------|
-| .NET SDK | 10.0+ | **Required** | Install from [dot.net](https://dot.net). Verify with `dotnet --version`. |
-| Node.js | 22.x LTS+ | **Required** | Needed to build the Angular SPA. Verify with `node --version`. |
-| Angular CLI | 21.x | **Required** | Install globally: `npm install -g @angular/cli@21`. Verify with `ng version`. |
+| Windows Server | 2019 / 2022 | **Required** | Production target. Windows 10/11 supported for dev. |
+| IIS | 10.0 | **Required** | Install via `Install-WindowsFeature Web-Server, Web-WebSockets, Web-Http-Logging, Web-Stat-Compression, Web-Dyn-Compression -IncludeManagementTools` |
+| ASP.NET Core Hosting Bundle | 10.0 | **Required** | Installs the `AspNetCoreModuleV2` for IIS plus the .NET runtime. Download from [dot.net](https://dotnet.microsoft.com/download/dotnet/10.0). |
+| .NET SDK | 10.0+ | Required on build machine | Used to publish; not required on the IIS server itself. |
+| Node.js | 22.x LTS+ | Required on build machine | Builds the Angular SPA before publish. |
+| Angular CLI | 21.x | Required on build machine | `npm install -g @angular/cli@21`. |
+| EF Core CLI | 10.x | Required for manual migrations | `dotnet tool install --global dotnet-ef`. Auto-migrations on startup do not need this. |
 | Git | 2.x+ | Recommended | Required to clone the repository. |
-| EF Core CLI | 10.x | **Required** | `dotnet tool install --global dotnet-ef`. Verify with `dotnet ef --version`. |
 
-### Edge Node
+> **WebSockets** must be enabled in IIS for SignalR real-time notifications. Verify under **IIS Manager → site → Configuration Editor → `system.webServer/webSocket`** (`enabled="true"`).
+
+### Edge Node (Windows Service)
 
 | Requirement | Version | Status | Notes |
 |-------------|---------|--------|-------|
-| .NET Runtime | 10.0+ | **Required** | SDK not required on production nodes — runtime is sufficient. |
-| .NET SDK | 10.0+ | Required for dev | Needed if building from source on the node. |
+| Windows Server | 2019 / 2022 | **Required** | Or Windows 10 / 11 Pro for small sites. |
+| .NET Runtime | 10.0+ | **Required** | Install `dotnet-runtime-10.0.x-win-x64.exe` (NOT the SDK and NOT the ASP.NET Hosting Bundle — Node hosts Kestrel directly, no IIS). |
+| Administrator | — | **Required for install** | Needed for `sc.exe create` and Windows Firewall rules. |
+| .NET SDK | 10.0+ | Required for dev | Only on build machines, not on production nodes. |
 
-> **Note:** SQLite is bundled with the .NET runtime via Microsoft.Data.Sqlite and requires no separate installation.
+> SQLite is bundled with the .NET runtime via `Microsoft.Data.Sqlite` and requires no separate installation.
 
 ---
 
@@ -33,119 +42,121 @@ Review and satisfy every item in this checklist before attempting installation. 
 
 | Item | Requirement |
 |------|-------------|
-| Version | PostgreSQL **16** or later |
-| Installation | Standalone server, managed service (Amazon RDS, Azure Database for PostgreSQL, Cloud SQL), or Docker container |
-| User permissions | The Hub connection string user must have `CREATE`, `ALTER`, `SELECT`, `INSERT`, `UPDATE`, `DELETE` on the target database, and `CREATE TABLE` / `CREATE INDEX` for EF Core migrations |
-| Encoding | `UTF8` (PostgreSQL default) |
-| Collation | Any; `en-US-x-icu` or `C` recommended for consistency |
+| Version | PostgreSQL **16** or later (15 works; 16 recommended) |
+| Hosting | Standalone Windows / Linux server, managed service (Azure Database for PostgreSQL, Amazon RDS, Cloud SQL), or Docker container |
+| User permissions | The connection-string user needs `CONNECT`, `CREATE`, schema ownership, and `SELECT/INSERT/UPDATE/DELETE` plus `CREATE TABLE / CREATE INDEX` for EF Core migrations |
+| Encoding | `UTF8` |
+| Collation | `en-US-x-icu` or `C` (any consistent collation works) |
+| Network | Reachable from the IIS Hub server on TCP 5432; consider SSL/TLS in transit |
 
-```bash
-# Minimal PostgreSQL setup example
-createuser --pwprompt edgeguard
-createdb --owner=edgeguard edgeguard_hub
+```sql
+-- Minimal PostgreSQL setup
+CREATE ROLE edgeguard LOGIN PASSWORD '<strong password>';
+CREATE DATABASE edgeguard_hub OWNER edgeguard ENCODING 'UTF8';
 ```
 
 ### Edge Node — SQLite
 
-SQLite requires no external installation or configuration. The database file is created automatically at `./persistence/edge-node.db` on first startup. Ensure the process user has read/write access to the persistence directory.
+SQLite requires no external installation. The database file is created automatically at `C:\EdgeGuard\Node\persistence\edge-node.db` on first startup. Ensure the service account has Modify on the `persistence\` folder.
 
 ---
 
 ## Network Ports
 
-The following ports must be open between the indicated hosts. Adjust firewall rules before installation.
+The following ports must be open between the indicated hosts. Adjust Windows Firewall rules before installation.
 
 ### Hub Server
 
 | Port | Protocol | Direction | Purpose | Required? |
 |------|----------|-----------|---------|-----------|
-| **5000** | TCP | Inbound | Hub API HTTP (development / internal) | **Required** |
-| **5001** | TCP | Inbound | Hub API HTTPS (production) | Recommended |
-| **8001** | TCP | Inbound | HL7 MLLP listener (from HIS/RIS) | Required if HL7 enabled |
+| **443** | TCP | Inbound | HTTPS via IIS (SPA + API + SignalR WebSockets) | **Required** (production) |
+| **80** | TCP | Inbound | HTTP → HTTPS redirect via IIS | Recommended |
+| **8001** | TCP | Inbound | HL7 MLLP listener (raw TCP, NOT through IIS) | Required if HL7 enabled |
 | **5432** | TCP | Outbound | PostgreSQL connection (to DB server) | **Required** |
+
+> The HL7 MLLP listener on `:8001` is a raw TCP socket opened by the Hub process — it does NOT go through IIS. Open the firewall scoped to your HIS/RIS subnet only.
 
 ### Edge Node
 
 | Port | Protocol | Direction | Purpose | Required? |
 |------|----------|-----------|---------|-----------|
-| **11112** | TCP | Inbound | DICOM C-STORE / C-FIND / C-ECHO SCP (from modalities, PACS) | **Required** |
-| **5000** | TCP | Outbound | HTTP to Hub API | **Required** |
-| **5001** | TCP | Outbound | HTTPS to Hub API (production) | Recommended |
-| **5120** | TCP | Inbound	| Node Api HTTP (development /iternal) | **Required**|
+| **11112** | TCP | Inbound | DICOM C-STORE / C-FIND MWL / C-ECHO SCP (from modalities) | **Required** |
+| **443** | TCP | Outbound | HTTPS to Hub API (registration, config sync, telemetry) | **Required** |
+| **5001** | TCP | Inbound | Node admin/health endpoints (internal-only) | Required for monitoring |
 | PACS port | TCP | Outbound | DICOM C-STORE to PACS (commonly 104 or 11112) | Required for forwarding |
 
-### Recommended Firewall Rules
+### Recommended Windows Firewall Rules
 
+```powershell
+# Hub — HL7 MLLP, restricted to HIS/RIS subnet
+New-NetFirewallRule -DisplayName "EdgeGuard Hub - HL7 MLLP" `
+  -Direction Inbound -Protocol TCP -LocalPort 8001 `
+  -RemoteAddress 10.20.30.0/24 -Action Allow -Profile Domain
+
+# Edge Node — DICOM SCP, restricted to modality subnet
+New-NetFirewallRule -DisplayName "EdgeGuard Node - DICOM SCP" `
+  -Direction Inbound -Protocol TCP -LocalPort 11112 `
+  -RemoteAddress 10.10.20.0/24 -Action Allow -Profile Domain,Private
+
+# Edge Node — Admin endpoint, restricted to admin subnet
+New-NetFirewallRule -DisplayName "EdgeGuard Node - Admin API" `
+  -Direction Inbound -Protocol TCP -LocalPort 5001 `
+  -RemoteAddress 10.10.99.0/24 -Action Allow -Profile Domain
 ```
-# Hub: allow HL7 from HIS/RIS subnet only
-iptables -A INPUT -p tcp --dport 8001 -s <HIS_SUBNET> -j ACCEPT
-iptables -A INPUT -p tcp --dport 8001 -j DROP
-
-# Hub: allow HTTPS from internal networks
-iptables -A INPUT -p tcp --dport 5001 -s <INTERNAL_SUBNET> -j ACCEPT
-
-# Edge Node: allow DICOM from modality subnet and PACS
-iptables -A INPUT -p tcp --dport 11112 -s <MODALITY_SUBNET> -j ACCEPT
-iptables -A INPUT -p tcp --dport 5120 -s <INTERNAL_SUBNET> -j ACCEPT
-iptables -A INPUT -p tcp --dport 11112 -s <PACS_IP> -j ACCEPT
-iptables -A INPUT -p tcp --dport 11112 -j DROP
-```
-
-> **Note:** On Windows, use Windows Firewall (`netsh advfirewall`) or Windows Defender Firewall with Advanced Security to create equivalent inbound rules.
 
 ---
 
 ## Minimum Hardware
 
-### Hub Server
+### Hub Server (Windows + IIS + PostgreSQL co-located or separate)
 
 | Resource | Minimum | Recommended (production) |
 |----------|---------|--------------------------|
 | CPU cores | 2 | 4+ |
-| RAM | 4 GB | 8 GB |
-| Disk | 20 GB (OS + app) | 100 GB+ (depends on image metadata volume) |
+| RAM | 4 GB | 8 GB+ |
+| Disk | 50 GB (OS + app + logs) | 200 GB+ (audit + HL7 retention) |
 | Disk type | HDD | SSD (PostgreSQL WAL performance) |
 | Network | 100 Mbps | 1 Gbps |
 
-> **Note:** The Hub stores only DICOM metadata (patient, study, series, instance UIDs), not pixel data. Pixel data resides on Edge Node SQLite and/or PACS. Hub disk requirements are therefore driven by audit log and HL7 message volume, not image size.
+> **Note:** The Hub stores only DICOM metadata (UIDs, patient/study records, audit logs, HL7 messages) — NOT pixel data. Pixel data lives on Edge Nodes and the destination PACS. Hub disk is sized for audit + HL7 retention.
 
-### Edge Node
+### Edge Node (Windows Service)
 
 | Resource | Minimum | Recommended |
 |----------|---------|-------------|
-| CPU cores | 1 | 2 |
-| RAM | 1 GB | 2 GB |
-| Disk | 50 GB | 500 GB+ (pixel data stored locally until forwarded) |
-| Disk type | HDD | SSD (DICOM write throughput) |
+| CPU cores | 1 | 2+ |
+| RAM | 2 GB | 4 GB |
+| Disk | 100 GB | 500 GB+ (pixel data buffered locally until forwarded) |
+| Disk type | HDD | SSD (DICOM write throughput, SQLite WAL) |
 | Network | 100 Mbps | 1 Gbps (CT/MR series are large) |
 
-> **Note:** Edge Node disk usage is transient; studies are deleted after successful PACS delivery according to the `DicomServer:InstanceRetentionDays` policy. Size the disk to hold the peak backlog for your site's daily study volume multiplied by the retention period.
+> **Note:** Edge Node disk usage is transient. Studies are deleted after successful PACS delivery per the `DicomServer:InstanceRetentionDays` policy. Size for **peak daily study volume × retention days**.
 
 ---
 
 ## Supported Operating Systems
 
-| OS | Architecture | Hub | Edge Node | Notes |
-|----|-------------|-----|-----------|-------|
-| Windows 10 / 11 | x64 | Yes | Yes | Windows Service deployment supported |
-| Windows Server 2022 | x64 | Yes | Yes | Recommended for production on Windows |
-| Ubuntu 22.04 LTS | x64 | Yes | Yes | Recommended Linux distribution |
-| Ubuntu 24.04 LTS | x64 | Yes | Yes | |
-| Debian 12 (Bookworm) | x64 | Yes | Yes | |
-| macOS 14+ (Sonoma) | arm64 / x64 | Dev only | Dev only | Not supported for production |
-| Docker (Linux container) | x64 | Yes | Yes | See section 07 (Operations) |
+| OS | Architecture | Hub | Edge Node | Status |
+|----|-------------|-----|-----------|--------|
+| **Windows Server 2022** | x64 | **Primary** (IIS) | **Primary** (Service) | Production target |
+| **Windows Server 2019** | x64 | **Supported** (IIS) | **Supported** (Service) | Production |
+| Windows 10 / 11 Pro | x64 | Dev / small sites | Dev / small sites | Dev + small-deployment |
+| Ubuntu 22.04 / 24.04 LTS | x64 | Optional (Kestrel + Nginx) | Optional (systemd) | Non-standard scenarios |
+| Debian 12 | x64 | Optional | Optional | Non-standard scenarios |
+| macOS 14+ | arm64 / x64 | Dev only | Dev only | Not supported for production |
+| Docker (Linux container) | x64 | Optional | Optional | Containerized dev / labs |
 
 ---
 
 ## Optional Dependencies
 
 | Dependency | Purpose | Configuration key |
-|------------|---------|------------------|
-| Seq | Centralized structured log viewer | `Seq:ServerUrl` |
-| OpenTelemetry Collector | Distributed tracing and metrics export | `OpenTelemetry:Enabled`, `OpenTelemetry:Endpoint` |
-| WhatsApp messaging gateway | Study-received and alert notifications | `Notifications:WhatsApp:GatewayUrl` |
-| Reverse proxy (nginx / IIS / Caddy) | TLS termination, HTTP→HTTPS redirect | External configuration |
-
+|------------|---------|-------------------|
+| Seq | Centralized structured log viewer | `Diagnostics:Seq:Enabled` |
+| OpenTelemetry Collector | Distributed tracing / metrics export | `Diagnostics:OpenTelemetry:Enabled` |
+| WhatsApp messaging gateway | Study-received alerts to clinicians | `Notifications:WhatsApp:GatewayUrl` |
+| Active Directory CS | Issuing TLS certificates for Hub and DICOM | External (PKI) |
+| Application Request Routing (ARR) | Reverse proxy in front of IIS for multi-site | IIS module |
 
 ---
 
@@ -153,14 +164,25 @@ iptables -A INPUT -p tcp --dport 11112 -j DROP
 
 Before running the quickstart guides, confirm:
 
-- [ ] .NET 10 SDK installed and `dotnet --version` returns `10.x.x`
-- [ ] Node.js 22+ installed and `node --version` returns `v22.x.x`
-- [ ] Angular CLI 19 installed globally
-- [ ] EF Core CLI installed globally
-- [ ] PostgreSQL 16+ is running and accessible from the Hub server
-- [ ] A PostgreSQL database and user have been created for EdgeGuard
-- [ ] `HUB_DB_CONNECTION_STRING` environment variable is set (or ready to be set)
-- [ ] Port 5000 (and optionally 5001) is open on the Hub server
-- [ ] Port 8001 is open for HL7 traffic (if HL7 is enabled)
-- [ ] Port 11112 is open on each Edge Node for DICOM traffic
-- [ ] The `persistence/` directory on Edge Nodes is writable by the service account
+### Build machine
+- [ ] .NET 10 SDK installed (`dotnet --version` ≥ 10.0)
+- [ ] Node.js 22+ installed (`node --version` ≥ 22.0)
+- [ ] Angular CLI 21 installed (`ng version`)
+- [ ] EF Core CLI installed (`dotnet ef --version`)
+
+### Hub host (Windows + IIS)
+- [ ] Windows Server 2019/2022 with administrator access
+- [ ] IIS + WebSockets + management tools installed
+- [ ] ASP.NET Core 10 Hosting Bundle installed
+- [ ] TLS certificate available (CA-issued) bound to port 443
+- [ ] PostgreSQL 16 reachable; database and user created
+- [ ] `HUB_DB_CONNECTION_STRING` ready to set on the App Pool
+- [ ] Port 8001 open in Windows Firewall scoped to HIS/RIS subnet
+
+### Edge Node host (Windows Service)
+- [ ] Windows Server 2019/2022 (or Win 10/11 Pro) with administrator access
+- [ ] .NET 10 Runtime installed (`dotnet --list-runtimes` shows `Microsoft.NETCore.App 10.0.x`)
+- [ ] Port 11112 open in Windows Firewall scoped to modality subnet
+- [ ] Outbound HTTPS to Hub reachable
+- [ ] Service account decided (default `NT AUTHORITY\NetworkService`, or dedicated AD account)
+- [ ] Bootstrap token generated in the Hub UI ready to paste into `appsettings.Production.json`

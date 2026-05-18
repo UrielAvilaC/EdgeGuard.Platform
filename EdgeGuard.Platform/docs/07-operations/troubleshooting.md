@@ -2,6 +2,12 @@
 
 This guide covers the most common operational issues with EdgeGuard Platform. Each scenario includes symptoms, root cause, and resolution steps.
 
+> **Platform terminology used below:**
+> - **Hub:** runs under the IIS App Pool `EdgeGuardHub` (in-process AspNetCoreModuleV2). When a runbook says "restart the Hub", that means `Restart-WebAppPool -Name EdgeGuardHub` (or `iisreset` as a heavy-handed alternative).
+> - **Edge Node:** runs as the Windows Service `EdgeGuardNode`. "Restart the node" means `Restart-Service EdgeGuardNode`.
+> - **Logs:** Hub logs live under `C:\inetpub\EdgeGuard\Hub\logs\`; Node logs under `C:\EdgeGuard\Node\logs\`. Service startup failures also surface in **Windows Event Viewer → Windows Logs → Application** and IIS failed-request tracing.
+> Linux/Docker equivalents (`systemctl`, `journalctl`, `/opt/edgeguard/...`) are shown as alternatives where relevant.
+
 ---
 
 ## Quick Reference
@@ -29,18 +35,29 @@ This guide covers the most common operational issues with EdgeGuard Platform. Ea
 ## 1. Hub Won't Start
 
 **Symptoms**
-- Service fails to start immediately
-- Log shows `Application terminated unexpectedly`
-- `systemctl status edgeguard-hub` shows state `failed`
+- IIS App Pool `EdgeGuardHub` is **Stopped** (auto-disabled after rapid-fail) — visible in IIS Manager
+- Browser receives HTTP 502.5 (ANCM Out-of-Process Startup Failure) or 500.30 (In-Process Startup Failure)
+- Windows Event Log (Application) shows `IIS AspNetCore Module V2` error events
+- `Get-Service W3SVC` shows running, but `Get-WebAppPoolState EdgeGuardHub` shows `Stopped`
 
 **Cause**
 
-The most common cause is a missing or invalid `HUB_DB_CONNECTION_STRING` environment variable.
+The most common cause is a missing or invalid `HUB_DB_CONNECTION_STRING` environment variable on the IIS App Pool.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
 
-```bash
-sudo journalctl -u edgeguard-hub -n 50 --no-pager
+```powershell
+# Inspect the most recent ASP.NET Core / IIS errors
+Get-EventLog -LogName Application -Source "IIS AspNetCore Module V2" -Newest 20 |
+    Format-List TimeGenerated, EntryType, Message
+
+# Inspect stdout logs (enabled via web.config <aspNetCore stdoutLogEnabled="true">)
+Get-ChildItem "C:\inetpub\EdgeGuard\Hub\logs\stdout*.log" |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1 |
+    Get-Content -Tail 80
+
+# IIS failed request tracing
+Get-ChildItem "C:\inetpub\logs\FailedReqLogFiles\W3SVC*"
 ```
 
 Look for:
@@ -52,26 +69,37 @@ or:
 [FTL] Npgsql.NpgsqlException: Connection refused (localhost:5432)
 ```
 
-**Resolution**
+**Resolution (Windows — primary)**
 
-1. Verify the environment variable is set:
-```bash
-sudo cat /etc/edgeguard/hub.env | grep HUB_DB_CONNECTION_STRING
+1. Verify the env var is set on the App Pool (IIS Manager → Application Pools → EdgeGuardHub → Advanced Settings → Environment Variables), or via PowerShell:
+```powershell
+Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -Name "environmentVariables.collection"
 ```
 
 2. Verify PostgreSQL is running and reachable:
+```powershell
+Test-NetConnection -ComputerName localhost -Port 5432
+& "C:\Program Files\PostgreSQL\16\bin\pg_isready.exe" -h localhost -p 5432 -U edgeguard -d edgeguard_hub
+```
+
+3. Set the variable and recycle the App Pool:
+```powershell
+$pool = "IIS:\AppPools\EdgeGuardHub"
+$envColl = @{ name = "HUB_DB_CONNECTION_STRING"; value = "Host=localhost;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=..." }
+Add-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" `
+    -Filter "system.applicationHost/applicationPools/add[@name='EdgeGuardHub']/environmentVariables" `
+    -Name "." -Value $envColl
+
+Restart-WebAppPool -Name EdgeGuardHub
+```
+
+**If on Linux (alternative)**
+
 ```bash
+sudo journalctl -u edgeguard-hub -n 50 --no-pager
+sudo cat /etc/edgeguard/hub.env | grep HUB_DB_CONNECTION_STRING
 pg_isready -h localhost -p 5432 -U edgeguard -d edgeguard_hub
-```
-
-3. If using Docker Compose, ensure the `postgres` service is healthy before `hub` starts:
-```bash
-docker compose ps
-docker compose logs postgres
-```
-
-4. Set the variable and restart:
-```bash
+docker compose ps; docker compose logs postgres   # if using Docker
 sudo systemctl restart edgeguard-hub
 ```
 
@@ -88,13 +116,25 @@ sudo systemctl restart edgeguard-hub
 
 AE Title mismatch, port not reachable, or the modality's calling AE Title is not in the allowed list.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
 
-```bash
+```powershell
+# Confirm the Windows Service is running and listening on 11112
+Get-Service EdgeGuardNode
+Get-NetTCPConnection -LocalPort 11112 -State Listen
+
 # Check node DICOM listener is running
-curl http://localhost:5001/health
+Invoke-RestMethod http://localhost:5001/health
 
 # Check node logs for rejection details
+Get-Content "C:\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" -Tail 100 |
+    Select-String -Pattern "association"
+```
+
+**Diagnosis (Linux, alternative)**
+
+```bash
+curl http://localhost:5001/health
 tail -100 /opt/edgeguard/node/logs/node-$(date +%Y%m%d).log | grep -i "association"
 ```
 
@@ -114,12 +154,21 @@ Expected rejection log:
 2. Ensure the modality is configured to send to exactly this AE Title (case-sensitive, max 16 characters, no leading/trailing spaces).
 
 3. Verify the DICOM port is reachable from the modality:
-```bash
-# From modality or a host in the same network segment
-nc -zv <node-ip> 11112
-```
 
-4. Check firewall rules allow the modality's IP on the DICOM port.
+   **PowerShell (Windows):**
+   ```powershell
+   Test-NetConnection -ComputerName <node-ip> -Port 11112
+   ```
+
+   **Bash (Linux):**
+   ```bash
+   nc -zv <node-ip> 11112
+   ```
+
+4. Check firewall rules allow the modality's IP on the DICOM port. On Windows, inspect the rule with:
+   ```powershell
+   Get-NetFirewallRule -DisplayName "EdgeGuard*" | Get-NetFirewallPortFilter
+   ```
 
 5. If the node restricts calling AE Titles, add the modality AE to the allowed list in the Hub UI under **Nodes → [Node] → Allowed AE Titles**.
 
@@ -136,13 +185,24 @@ nc -zv <node-ip> 11112
 
 MLLP port (8001) is blocked by firewall, or the sending system is not using proper MLLP framing.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
+
+```powershell
+# Confirm the MLLP listener inside w3wp.exe is bound on :8001
+Get-NetTCPConnection -LocalPort 8001 -State Listen
+
+# Test MLLP port connectivity from the HIS/RIS host
+Test-NetConnection -ComputerName <hub-ip> -Port 8001
+
+# Check Hub logs
+Get-Content "C:\inetpub\EdgeGuard\Hub\logs\hub-$(Get-Date -Format yyyyMMdd).log" -Tail 200 |
+    Select-String -Pattern "mllp|hl7|8001"
+```
+
+**Diagnosis (Linux, alternative)**
 
 ```bash
-# Test MLLP port connectivity from the HIS/RIS host
 nc -zv <hub-ip> 8001
-
-# Check Hub logs for connection attempts
 grep -i "mllp\|hl7\|8001" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | tail -20
 ```
 
@@ -157,10 +217,19 @@ grep -i "mllp\|hl7\|8001" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | tail
 3. Use HAPI TestPanel to send a test message directly and confirm it arrives (see [hl7-integration-guide.md](../08-integrations/hl7-integration-guide.md)).
 
 4. Check the Hub HL7 listener health:
-```bash
-curl http://localhost:5000/health
-# Look for "hl7-listener" check
-```
+
+   **PowerShell (Windows):**
+   ```powershell
+   Invoke-RestMethod https://hub.your-org.local/health
+   # Look for "hl7-listener" check
+   ```
+
+   **Bash (Linux):**
+   ```bash
+   curl http://localhost:5000/health
+   ```
+
+> The MLLP listener is a raw-socket `IHostedService` running inside the same `w3wp.exe` worker as the REST API. If the App Pool `EdgeGuardHub` is recycling or its `startMode` is not `AlwaysRunning` / `idleTimeout` is not `00:00:00`, the listener can become unreachable. See [deployment-hub.md](./deployment-hub.md).
 
 ---
 
@@ -216,10 +285,16 @@ Check Hub logs for the specific validation error:
 
 PACS server unreachable, wrong AE Title configuration, or firewall blocking the DICOM port.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
+
+```powershell
+Get-Content "C:\inetpub\EdgeGuard\Hub\logs\hub-$(Get-Date -Format yyyyMMdd).log" -Tail 300 |
+    Select-String -Pattern "c-store|pacs|send"
+```
+
+**Diagnosis (Linux, alternative)**
 
 ```bash
-# Check Hub logs for PACS send failures
 grep -i "c-store\|pacs\|send" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | tail -30
 ```
 
@@ -261,10 +336,16 @@ echoscu pacs.internal.example.com 11112 -aec ORTHANC_PROD -aet EDGEGUARD_HUB
 
 Hub URL misconfigured, Hub not running, or registration key expired/invalid.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
+
+```powershell
+Get-Content "C:\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" -Tail 50 |
+    Select-String -Pattern "hub|connect|register"
+```
+
+**Diagnosis (Linux, alternative)**
 
 ```bash
-# Check node logs for Hub connection errors
 tail -50 /opt/edgeguard/node/logs/node-$(date +%Y%m%d).log | grep -i "hub\|connect\|register"
 ```
 
@@ -282,17 +363,34 @@ Expected error:
 ```
 
 2. Test Hub reachability from the node:
-```bash
-curl https://your-hub-domain.example.com/health
-```
 
-3. If registration key was regenerated in Hub UI, update `Node.RegistrationKey` and restart the node service.
+   **PowerShell (Windows):**
+   ```powershell
+   Invoke-RestMethod https://your-hub-domain.example.com/health
+   ```
+
+   **Bash (Linux):**
+   ```bash
+   curl https://your-hub-domain.example.com/health
+   ```
+
+3. If registration key was regenerated in Hub UI, update `Node.RegistrationKey` in `C:\EdgeGuard\Node\appsettings.Production.json` and restart the Windows Service:
+   ```powershell
+   Restart-Service EdgeGuardNode
+   ```
 
 4. Check Hub is running:
-```bash
-# On Hub server
-sudo systemctl status edgeguard-hub
-```
+
+   **PowerShell (on Hub server):**
+   ```powershell
+   Get-WebAppPoolState -Name EdgeGuardHub
+   Get-Service W3SVC
+   ```
+
+   **Bash (Linux):**
+   ```bash
+   sudo systemctl status edgeguard-hub
+   ```
 
 ---
 
@@ -519,10 +617,16 @@ location /hubs/ {
 
 Missing MRG segment in the ADT^A40 message, or the MRG-1 field (Prior Patient Identifier List) is empty.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
+
+```powershell
+Get-Content "C:\inetpub\EdgeGuard\Hub\logs\hub-$(Get-Date -Format yyyyMMdd).log" -Tail 200 |
+    Select-String -Pattern "merge|a40|mrg"
+```
+
+**Diagnosis (Linux, alternative)**
 
 ```bash
-# Search Hub logs for merge processing
 grep -i "merge\|a40\|mrg" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | tail -20
 ```
 
@@ -593,10 +697,16 @@ Supported OBX-2 types for image references:
 
 ORM^O01 messages not processed, study date filter mismatch, or scheduled procedure step status not set to `SCHEDULED`.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
+
+```powershell
+Get-Content "C:\inetpub\EdgeGuard\Hub\logs\hub-$(Get-Date -Format yyyyMMdd).log" -Tail 300 |
+    Select-String -Pattern "orm|worklist|scheduled"
+```
+
+**Diagnosis (Linux, alternative)**
 
 ```bash
-# Check if ORM messages were processed
 grep -i "orm\|worklist\|scheduled" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | tail -30
 ```
 
@@ -625,13 +735,25 @@ grep -i "orm\|worklist\|scheduled" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).l
 
 Internal Channel queue for DICOM/HL7 message processing has exceeded its configured maximum, or there is a backlog of outbound PACS sends.
 
-**Diagnosis**
+**Diagnosis (Windows — primary)**
 
-```bash
-# Check Hub memory
-ps aux | grep Dicom.Edge.Hub.Api
+```powershell
+# Hub runs inside w3wp.exe under App Pool EdgeGuardHub
+Get-WmiObject Win32_Process -Filter "Name='w3wp.exe'" |
+    Where-Object { $_.CommandLine -match "EdgeGuardHub" } |
+    Select-Object ProcessId,
+        @{n="WorkingSetMB";e={[math]::Round($_.WorkingSetSize/1MB,1)}},
+        @{n="PrivateMB";e={[math]::Round($_.PrivatePageCount/1MB,1)}}
 
 # Check Hub logs for queue warnings
+Get-Content "C:\inetpub\EdgeGuard\Hub\logs\hub-$(Get-Date -Format yyyyMMdd).log" -Tail 200 |
+    Select-String -Pattern "queue|channel|backlog|MaxQueued"
+```
+
+**Diagnosis (Linux, alternative)**
+
+```bash
+ps aux | grep Dicom.Edge.Hub.Api
 grep -i "queue\|channel\|backlog\|MaxQueued" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | tail -20
 ```
 
@@ -653,10 +775,17 @@ Expected warning:
 ```
 
 2. Identify and resolve the root cause of the backlog — usually PACS send failures causing studies to retry repeatedly:
-```bash
-# Check PACS send failure rate
-grep "C-STORE SCU failed" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | wc -l
-```
+
+   **PowerShell (Windows):**
+   ```powershell
+   (Get-Content "C:\inetpub\EdgeGuard\Hub\logs\hub-$(Get-Date -Format yyyyMMdd).log" |
+        Select-String "C-STORE SCU failed").Count
+   ```
+
+   **Bash (Linux):**
+   ```bash
+   grep "C-STORE SCU failed" /opt/edgeguard/hub/logs/hub-$(date +%Y%m%d).log | wc -l
+   ```
 
 3. If PACS is unreachable, resolve the connectivity issue (see [Study Stuck in Sending](#5-study-stuck-in-sending)) — the backlog will clear once sends succeed.
 

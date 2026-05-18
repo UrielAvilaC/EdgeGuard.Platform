@@ -24,10 +24,20 @@ Both the Hub and Node expose health endpoints. These are suitable for load balan
 
 Returns the overall health status and individual check results.
 
-**Request:**
+**Request (PowerShell, preferred on Windows):**
+```powershell
+Invoke-RestMethod https://hub.your-org.local/health
+```
+
+**Request (raw HTTP):**
 ```
 GET /health HTTP/1.1
 Host: your-hub-domain.example.com
+```
+
+**Request (curl, Linux):**
+```bash
+curl https://hub.your-org.local/health
 ```
 
 **Response — Healthy (200 OK):**
@@ -123,7 +133,16 @@ Returns runtime information: version, environment, uptime, host name. Requires a
 
 ### Serilog file sink (daily rolling)
 
-Logs are written to `./logs/` with daily rotation. Configured in `appsettings.json`:
+Logs are written with daily rotation. Default locations in production:
+
+| Component | Hosting | Log directory |
+|-----------|---------|---------------|
+| Hub | IIS App Pool `EdgeGuardHub` | `C:\inetpub\EdgeGuard\Hub\logs\` |
+| Edge Node | Windows Service `EdgeGuardNode` | `C:\EdgeGuard\Node\logs\` |
+| Hub (Linux, optional) | systemd / Docker | `/opt/edgeguard/hub/logs/` |
+| Edge Node (Linux, optional) | systemd / Docker | `/opt/edgeguard/node/logs/` |
+
+Configured in `appsettings.json`:
 
 ```json
 {
@@ -147,7 +166,7 @@ Logs are written to `./logs/` with daily rotation. Configured in `appsettings.js
       {
         "Name": "File",
         "Args": {
-          "path": "./logs/hub-.log",
+          "path": "C:\\inetpub\\EdgeGuard\\Hub\\logs\\hub-.log",
           "rollingInterval": "Day",
           "retainedFileCountLimit": 30,
           "outputTemplate": "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {CorrelationId} {SourceContext} {Message:lj}{NewLine}{Exception}"
@@ -176,6 +195,17 @@ Enable centralized structured log search with Seq:
 
 Or via environment variables:
 
+**PowerShell (Windows, machine-wide — preferred on the Hub/Node hosts):**
+```powershell
+[Environment]::SetEnvironmentVariable("Diagnostics__Seq__Enabled", "true", "Machine")
+[Environment]::SetEnvironmentVariable("Diagnostics__Seq__Url", "http://seq.internal.example.com:5341", "Machine")
+[Environment]::SetEnvironmentVariable("Diagnostics__Seq__ApiKey", "your-seq-api-key", "Machine")
+# Then restart the IIS App Pool (Hub) or the EdgeGuardNode service
+Restart-WebAppPool -Name EdgeGuardHub
+Restart-Service EdgeGuardNode
+```
+
+**Bash (Linux, optional):**
 ```env
 Diagnostics__Seq__Enabled=true
 Diagnostics__Seq__Url=http://seq.internal.example.com:5341
@@ -291,6 +321,15 @@ When OTel is enabled, the correlation ID is also propagated as a W3C trace conte
 
 Or via environment variables:
 
+**PowerShell (Windows):**
+```powershell
+[Environment]::SetEnvironmentVariable("Diagnostics__OpenTelemetry__Enabled", "true", "Machine")
+[Environment]::SetEnvironmentVariable("Diagnostics__OpenTelemetry__OtlpEndpoint", "http://otel-collector.internal.example.com:4317", "Machine")
+Restart-WebAppPool -Name EdgeGuardHub
+Restart-Service EdgeGuardNode
+```
+
+**Bash (Linux, optional):**
 ```env
 Diagnostics__OpenTelemetry__Enabled=true
 Diagnostics__OpenTelemetry__OtlpEndpoint=http://otel-collector.internal.example.com:4317

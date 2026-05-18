@@ -19,7 +19,7 @@ EdgeGuard Platform is an enterprise medical imaging hub built on a hub-and-spoke
 | 04 | **Features** | Routing rules, multi-PACS, SignalR notifications, WhatsApp alerts |
 | 05 | **API Reference** | OpenAPI endpoints, request/response schemas, error codes |
 | 06 | **SPA Guide** | Angular standalone components, state management, theming |
-| 07 | **Operations** | Docker, Windows Service, systemd, monitoring, backup |
+| 07 | **Operations** | Windows Server + IIS (Hub), Windows Service (Node), monitoring, backup; Docker / systemd as alternatives |
 | 08 | **Integrations** | HL7 pipeline details, DICOM conformance, PACS compatibility |
 | 09 | **Development** | Contribution guide, coding standards, testing strategy |
 
@@ -60,6 +60,15 @@ EdgeGuard Platform is an enterprise medical imaging hub built on a hub-and-spoke
 | HL7 transport | MLLP over TCP | HL7 v2.x |
 | Authentication | JWT + refresh tokens | — |
 | Logging | Serilog (PHI-redacted) + optional Seq / OpenTelemetry | — |
+
+### Deployment Targets
+
+| Component | Primary target (production) | Alternative |
+|-----------|------------------------------|-------------|
+| **Hub** | 🪟 **Windows Server + IIS** (ASP.NET Core Hosting Bundle, App Pool `EdgeGuardHub`, AspNetCoreModuleV2 in-process) + **PostgreSQL 16** | Linux + Kestrel behind Nginx, or Docker Compose |
+| **Edge Node** | 🪟 **Windows Service `EdgeGuardNode`** (`C:\EdgeGuard\Node\`) + bundled **SQLite** (Kestrel binds directly on `:5001`, DICOM SCP on `:11112`) | Linux + systemd, or Docker container |
+
+See [deployment-hub.md](07-operations/deployment-hub.md) and [deployment-node.md](07-operations/deployment-node.md) for step-by-step install runbooks.
 
 ---
 
