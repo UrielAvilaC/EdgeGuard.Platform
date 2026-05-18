@@ -90,18 +90,35 @@ public class Hl7Message
 
         var imageLinks = ExtractObxImageLinks(cleanContent);
 
+        var messageType  = ExtractField(cleanContent, "MSH", 8)?.Split('^').FirstOrDefault() ?? "UNKNOWN";
+        var triggerEvent = ExtractTriggerEvent(cleanContent);
+
+        // P0-6: For ADT^A40 (Merge Patient), the SURVIVING patient is the LAST PID
+        // segment BEFORE the MRG segment (HL7 v2 spec). Using the first PID here would
+        // silently swap prior/surviving on senders that emit "merge-context" PID first —
+        // a critical patient safety bug. For all other message types, the first PID is used.
+        var isAdtA40 = string.Equals(messageType, "ADT", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(triggerEvent, "A40", StringComparison.OrdinalIgnoreCase);
+
+        var patientId   = isAdtA40
+            ? ExtractSurvivingPatientField(cleanContent, 3, componentIndex: 0)
+            : ExtractSubField(cleanContent, "PID", 3, componentIndex: 0);
+        var patientName = isAdtA40
+            ? ExtractSurvivingPatientField(cleanContent, 5)
+            : ExtractField(cleanContent, "PID", 5);
+
         return new Hl7Message
         {
             Id = Guid.NewGuid(),
             Content = content,
-            MessageType = ExtractField(cleanContent, "MSH", 8)?.Split('^').FirstOrDefault() ?? "UNKNOWN",
-            TriggerEvent = ExtractTriggerEvent(cleanContent),
+            MessageType = messageType,
+            TriggerEvent = triggerEvent,
             SendingApplication = ExtractField(cleanContent, "MSH", 2),
             SendingFacility = ExtractField(cleanContent, "MSH", 3),
             MessageControlId = ExtractField(cleanContent, "MSH", 9),
             Hl7Version = ExtractField(cleanContent, "MSH", 11),
-            PatientId = ExtractSubField(cleanContent, "PID", 3, componentIndex: 0),
-            PatientName = ExtractField(cleanContent, "PID", 5),
+            PatientId = patientId,
+            PatientName = patientName,
             AccessionNumber = ExtractSubField(cleanContent, "OBR", 2, componentIndex: 0),
             StudyDate = ExtractField(cleanContent, "OBR", 7),
             Modality = ExtractField(cleanContent, "OBR", 24),
@@ -249,6 +266,68 @@ public class Hl7Message
 
         var components = repetitions[repetitionIndex].Split('^');
         return components.Length > componentIndex ? NullIfEmpty(components[componentIndex]) : null;
+    }
+
+    /// <summary>
+    /// P0-6: For ADT^A40 (Merge Patient), returns a field from the SURVIVING PID
+    /// — i.e. the LAST PID segment that PRECEDES the MRG segment, per HL7 v2 spec.
+    /// Falls back to first PID when no MRG segment is present.
+    /// Returns null if no PID is found.
+    /// </summary>
+    private static string? ExtractSurvivingPatientField(string content, int fieldIndex, int componentIndex = -1)
+    {
+        try
+        {
+            var segments = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+
+            // Locate MRG segment (the "prior patient" boundary).
+            var mrgIndex = -1;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                if (segments[i].StartsWith("MRG|", StringComparison.OrdinalIgnoreCase))
+                {
+                    mrgIndex = i;
+                    break;
+                }
+            }
+
+            // Find the last PID before MRG (or first PID if no MRG).
+            string? targetPid = null;
+            if (mrgIndex < 0)
+            {
+                targetPid = segments.FirstOrDefault(
+                    s => s.StartsWith("PID|", StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                for (int i = mrgIndex - 1; i >= 0; i--)
+                {
+                    if (segments[i].StartsWith("PID|", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetPid = segments[i];
+                        break;
+                    }
+                }
+            }
+
+            if (targetPid is null) return null;
+
+            var fields = targetPid.Split('|');
+            if (fieldIndex >= fields.Length) return null;
+            var fieldValue = fields[fieldIndex];
+
+            if (componentIndex < 0)
+                return NullIfEmpty(fieldValue);
+
+            var components = fieldValue.Split('^');
+            return components.Length > componentIndex
+                ? NullIfEmpty(components[componentIndex])
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>

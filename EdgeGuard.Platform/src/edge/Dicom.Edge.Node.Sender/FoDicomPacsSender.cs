@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Dicom.Edge.Abstractions.Storage;
+using Dicom.Edge.Node.Sender.Anonymization;
 using FellowOakDicom;
 using FellowOakDicom.Network;
 using FellowOakDicom.Network.Client;
@@ -16,6 +17,7 @@ namespace Dicom.Edge.Node.Sender;
 /// </summary>
 public sealed class FoDicomPacsSender(
     IStorageProvider storageProvider,
+    IDicomAnonymizer anonymizer,
     IOptionsMonitor<PacsSenderOptions> optionsMonitor,
     ILogger<FoDicomPacsSender> logger) : IPacsSender
 {
@@ -55,11 +57,21 @@ public sealed class FoDicomPacsSender(
             var sent = 0;
             var failed = 0;
 
+            if (destination.AnonymizeBeforeSend)
+                logger.LogInformation(
+                    "Anonymization enabled for {AeTitle} — applying Basic Confidentiality profile",
+                    destination.AeTitle);
+
             foreach (var filePath in dicomFiles)
             {
                 try
                 {
                     var file = await DicomFile.OpenAsync(filePath);
+
+                    // P0-2: Strip PHI before transmitting when the destination requires it.
+                    if (destination.AnonymizeBeforeSend)
+                        file = anonymizer.Anonymize(file, AnonymizationProfile.BasicConfidentiality);
+
                     var request = new DicomCStoreRequest(file);
                     request.OnResponseReceived += (_, response) =>
                     {

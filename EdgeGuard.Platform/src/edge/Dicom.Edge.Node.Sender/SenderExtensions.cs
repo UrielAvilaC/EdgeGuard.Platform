@@ -1,4 +1,5 @@
 using Dicom.Edge.Abstractions.Monitoring;
+using Dicom.Edge.Node.Sender.Anonymization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +14,8 @@ public static class SenderExtensions
         services.Configure<PacsSenderOptions>(
             configuration.GetSection(PacsSenderOptions.SectionName));
 
+        // P0-2: DICOM PS3.15 Basic Confidentiality anonymizer.
+        services.AddSingleton<IDicomAnonymizer, BasicDicomAnonymizer>();
         services.AddSingleton<IPacsSender, FoDicomPacsSender>();
 
         // PACS C-ECHO periodic monitor

@@ -24,6 +24,10 @@ public sealed class NodeWorkItem
     public DateTime? StudyDate { get; init; }
     public string? StudyDescription { get; init; }
     public int SeriesCount { get; init; }
+
+    // ── P0-4: routing-rule match data (populated at enqueue time) ─────────────
+    public string? Modality { get; init; }
+    public string? InstitutionName { get; init; }
 }
 
 public enum NodeWorkItemType

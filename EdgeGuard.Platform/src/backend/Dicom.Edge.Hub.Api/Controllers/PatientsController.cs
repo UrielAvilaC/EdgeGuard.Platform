@@ -9,12 +9,14 @@ using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/patients")]
 [Authorize(Policy = Policies.ViewStudies)]
+[EnableRateLimiting("api")]
 public class PatientsController : ControllerBase
 {
     private readonly IPatientRepository _patientRepository;

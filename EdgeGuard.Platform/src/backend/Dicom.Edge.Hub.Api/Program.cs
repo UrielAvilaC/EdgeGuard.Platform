@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Hosting;
 using Dicom.Edge.Common.Resilience;
 using Dicom.Edge.Diagnostics.Bootstrap;
 using Dicom.Edge.Diagnostics.Extensions;
@@ -23,6 +24,11 @@ try
     // Enterprise Serilog logging (file, Seq, HTTP, console, PHI redaction)
     builder.UseHubLogging();
 
+    // P0-8: Hosted service failures must NOT take down the host.
+    // Individual services (HL7 listener, dispatch workers) implement their own supervisor loops.
+    builder.Services.Configure<HostOptions>(o =>
+        o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
+
     builder.Services.AddControllers();
     builder.Services.AddOpenApi();
     builder.Services.AddProblemDetails();
@@ -41,24 +47,37 @@ try
         });
     });
 
-    // Rate limiting — protect edge and API endpoints from abuse
+    // P0-9: Rate limiting — protect edge and API endpoints from abuse.
+    // The "edge" policy is PARTITIONED BY node identity (X-Node-Id header)
+    // so one chatty node cannot exhaust the bucket for the others.
+    // The "api" policy is global (sufficient for SPA users).
     builder.Services.AddRateLimiter(options =>
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-        options.AddFixedWindowLimiter("edge", limiter =>
+        // Per-node partitioned limiter for /api/edge/* endpoints.
+        options.AddPolicy("edge", context =>
         {
-            limiter.PermitLimit = 100;
-            limiter.Window = TimeSpan.FromMinutes(1);
-            limiter.QueueLimit = 10;
-            limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            var partitionKey = context.Request.Headers["X-Node-Id"].ToString();
+            if (string.IsNullOrEmpty(partitionKey))
+                partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+            return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ =>
+                new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit          = 200,
+                    Window               = TimeSpan.FromMinutes(1),
+                    QueueLimit           = 20,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                });
         });
 
+        // Global limiter for /api/* endpoints (SPA-facing).
         options.AddFixedWindowLimiter("api", limiter =>
         {
-            limiter.PermitLimit = 200;
-            limiter.Window = TimeSpan.FromMinutes(1);
-            limiter.QueueLimit = 20;
+            limiter.PermitLimit          = 200;
+            limiter.Window               = TimeSpan.FromMinutes(1);
+            limiter.QueueLimit           = 20;
             limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         });
     });
@@ -82,6 +101,10 @@ try
 
     // Platform resilience pipelines (retry + circuit breaker via Polly v8)
     builder.Services.AddPlatformResilience(builder.Configuration);
+
+    // P0-10: Per-node resilience — one circuit breaker per nodeId.
+    // Prevents one unreachable node from tripping the breaker for all others.
+    builder.Services.AddPerNodeResilience(builder.Configuration);
 
     // Clean Architecture service registration
     builder.Services.AddHubPersistence(builder.Configuration);

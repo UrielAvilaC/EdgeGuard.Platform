@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Channels;
 using Dicom.Edge.Hub.Application.Hl7;
+using Dicom.Edge.Hub.Application.Hl7.Pipeline;
 using Dicom.Edge.Hub.Domain.Entities;
 using Dicom.Edge.Hub.Domain.Interfaces;
 using Dicom.Edge.Hub.Infrastructure.Constants;
@@ -150,10 +151,36 @@ public class Hl7TcpListener : IHl7Listener
 
                 using var scope = _serviceScopeFactory.CreateScope();
                 var repository = scope.ServiceProvider.GetRequiredService<IHl7MessageRepository>();
+                var validator  = scope.ServiceProvider.GetRequiredService<IHl7ValidationService>();
 
                 await foreach (var content in ReadMllpMessagesAsync(stream, endpoint, linked.Token))
                 {
                     var message = Hl7Message.Create(content, endpoint, _options.Port);
+
+                    // P0-5: Validate BEFORE ACK. Sending AA on an invalid message means the
+                    // HIS never retransmits — silent PHI loss. When ValidateBeforeAck=true,
+                    // invalid messages receive a NACK (AE) and are persisted with
+                    // DispatchStatus=ValidationFailed so the dispatcher skips them.
+                    if (_options.ValidateBeforeAck)
+                    {
+                        var validation = validator.Validate(message);
+                        if (!validation.IsValid)
+                        {
+                            message.MarkAsValidationFailed(validation.ErrorMessage ?? "validation failed");
+                            await repository.AddAsync(message, linked.Token);
+
+                            _logger.LogWarning(
+                                "HL7 message {MessageId} rejected at intake — {Error}",
+                                message.Id, validation.ErrorMessage);
+
+                            var nack = BuildHl7Nack(message,
+                                Hl7ProtocolConstants.NackErrorCode,
+                                validation.ErrorMessage ?? "validation failed");
+                            await stream.WriteAsync(Encoding.UTF8.GetBytes(nack), linked.Token);
+                            continue;
+                        }
+                    }
+
                     await repository.AddAsync(message, linked.Token);
 
                     _logger.LogInformation(
@@ -300,6 +327,39 @@ public class Hl7TcpListener : IHl7Listener
             $"|{ackControlId}|{Hl7ProtocolConstants.ProcessingId}|{Hl7ProtocolConstants.Hl7Version}" +
             $"{Hl7ProtocolConstants.SegmentTerminator}" +
             $"MSA|{Hl7ProtocolConstants.AckCode}|{originalControlId}" +
+            $"{Hl7ProtocolConstants.SegmentTerminator}";
+
+        return $"{Hl7ProtocolConstants.StartBlock}{ackSegments}{Hl7ProtocolConstants.EndBlock}{Hl7ProtocolConstants.SegmentTerminator}";
+    }
+
+    /// <summary>
+    /// P0-5: Builds a NACK response with the given ACK code (AE = Application Error,
+    /// AR = Application Reject) and an error text placed in MSA-3.
+    /// HL7 separators in the error text are escaped per HL7 v2 spec.
+    /// </summary>
+    private string BuildHl7Nack(Hl7Message originalMessage, string nackCode, string errorText)
+    {
+        var timestamp         = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var ackControlId      = Guid.NewGuid().ToString("N")[..10].ToUpper();
+        var originalControlId = originalMessage.MessageControlId ?? ackControlId;
+
+        // Escape HL7 separators in the error text so it can never break the MSA segment.
+        var safeError = (errorText ?? "validation failed")
+            .Replace("|",  "\\F\\")
+            .Replace("^",  "\\S\\")
+            .Replace("~",  "\\R\\")
+            .Replace("\\", "\\E\\")
+            .Replace("\r", " ")
+            .Replace("\n", " ");
+        if (safeError.Length > 200) safeError = safeError[..200];
+
+        var ackSegments =
+            $"MSH|^~\\&|{Hl7ProtocolConstants.SenderApplication}|{Hl7ProtocolConstants.SenderFacility}" +
+            $"|{originalMessage.SendingApplication}|{originalMessage.SendingFacility}" +
+            $"|{timestamp}||{Hl7ProtocolConstants.AckMessageType}" +
+            $"|{ackControlId}|{Hl7ProtocolConstants.ProcessingId}|{Hl7ProtocolConstants.Hl7Version}" +
+            $"{Hl7ProtocolConstants.SegmentTerminator}" +
+            $"MSA|{nackCode}|{originalControlId}|{safeError}" +
             $"{Hl7ProtocolConstants.SegmentTerminator}";
 
         return $"{Hl7ProtocolConstants.StartBlock}{ackSegments}{Hl7ProtocolConstants.EndBlock}{Hl7ProtocolConstants.SegmentTerminator}";

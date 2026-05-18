@@ -62,4 +62,28 @@ public sealed class DicomServerOptions
         !ValidateCalledAe ||
         string.Equals(calledAe, AeTitle.Trim(), StringComparison.OrdinalIgnoreCase) ||
         AeTitleAliases.Contains(calledAe, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// P0-3: DICOM TLS configuration for the SCP listener (incoming associations).
+    /// When <c>Tls.Enabled = true</c>, the listener wraps the TCP socket with TLS
+    /// using the provided certificate. PHI in transit between modalities and the
+    /// Edge Node is encrypted.
+    /// </summary>
+    public DicomTlsOptions Tls { get; set; } = new();
+}
+
+/// <summary>P0-3: TLS configuration for the DICOM SCP listener.</summary>
+public sealed class DicomTlsOptions
+{
+    /// <summary>Master switch — when false (default) the SCP listens in plain TCP.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>Path to the PFX/PEM file containing the server certificate and private key.</summary>
+    public string? CertificatePath { get; set; }
+
+    /// <summary>Password for the certificate file (if any).</summary>
+    public string? CertificatePassword { get; set; }
+
+    /// <summary>When true, the SCP requires mutual TLS — the SCU must present a client cert.</summary>
+    public bool RequireClientCertificate { get; set; }
 }

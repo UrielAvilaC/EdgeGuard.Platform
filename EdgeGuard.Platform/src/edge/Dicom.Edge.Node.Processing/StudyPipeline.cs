@@ -31,7 +31,20 @@ public sealed class StudyPipeline(
         logger.LogInformation("Pipeline starting for study {StudyUid}", studyInstanceUid);
 
         // ── 1. Resolve destinations ───────────────────────────────────────────
-        var context = new StudyRoutingContext { StudyInstanceUid = studyInstanceUid };
+        // P0-4: Build a fully-populated routing context from the work item so that
+        // routing rules with Modality/SourceAe/Institution/InstanceCount conditions
+        // can actually match. Previously every field was null → all rules inert.
+        var context = new StudyRoutingContext
+        {
+            StudyInstanceUid = studyInstanceUid,
+            Modality         = workItem.Modality?.Trim().ToUpperInvariant(),
+            SourceAeTitle    = workItem.SourceAeTitle?.Trim(),
+            InstitutionName  = workItem.InstitutionName?.Trim(),
+            StudyDescription = workItem.StudyDescription?.Trim(),
+            AccessionNumber  = workItem.AccessionNumber?.Trim(),
+            InstanceCount    = workItem.InstanceCount,
+            Priority         = workItem.Priority,
+        };
         var destinations = await router.ResolveDestinationsAsync(context, ct);
 
         if (destinations.Count == 0)

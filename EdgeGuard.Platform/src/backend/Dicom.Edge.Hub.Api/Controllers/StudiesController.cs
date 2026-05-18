@@ -8,12 +8,14 @@ using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/studies")]
 [Authorize(Policy = Policies.ViewStudies)]
+[EnableRateLimiting("api")]
 public class StudiesController : ControllerBase
 {
     private readonly IStudyRepository _studyRepository;

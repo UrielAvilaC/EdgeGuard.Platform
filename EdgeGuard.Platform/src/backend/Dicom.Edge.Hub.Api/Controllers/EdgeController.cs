@@ -6,6 +6,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
@@ -18,6 +19,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 [Route("api/edge")]
 [ApiController]
 [Authorize(AuthenticationSchemes = ApiKeyAuthenticationOptions.Scheme)]
+[EnableRateLimiting("edge")]
 public class EdgeController : ControllerBase
 {
     private readonly IEdgeNodeService _edgeService;

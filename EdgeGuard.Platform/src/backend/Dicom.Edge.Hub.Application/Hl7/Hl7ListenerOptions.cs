@@ -41,4 +41,13 @@ public class Hl7ListenerOptions
     /// Habilitar el listener al iniciar la aplicación.
     /// </summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// P0-5: When true, validates HL7 messages BEFORE sending ACK. Invalid messages
+    /// receive a NACK (AE / Application Error) and are persisted with
+    /// <c>DispatchStatus = ValidationFailed</c>. When false (default), all syntactically
+    /// MLLP-framed messages receive AA — the previous behaviour. Recommended: enable
+    /// in production after a one-week monitoring window of NACK rates per HIS.
+    /// </summary>
+    public bool ValidateBeforeAck { get; set; } = false;
 }

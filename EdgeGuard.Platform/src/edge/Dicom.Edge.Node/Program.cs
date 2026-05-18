@@ -120,6 +120,10 @@ try
         });
     }
 
+    // P0-1: Validate HMAC-signed Hub→Node configuration pushes.
+    // Feature-flagged via NodeAuth:Enforce (default false for safe rollout).
+    app.UseMiddleware<Dicom.Edge.Node.Api.Middleware.HubAuthenticationMiddleware>();
+
     // ── Map Node API endpoints ───────────────────────────────────────────
     app.MapNodeApi();
 

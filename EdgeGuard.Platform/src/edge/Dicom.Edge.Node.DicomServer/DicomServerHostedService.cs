@@ -1,5 +1,7 @@
+using System.Security.Cryptography.X509Certificates;
 using Dicom.Edge.Abstractions.Events;
 using FellowOakDicom.Network;
+using FellowOakDicom.Network.Tls;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -46,8 +48,41 @@ public sealed class DicomServerHostedService(
             "Starting DICOM SCP on port {Port} AeTitle={AeTitle} MWL={MwlEnabled} QR={QrEnabled} CEcho={CEchoEnabled} ValidateCallingAe={ValidateCallingAe}",
             opts.Port, opts.AeTitle, opts.MwlEnabled, opts.QrEnabled, opts.CEchoEnabled, opts.ValidateCallingAe);
 
+        // P0-3: When TLS is enabled, wrap the SCP listener with a TLS acceptor so
+        // modality → Edge Node DICOM traffic (PHI) is encrypted in transit.
+        ITlsAcceptor? tlsAcceptor = null;
+        if (opts.Tls.Enabled)
+        {
+            if (string.IsNullOrWhiteSpace(opts.Tls.CertificatePath))
+            {
+                logger.LogError(
+                    "DICOM TLS is enabled but no CertificatePath configured — falling back to plaintext");
+            }
+            else
+            {
+                try
+                {
+                    var cert = new X509Certificate2(opts.Tls.CertificatePath, opts.Tls.CertificatePassword);
+                    tlsAcceptor = new DefaultTlsAcceptor(cert)
+                    {
+                        RequireMutualAuthentication = opts.Tls.RequireClientCertificate,
+                    };
+                    logger.LogInformation(
+                        "DICOM TLS enabled (certificate {Path}, mutualAuth={Mutual})",
+                        opts.Tls.CertificatePath, opts.Tls.RequireClientCertificate);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex,
+                        "Failed to load DICOM TLS certificate from {Path} — falling back to plaintext",
+                        opts.Tls.CertificatePath);
+                }
+            }
+        }
+
         _server = dicomServerFactory.Create<CStoreScp>(
-            opts.Port,
+            port:     opts.Port,
+            tlsAcceptor: tlsAcceptor,
             userState: new DicomScpDependencies(
                 instanceHandler,
                 mwlHandler,
@@ -58,8 +93,8 @@ public sealed class DicomServerHostedService(
                 logger));
 
         logger.LogInformation(
-            "DICOM server listening on port {Port} — C-STORE=enabled C-ECHO={CEchoEnabled} MWL={MwlEnabled} QR={QrEnabled}",
-            opts.Port, opts.CEchoEnabled, opts.MwlEnabled, opts.QrEnabled);
+            "DICOM server listening on port {Port} — TLS={Tls} C-STORE=enabled C-ECHO={CEchoEnabled} MWL={MwlEnabled} QR={QrEnabled}",
+            opts.Port, tlsAcceptor is not null, opts.CEchoEnabled, opts.MwlEnabled, opts.QrEnabled);
 
         return Task.CompletedTask;
     }

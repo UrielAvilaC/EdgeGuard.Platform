@@ -1,5 +1,73 @@
 <Solution>
-  <Folder Name="/docs/" />
+  <Folder Name="/docs/">
+    <File Path="docs/README.md" />
+  </Folder>
+  <Folder Name="/docs/01-overview/">
+    <File Path="docs/01-overview/architecture.md" />
+    <File Path="docs/01-overview/changelog.md" />
+    <File Path="docs/01-overview/glossary.md" />
+  </Folder>
+  <Folder Name="/docs/02-getting-started/">
+    <File Path="docs/02-getting-started/environment-variables.md" />
+    <File Path="docs/02-getting-started/prerequisites.md" />
+    <File Path="docs/02-getting-started/quickstart-hub.md" />
+    <File Path="docs/02-getting-started/quickstart-node.md" />
+  </Folder>
+  <Folder Name="/docs/03-architecture/">
+    <File Path="docs/03-architecture/clean-architecture.md" />
+    <File Path="docs/03-architecture/database-schema.md" />
+    <File Path="docs/03-architecture/hub-overview.md" />
+    <File Path="docs/03-architecture/node-overview.md" />
+    <File Path="docs/03-architecture/security-model.md" />
+    <File Path="docs/03-architecture/shared-libraries.md" />
+  </Folder>
+  <Folder Name="/docs/04-features/">
+    <File Path="docs/04-features/dicom-reception.md" />
+    <File Path="docs/04-features/dicom-routing-rules.md" />
+    <File Path="docs/04-features/hl7-adt.md" />
+    <File Path="docs/04-features/hl7-orm.md" />
+    <File Path="docs/04-features/hl7-oru.md" />
+    <File Path="docs/04-features/hl7-pipeline.md" />
+    <File Path="docs/04-features/modality-worklist.md" />
+    <File Path="docs/04-features/multi-pacs-routing.md" />
+    <File Path="docs/04-features/patient-management.md" />
+    <File Path="docs/04-features/real-time-notifications.md" />
+    <File Path="docs/04-features/study-pipeline.md" />
+    <File Path="docs/04-features/whatsapp-integration.md" />
+  </Folder>
+  <Folder Name="/docs/05-api/">
+    <File Path="docs/05-api/auth-endpoints.md" />
+    <File Path="docs/05-api/error-codes.md" />
+    <File Path="docs/05-api/hub-api-reference.md" />
+    <File Path="docs/05-api/node-api-reference.md" />
+  </Folder>
+  <Folder Name="/docs/06-spa/">
+    <File Path="docs/06-spa/feature-modules.md" />
+    <File Path="docs/06-spa/spa-overview.md" />
+    <File Path="docs/06-spa/ui-components.md" />
+  </Folder>
+  <Folder Name="/docs/07-operations/">
+    <File Path="docs/07-operations/backup-recovery.md" />
+    <File Path="docs/07-operations/database-migrations.md" />
+    <File Path="docs/07-operations/deployment-hub.md" />
+    <File Path="docs/07-operations/deployment-node.md" />
+    <File Path="docs/07-operations/monitoring.md" />
+    <File Path="docs/07-operations/troubleshooting.md" />
+  </Folder>
+  <Folder Name="/docs/08-integrations/">
+    <File Path="docs/08-integrations/dicom-conformance.md" />
+    <File Path="docs/08-integrations/hl7-integration-guide.md" />
+    <File Path="docs/08-integrations/pacs-integration.md" />
+  </Folder>
+  <Folder Name="/docs/09-development/">
+    <File Path="docs/09-development/coding-standards.md" />
+    <File Path="docs/09-development/contributing.md" />
+    <File Path="docs/09-development/domain-model.md" />
+    <File Path="docs/09-development/testing-strategy.md" />
+  </Folder>
+  <Folder Name="/docs/10-remediation/">
+    <File Path="docs/10-remediation/p0-remediation-plan.md" />
+  </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/backend/">
     <Project Path="src/backend/Dicom.Edge.Hub.Api/Dicom.Edge.Hub.Api.csproj" Id="0d4921a1-e01e-4e0b-b928-1a5dc3551e28" />

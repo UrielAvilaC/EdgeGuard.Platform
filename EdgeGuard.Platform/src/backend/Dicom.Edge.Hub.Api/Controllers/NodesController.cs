@@ -9,11 +9,13 @@ using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/nodes")]
 [Authorize(Policy = Policies.ViewNodes)]
+[EnableRateLimiting("api")]
 public class NodesController : ControllerBase
 {
     private readonly INodeRepository _nodeRepository;

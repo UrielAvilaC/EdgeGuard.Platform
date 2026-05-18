@@ -4,12 +4,14 @@ using Dicom.Edge.Hub.Application.Configuration;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/system-settings")]
 [Authorize(Policy = Policies.ViewConfiguration)]
+[EnableRateLimiting("api")]
 public class SystemSettingsController : ControllerBase
 {
     private readonly ISystemSettingsService _settingsService;

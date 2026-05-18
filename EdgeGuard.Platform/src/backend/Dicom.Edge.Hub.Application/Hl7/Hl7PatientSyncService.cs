@@ -147,6 +147,28 @@ public sealed class Hl7PatientSyncService(
             logger.LogInformation(
                 "ADT^A40 {MessageId}: patient {PriorId} merged into {SurvivingId}",
                 message.Id, priorId, survivingId);
+
+            // P0-7: Collapse merge chains. Any patient previously merged INTO this
+            // prior (now itself merged) must be re-pointed to the new surviving record.
+            // Without this, A→B→C would leave A pointing to B (broken chain).
+            var chained = await patientRepository.GetByMergedIntoPatientIdAsync(priorId, ct);
+            var collapsed = 0;
+            foreach (var c in chained)
+            {
+                if (c.Id == prior.Id) continue;                          // self-safety
+                if (c.MergedIntoPatientId == survivingId) continue;      // already correct
+                if (string.Equals(c.PatientDicomId.Value, survivingId,
+                        StringComparison.Ordinal)) continue;             // circular safety
+
+                c.UpdateMergeTarget(survivingId);
+                await patientRepository.UpdateAsync(c, ct);
+                collapsed++;
+            }
+
+            if (collapsed > 0)
+                logger.LogInformation(
+                    "ADT^A40 {MessageId}: collapsed {Count} merge-chain entries from {PriorId} → {SurvivingId}",
+                    message.Id, collapsed, priorId, survivingId);
         }
         else if (prior is null)
         {
