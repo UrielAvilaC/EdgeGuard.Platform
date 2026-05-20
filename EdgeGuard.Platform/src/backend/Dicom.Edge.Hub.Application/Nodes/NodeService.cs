@@ -2,7 +2,6 @@ using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
-using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -26,7 +25,6 @@ public sealed class NodeService(
     {
         var node = Node.Create(
             request.Name,
-            AeTitle.Create(request.AeTitle),
             request.IpAddress,
             request.Port,
             request.ApiEndpoint,
@@ -37,7 +35,7 @@ public sealed class NodeService(
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("Node created: {NodeId} {AeTitle}", node.Id, request.AeTitle);
+        logger.LogInformation("Node created: {NodeId} {Name}", node.Id, node.Name);
         return node;
     }
 

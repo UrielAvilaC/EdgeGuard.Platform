@@ -9,9 +9,6 @@ public sealed class NodeRegistrationRequest
     [Required, StringLength(100, MinimumLength = 1)]
     public required string Name { get; init; }
 
-    [Required, StringLength(16, MinimumLength = 1)]
-    public required string AeTitle { get; init; }
-
     [Required, StringLength(64, MinimumLength = 1)]
     public required string IpAddress { get; init; }
 
@@ -176,9 +173,6 @@ public sealed class CreateNodeRequest
 {
     [Required, StringLength(100, MinimumLength = 1)]
     public required string Name { get; init; }
-
-    [Required, StringLength(16, MinimumLength = 1)]
-    public required string AeTitle { get; init; }
 
     [Required, StringLength(64, MinimumLength = 1)]
     public required string IpAddress { get; init; }

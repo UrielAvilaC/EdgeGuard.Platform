@@ -1,5 +1,4 @@
 using Dicom.Edge.Hub.Domain.Common;
-using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes.Events;
 using Dicom.Edge.Models.Enums;
 
@@ -8,12 +7,18 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 /// <summary>
 /// Edge Node aggregate root. Represents a node registered in the Hub.
 /// </summary>
+/// <remarks>
+/// AE Title consolidation: this aggregate no longer carries an <c>AeTitle</c>
+/// property. The Edge Node owns its DICOM identity exclusively via the
+/// <c>PacsSender:LocalAeTitle</c> setting. The Hub identifies nodes by their
+/// stable <see cref="AggregateRoot{TId}.Id"/> only; the operator can see the
+/// current AE Title in the node's configuration page (live from node settings).
+/// </remarks>
 public sealed class Node : AggregateRoot<string>, ISoftDeletable
 {
     private readonly List<NodePacsAssignment> _pacsAssignments = [];
 
     public string Name { get; private set; } = default!;
-    public AeTitle AeTitle { get; private set; } = default!;
     public string IpAddress { get; private set; } = default!;
     public int Port { get; private set; }
     public string? ApiEndpoint { get; private set; }
@@ -54,7 +59,6 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
 
     public static Node Create(
         string name,
-        AeTitle aeTitle,
         string ipAddress,
         int port,
         string? apiEndpoint = null,
@@ -73,7 +77,6 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
         {
             Id = IdGenerator.NewId(),
             Name = name.Trim(),
-            AeTitle = aeTitle,
             IpAddress = ipAddress.Trim(),
             Port = port,
             ApiEndpoint = apiEndpoint?.Trim(),
@@ -84,7 +87,7 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
             HealthCheckIntervalSeconds = healthCheckIntervalSeconds,
         };
 
-        node.AddDomainEvent(new NodeRegisteredEvent(node.Id, name, aeTitle.Value));
+        node.AddDomainEvent(new NodeRegisteredEvent(node.Id, name));
         return node;
     }
 

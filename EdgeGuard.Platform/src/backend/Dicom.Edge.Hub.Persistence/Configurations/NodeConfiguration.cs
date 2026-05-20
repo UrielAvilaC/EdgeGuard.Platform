@@ -22,15 +22,8 @@ public class NodeConfiguration : IEntityTypeConfiguration<Node>
         builder.Property(n => n.Status).HasConversion<string>().HasMaxLength(32);
         builder.Property(n => n.ApiKeyHash).HasMaxLength(128);
 
-        builder.OwnsOne(n => n.AeTitle, vo =>
-        {
-            vo.Property(v => v.Value)
-              .HasColumnName("ae_title")
-              .IsRequired()
-              .HasMaxLength(16);
-
-            vo.HasIndex(v => v.Value).IsUnique();
-        });
+        // AE Title consolidation: the Node aggregate no longer carries an AeTitle.
+        // Single source of truth is the Edge Node's PacsSender:LocalAeTitle setting.
 
         builder.HasMany(n => n.PacsAssignments)
                .WithOne()

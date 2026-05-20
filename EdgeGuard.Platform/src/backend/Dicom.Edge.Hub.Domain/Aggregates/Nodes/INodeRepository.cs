@@ -9,7 +9,10 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 public interface INodeRepository
 {
     Task<Node?> GetByIdAsync(string id, CancellationToken ct = default);
-    Task<Node?> GetByAeTitleAsync(string aeTitle, CancellationToken ct = default);
+
+    /// <summary>Looks up a node by Name + IP for re-registration discovery.</summary>
+    Task<Node?> GetByNameAndIpAsync(string name, string ipAddress, CancellationToken ct = default);
+
     Task<IReadOnlyList<Node>> GetAllAsync(CancellationToken ct = default);
     Task<IReadOnlyList<Node>> GetActiveNodesAsync(CancellationToken ct = default);
     Task<Node?> GetWithPacsAssignmentsAsync(string id, CancellationToken ct = default);

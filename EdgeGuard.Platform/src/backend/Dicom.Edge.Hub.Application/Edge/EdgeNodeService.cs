@@ -36,10 +36,13 @@ public sealed class EdgeNodeService(
     public async Task<NodeRegistrationResponse> RegisterAsync(
         HubNodeRegistrationRequest request, CancellationToken ct = default)
     {
-        var existing = await nodeRepository.GetByAeTitleAsync(request.AeTitle, ct);
+        // Re-registration discovery uses Name + IpAddress (AeTitle is no longer
+        // stored on the Hub side — it lives only as PacsSender:LocalAeTitle on the Node).
+        var existing = await nodeRepository.GetByNameAndIpAsync(request.Name, request.IpAddress, ct);
         if (existing is not null)
         {
-            logger.LogInformation("Node re-registration: {AeTitle} ({NodeId})", request.AeTitle, existing.Id);
+            logger.LogInformation("Node re-registration: {Name} ({NodeId}) at {Ip}",
+                request.Name, existing.Id, request.IpAddress);
             existing.UpdateHeartbeat();
             existing.UpdateConfiguration(
                 location: request.Location,
@@ -60,7 +63,6 @@ public sealed class EdgeNodeService(
 
         var node = Node.Create(
             request.Name,
-            AeTitle.Create(request.AeTitle),
             request.IpAddress,
             request.Port,
             request.ApiEndpoint,
@@ -77,8 +79,8 @@ public sealed class EdgeNodeService(
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("Node registered: {NodeId} {AeTitle} at {Ip}:{Port} (API key issued)",
-            node.Id, request.AeTitle, request.IpAddress, request.Port);
+        logger.LogInformation("Node registered: {NodeId} {Name} at {Ip}:{Port} (API key issued)",
+            node.Id, request.Name, request.IpAddress, request.Port);
 
         // First registration: return API key (one time only)
         return new NodeRegistrationResponse

@@ -1,7 +1,6 @@
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
-using Dicom.Edge.Hub.Domain.ValueObjects;
 
 namespace Dicom.Edge.Hub.Api.Mapping;
 
@@ -15,7 +14,6 @@ public static class NodeMappingProfile
     {
         Id = entity.Id,
         Name = entity.Name,
-        AeTitle = entity.AeTitle.Value,
         IpAddress = entity.IpAddress,
         Port = entity.Port,
         ApiEndpoint = entity.ApiEndpoint,
@@ -45,7 +43,6 @@ public static class NodeMappingProfile
     public static Node ToEntity(this CreateNodeRequest dto) =>
         Node.Create(
             dto.Name,
-            AeTitle.Create(dto.AeTitle),
             dto.IpAddress,
             dto.Port,
             dto.ApiEndpoint,

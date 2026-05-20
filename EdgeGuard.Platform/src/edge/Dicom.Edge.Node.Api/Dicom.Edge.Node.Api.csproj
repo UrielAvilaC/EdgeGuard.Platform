@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.7" />
   </ItemGroup>
 
   <ItemGroup>

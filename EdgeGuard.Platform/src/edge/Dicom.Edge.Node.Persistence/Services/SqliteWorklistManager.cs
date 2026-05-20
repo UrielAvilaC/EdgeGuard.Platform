@@ -35,6 +35,17 @@ public sealed class SqliteWorklistManager(
                 existing.ScheduledDate = request.ScheduledDateTime?.Date ?? existing.ScheduledDate;
                 existing.ProcedureDescription = request.ProcedureDescription ?? existing.ProcedureDescription;
 
+                // MWL-FIX-2: persist the fields that the C-FIND SCP filters on
+                // and emits in the response.
+                existing.PatientBirthDate                 = request.PatientBirthDate                 ?? existing.PatientBirthDate;
+                existing.PatientSex                       = request.PatientSex                       ?? existing.PatientSex;
+                existing.ScheduledStationAeTitle          = request.ScheduledStationAeTitle          ?? existing.ScheduledStationAeTitle;
+                existing.ScheduledPerformingPhysicianName = request.ScheduledPerformingPhysicianName ?? existing.ScheduledPerformingPhysicianName;
+                existing.ScheduledProcedureStepId         = request.ScheduledProcedureStepId         ?? existing.ScheduledProcedureStepId;
+                existing.RequestedProcedureId             = request.RequestedProcedureId             ?? existing.RequestedProcedureId;
+                existing.ReferringPhysicianName           = request.ReferringPhysicianName           ?? existing.ReferringPhysicianName;
+                existing.StudyInstanceUid                 = request.StudyInstanceUid                 ?? existing.StudyInstanceUid;
+
                 await ctx.SaveChangesAsync(ct);
 
                 logger.LogInformation(
@@ -51,7 +62,17 @@ public sealed class SqliteWorklistManager(
                 PatientName = request.PatientName ?? string.Empty,
                 Modality = request.Modality ?? "OT",
                 ScheduledDate = request.ScheduledDateTime?.Date ?? DateTime.UtcNow.Date,
-                ProcedureDescription = request.ProcedureDescription ?? string.Empty
+                ProcedureDescription = request.ProcedureDescription ?? string.Empty,
+
+                // MWL-FIX-2: persist the fields the C-FIND SCP filters on and emits.
+                PatientBirthDate                 = request.PatientBirthDate,
+                PatientSex                       = request.PatientSex,
+                ScheduledStationAeTitle          = request.ScheduledStationAeTitle,
+                ScheduledPerformingPhysicianName = request.ScheduledPerformingPhysicianName,
+                ScheduledProcedureStepId         = request.ScheduledProcedureStepId,
+                RequestedProcedureId             = request.RequestedProcedureId,
+                ReferringPhysicianName           = request.ReferringPhysicianName,
+                StudyInstanceUid                 = request.StudyInstanceUid,
             };
 
             ctx.WorklistItems.Add(item);
@@ -123,18 +144,34 @@ public sealed class SqliteWorklistManager(
     /// </summary>
     private static NodeWorklistItem MapToNodeWorklistItem(DbWorklistItem db) => new()
     {
-        Id = db.AccessionNumber,
-        HubMessageId = Guid.Empty,
-        MessageType = "ORM",
-        AccessionNumber = db.AccessionNumber,
-        PatientId = db.PatientId,
-        PatientName = db.PatientName,
-        Modality = db.Modality,
-        ScheduledDateTime = db.ScheduledDate,
-        ProcedureDescription = db.ProcedureDescription,
-        ReceivedAt = db.ScheduledDate,
-        ExpiresAt = null,
-        IsProcessed = false
+        Id                = db.AccessionNumber,
+        HubMessageId      = Guid.Empty,
+        MessageType       = "ORM",
+        AccessionNumber   = db.AccessionNumber,
+
+        // Patient
+        PatientId         = db.PatientId,
+        PatientName       = db.PatientName,
+        PatientBirthDate  = db.PatientBirthDate,
+        PatientSex        = db.PatientSex,
+
+        // Study / Requested Procedure
+        StudyInstanceUid       = db.StudyInstanceUid,
+        ReferringPhysicianName = db.ReferringPhysicianName,
+        ProcedureDescription   = db.ProcedureDescription,
+        RequestedProcedureId   = db.RequestedProcedureId,
+
+        // Scheduled Procedure Step
+        Modality                         = db.Modality,
+        ScheduledDateTime                = db.ScheduledDate,
+        ScheduledStationAeTitle          = db.ScheduledStationAeTitle,
+        ScheduledPerformingPhysicianName = db.ScheduledPerformingPhysicianName,
+        ScheduledProcedureStepId         = db.ScheduledProcedureStepId,
+
+        // Lifecycle
+        ReceivedAt   = db.ScheduledDate,
+        ExpiresAt    = null,
+        IsProcessed  = false,
     };
 
     public async Task MarkItemsAsQueriedAsync(IEnumerable<string> ids, CancellationToken ct = default)

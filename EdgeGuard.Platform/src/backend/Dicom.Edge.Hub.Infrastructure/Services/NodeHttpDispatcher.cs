@@ -36,20 +36,30 @@ public sealed class NodeHttpDispatcher : INodeDispatcher
 
             var payload = new Hl7WorklistPushRequest
             {
-                HubMessageId = request.MessageId,
-                MessageType = request.MessageType,
-                TriggerEvent = request.TriggerEvent,
-                RawContent = request.Content,
-                PatientId = request.PatientId,
-                PatientName = request.PatientName,
-                AccessionNumber = request.AccessionNumber,
-                SendingFacility = request.SendingFacility,
-                SendingApplication = request.SendingApplication,
-                Modality = request.Modality,
+                HubMessageId         = request.MessageId,
+                MessageType          = request.MessageType,
+                TriggerEvent         = request.TriggerEvent,
+                RawContent           = request.Content,
+                PatientId            = request.PatientId,
+                PatientName          = request.PatientName,
+                AccessionNumber      = request.AccessionNumber,
+                SendingFacility      = request.SendingFacility,
+                SendingApplication   = request.SendingApplication,
+                Modality             = request.Modality,
                 ProcedureDescription = request.ProcedureDescription,
                 RequestedProcedureId = request.ProcedureId,
-                Priority = request.Priority,
-                SentAtUtc = DateTime.UtcNow
+                Priority             = request.Priority,
+                SentAtUtc            = DateTime.UtcNow,
+
+                // MWL-FIX-3: forward MWL fields end-to-end.
+                PatientBirthDate                 = request.PatientBirthDate,
+                PatientSex                       = request.PatientSex,
+                ScheduledDateTime                = request.ScheduledDateTime,
+                ScheduledStationAeTitle          = request.ScheduledStationAeTitle,
+                ScheduledPerformingPhysicianName = request.ScheduledPerformingPhysicianName,
+                ScheduledProcedureStepId         = request.ScheduledProcedureStepId,
+                ReferringPhysicianName           = request.ReferringPhysicianName,
+                StudyInstanceUid                 = request.StudyInstanceUid,
             };
 
             var url = request.NodeApiEndpoint.TrimEnd('/') + NodeApiRoutes.Hl7WorklistPush;
