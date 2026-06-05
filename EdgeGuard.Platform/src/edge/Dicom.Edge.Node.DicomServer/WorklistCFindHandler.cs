@@ -57,7 +57,6 @@ public sealed class WorklistCFindHandler(
             string.IsNullOrEmpty(modality) ? null : modality, ct);
 
         int matchCount = 0;
-        var queriedIds = new List<string>();
 
         foreach (var item in items)
         {
@@ -67,17 +66,22 @@ public sealed class WorklistCFindHandler(
                     accessionNumber, scheduledStationAe))
                 continue;
 
-            if (!string.IsNullOrEmpty(item.AccessionNumber))
-                queriedIds.Add(item.AccessionNumber);
-
             yield return BuildResponseDataset(item);
             matchCount++;
         }
 
         logger.LogInformation("MWL C-FIND completed — {MatchCount} matches returned", matchCount);
 
-        if (queriedIds.Count > 0)
-            _ = worklistManager.MarkItemsAsQueriedAsync(queriedIds, ct);
+        // ── MWL-FIX-1 ─────────────────────────────────────────────────────
+        // PREVIOUSLY: items returned by C-FIND were marked as "queried" so they
+        // would not appear again. This broke standard MWL usage where modalities
+        // legitimately re-query the worklist multiple times per shift.
+        //
+        // The correct state transition is: `pending` → `queried` (or `completed`)
+        // when the corresponding DICOM images arrive via C-STORE (matched by
+        // AccessionNumber). That transition is owned by the C-STORE handler /
+        // study completion pipeline, NOT by C-FIND.
+        // ──────────────────────────────────────────────────────────────────
     }
 
     // ── Query matching ──────────────────────────────────────────────────────
@@ -95,6 +99,13 @@ public sealed class WorklistCFindHandler(
         string accessionNumber,
         string scheduledStationAe)
     {
+        // Query values are trimmed because DICOM CS / SH / AE VRs pad with trailing
+        // spaces; some SCUs do not strip them before sending the C-FIND request.
+        patientId         = patientId?.Trim()         ?? string.Empty;
+        patientName       = patientName?.Trim()       ?? string.Empty;
+        accessionNumber   = accessionNumber?.Trim()   ?? string.Empty;
+        scheduledStationAe = scheduledStationAe?.Trim() ?? string.Empty;
+
         if (!string.IsNullOrEmpty(patientId) &&
             !WildcardMatch(item.PatientId, patientId))
             return false;
@@ -107,8 +118,16 @@ public sealed class WorklistCFindHandler(
             !WildcardMatch(item.AccessionNumber, accessionNumber))
             return false;
 
+        // MWL-FIX-2: When the item does not carry a ScheduledStationAeTitle
+        // (HL7 ORM frequently omits OBR-21/22), treat the item as matching any
+        // station AE filter from the modality. Strict equality on null would
+        // silently drop every matching study, which is the original symptom.
         if (!string.IsNullOrEmpty(scheduledStationAe) &&
-            !string.Equals(item.ScheduledStationAeTitle, scheduledStationAe, StringComparison.OrdinalIgnoreCase))
+            !string.IsNullOrEmpty(item.ScheduledStationAeTitle) &&
+            !string.Equals(
+                item.ScheduledStationAeTitle.Trim(),
+                scheduledStationAe,
+                StringComparison.OrdinalIgnoreCase))
             return false;
 
         return true;
@@ -189,17 +208,23 @@ public sealed class WorklistCFindHandler(
         if (string.IsNullOrWhiteSpace(dicomDate))
             return (null, null);
 
+        // MWL-FIX-4: end-of-day (23:59:59.9999999) on the upper bound so that
+        // items persisted with a non-midnight ScheduledDate (e.g., when EF/SQLite
+        // round-trip introduces sub-second precision) still match a "today" query.
         if (dicomDate.Contains('-'))
         {
             var parts = dicomDate.Split('-', 2);
             var from = ParseSingleDicomDate(parts[0]);
-            var to   = ParseSingleDicomDate(parts[1]);
+            var to   = EndOfDay(ParseSingleDicomDate(parts[1]));
             return (from, to);
         }
 
         var single = ParseSingleDicomDate(dicomDate);
-        return (single, single);
+        return (single, EndOfDay(single));
     }
+
+    private static DateTime? EndOfDay(DateTime? value) =>
+        value.HasValue ? value.Value.Date.AddDays(1).AddTicks(-1) : null;
 
     /// <summary>Parses a single DICOM DA string <c>YYYYMMDD</c>; returns <c>null</c> on failure.</summary>
     private static DateTime? ParseSingleDicomDate(string value)

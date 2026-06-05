@@ -54,6 +54,21 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
     /// <summary>Newline-separated URLs to external image viewers or report portals, populated from ORU OBX-5 RP values.</summary>
     public string? ExternalImageLinks { get; private set; }
 
+    // Diagnostic report (from ORU^R01 OBX TX/FT segments and/or ED PDF)
+    /// <summary>Format of <see cref="ReportContent"/> (None when only a PDF or no report).</summary>
+    public ReportFormat ReportFormat { get; private set; } = ReportFormat.None;
+    /// <summary>The textual/HTML report body extracted from ORU OBX TX/FT segments.</summary>
+    public string? ReportContent { get; private set; }
+    /// <summary>Relative path (within the Hub workspace) to the report PDF, if any.</summary>
+    public string? ReportPdfPath { get; private set; }
+    /// <summary>When the first report artifact (text/HTML/PDF) was attached.</summary>
+    public DateTime? ReportReceivedAt { get; private set; }
+
+    /// <summary>True when a diagnostic report (text/HTML or PDF) is present.</summary>
+    public bool HasReport => ReportFormat != ReportFormat.None || !string.IsNullOrEmpty(ReportPdfPath);
+    /// <summary>True when at least one image link (liga de imágenes) is present.</summary>
+    public bool HasImageLinks => !string.IsNullOrEmpty(ExternalImageLinks);
+
     // Enterprise
     public int Priority { get; private set; }
     public bool IsUrgent { get; private set; }
@@ -230,6 +245,10 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
 
         RecordStatusChange(old, Status, null, "Study completed");
         AddDomainEvent(new StudyCompletedEvent(Id, StudyInstanceUid.Value, InstanceCount, TotalSizeBytes));
+
+        // If results (link/report) already arrived (e.g. ORU before images), advance
+        // straight to WaitingForReport / WaitingForImageLinks / Finalized.
+        RecomputeCompletion();
     }
 
     public void MarkQueuedForPacs(string targetPacsId)
@@ -342,6 +361,70 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
 
         ExternalImageLinks = string.Join('\n', existing);
         UpdatedAt = DateTime.UtcNow;
+
+        RecomputeCompletion();
+    }
+
+    /// <summary>
+    /// Attaches a diagnostic report (text/HTML body and/or a PDF stored in the Hub
+    /// workspace) received from an ORU^R01 message, then re-derives the study status.
+    /// </summary>
+    public void AttachReport(ReportFormat format, string? content, string? pdfPath)
+    {
+        if (format != ReportFormat.None && !string.IsNullOrWhiteSpace(content))
+        {
+            ReportFormat = format;
+            ReportContent = content.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(pdfPath))
+            ReportPdfPath = pdfPath.Trim();
+
+        if (HasReport)
+            ReportReceivedAt ??= DateTime.UtcNow;
+
+        UpdatedAt = DateTime.UtcNow;
+
+        RecomputeCompletion();
+    }
+
+    /// <summary>
+    /// Re-derives the finalization status from the two deliverable artifacts —
+    /// the image link (liga de imágenes) and the diagnostic report:
+    /// <list type="bullet">
+    ///   <item>liga + reporte → <see cref="StudyStatus.Finalized"/></item>
+    ///   <item>solo reporte → <see cref="StudyStatus.WaitingForImageLinks"/></item>
+    ///   <item>solo liga → <see cref="StudyStatus.WaitingForReport"/></item>
+    /// </list>
+    /// No-op once the study has entered the PACS-send pipeline or failed.
+    /// </summary>
+    public void RecomputeCompletion()
+    {
+        if (Status is StudyStatus.QueuedForSend or StudyStatus.Sending
+                  or StudyStatus.SentToPacs or StudyStatus.Failed)
+            return;
+
+        var links = HasImageLinks;
+        var report = HasReport;
+
+        StudyStatus next;
+        if (links && report) next = StudyStatus.Finalized;
+        else if (report)     next = StudyStatus.WaitingForImageLinks;
+        else if (links)      next = StudyStatus.WaitingForReport;
+        else                 return; // ni liga ni reporte aún
+
+        if (next == Status) return;
+
+        var old = Status;
+        Status = next;
+        CurrentStatusSince = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        RecordStatusChange(old, next, null, $"Completion recomputed → {next}");
+        AddDomainEvent(new StudyStatusChangedEvent(Id, old, next, $"Completion recomputed → {next}"));
+
+        if (next == StudyStatus.Finalized)
+            AddDomainEvent(new StudyFinalizedEvent(Id, StudyInstanceUid.Value, links, report));
     }
 
     /// <summary>

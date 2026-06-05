@@ -4,10 +4,24 @@ export type StudyStatus =
   | 'Scheduled'
   | 'Receiving'
   | 'Completed'
+  | 'WaitingForImageLinks'
+  | 'WaitingForReport'
+  | 'Finalized'
   | 'QueuedForSend'
   | 'Sending'
   | 'SentToPacs'
   | 'Failed';
+
+export type ReportFormat = 'None' | 'Html' | 'PlainText';
+
+export interface StudyReport {
+  studyId: string;
+  status: string;
+  reportFormat: ReportFormat;
+  content: string | null;
+  hasPdf: boolean;
+  imageLinks: string[];
+}
 
 export type ModalityType = 'CT' | 'MR' | 'CR' | 'DX' | 'US' | 'NM' | 'PT';
 
@@ -35,6 +49,10 @@ export interface Study {
   pacsSendAttempts: number;
   createdAt: string;
   updatedAt: string | null;
+  reportFormat: ReportFormat;
+  hasReport: boolean;
+  hasImageLinks: boolean;
+  imageLinks: string[];
 }
 
 export interface StudyFilter extends BaseFilter {
@@ -64,6 +82,9 @@ export const STUDY_STATUS_OPTIONS: { value: StudyStatus; label: string }[] = [
   { value: 'Scheduled', label: 'Agendado' },
   { value: 'Receiving', label: 'Recibiendo' },
   { value: 'Completed', label: 'Completado' },
+  { value: 'WaitingForImageLinks', label: 'En espera de liga' },
+  { value: 'WaitingForReport', label: 'En espera de reporte' },
+  { value: 'Finalized', label: 'Finalizado' },
   { value: 'QueuedForSend', label: 'En cola PACS' },
   { value: 'Sending', label: 'Enviando' },
   { value: 'SentToPacs', label: 'Enviado a PACS' },

@@ -25,6 +25,16 @@ public sealed class NodeDispatchRequest
     public string? ProcedureDescription { get; init; }
     public string? ProcedureId { get; init; }
     public int Priority { get; init; } = 5;
+
+    // ── MWL-FIX-3 — fields required by the Edge Node C-FIND SCP ──────────
+    public string? PatientBirthDate { get; init; }
+    public string? PatientSex { get; init; }
+    public DateTime? ScheduledDateTime { get; init; }
+    public string? ScheduledStationAeTitle { get; init; }
+    public string? ScheduledPerformingPhysicianName { get; init; }
+    public string? ScheduledProcedureStepId { get; init; }
+    public string? ReferringPhysicianName { get; init; }
+    public string? StudyInstanceUid { get; init; }
 }
 
 public sealed class NodeDispatchResult

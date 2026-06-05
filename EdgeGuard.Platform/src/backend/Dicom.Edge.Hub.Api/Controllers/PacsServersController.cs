@@ -7,12 +7,14 @@ using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/pacs-servers")]
 [Authorize(Policy = Policies.ViewConfiguration)]
+[EnableRateLimiting("api")]
 public class PacsServersController : ControllerBase
 {
     private readonly IPacsServerRepository _pacsRepository;

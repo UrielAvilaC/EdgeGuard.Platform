@@ -20,7 +20,7 @@ public sealed class HubDataRetentionService(
     IHubAuditLogRepository auditLogRepository,
     IHl7MessageRepository hl7MessageRepository,
     IHealthCheckRepository healthCheckRepository,
-    IWhatsAppNotificationRepository whatsAppRepository,
+    INotificationRepository whatsAppRepository,
     IPacsSendAuditRepository pacsSendAuditRepository,
     IStudyStatusAuditRepository studyStatusAuditRepository,
     IOptions<HubBackgroundJobsOptions> options,
@@ -46,7 +46,7 @@ public sealed class HubDataRetentionService(
             (cutoff, batch, token) => healthCheckRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
         var whatsApp = await PurgeTableAsync(
-            "WhatsAppNotifications", _policy.WhatsAppNotificationRetentionDays,
+            "Notifications", _policy.WhatsAppNotificationRetentionDays,
             (cutoff, batch, token) => whatsAppRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
         var pacsSend = await PurgeTableAsync(

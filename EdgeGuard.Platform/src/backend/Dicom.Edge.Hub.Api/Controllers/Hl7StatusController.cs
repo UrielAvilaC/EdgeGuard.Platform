@@ -3,12 +3,14 @@ using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/hl7-status")]
 [Authorize(Policy = Policies.ViewSystemStatus)]
+[EnableRateLimiting("api")]
 public class Hl7StatusController : ControllerBase
 {
     private readonly IHl7MonitoringService _monitoringService;

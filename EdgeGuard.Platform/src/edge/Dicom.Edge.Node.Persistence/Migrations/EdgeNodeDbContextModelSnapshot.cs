@@ -1232,6 +1232,11 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("modality");
 
+                    b.Property<string>("PatientBirthDate")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("patient_birth_date");
+
                     b.Property<string>("PatientId")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1244,15 +1249,50 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("patient_name");
 
+                    b.Property<string>("PatientSex")
+                        .HasMaxLength(4)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("patient_sex");
+
                     b.Property<string>("ProcedureDescription")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("TEXT")
                         .HasColumnName("procedure_description");
 
+                    b.Property<string>("ReferringPhysicianName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("referring_physician_name");
+
+                    b.Property<string>("RequestedProcedureId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("requested_procedure_id");
+
                     b.Property<DateTime>("ScheduledDate")
                         .HasColumnType("TEXT")
                         .HasColumnName("scheduled_date");
+
+                    b.Property<string>("ScheduledPerformingPhysicianName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scheduled_performing_physician_name");
+
+                    b.Property<string>("ScheduledProcedureStepId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scheduled_procedure_step_id");
+
+                    b.Property<string>("ScheduledStationAeTitle")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scheduled_station_ae_title");
+
+                    b.Property<string>("StudyInstanceUid")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("study_instance_uid");
 
                     b.Property<DateTime>("created_at")
                         .ValueGeneratedOnAdd()
@@ -1275,6 +1315,9 @@ namespace Dicom.Edge.Node.Persistence.Migrations
 
                     b.HasIndex("PatientId")
                         .HasDatabaseName("ix_worklist_patient_id");
+
+                    b.HasIndex("ScheduledStationAeTitle")
+                        .HasDatabaseName("ix_worklist_items_station_ae");
 
                     b.HasIndex("status")
                         .HasDatabaseName("ix_worklist_status");

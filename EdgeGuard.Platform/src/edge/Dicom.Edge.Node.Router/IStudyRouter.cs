@@ -25,6 +25,9 @@ public sealed class StudyRoutingContext
     public string? SourceAeTitle { get; init; }
     public string? InstitutionName { get; init; }
     public string? ReferringPhysician { get; init; }
+    public string? StudyDescription { get; init; }
+    public string? AccessionNumber { get; init; }
+    public int InstanceCount { get; init; }
     public int Priority { get; init; } = 5;
     public bool IsUrgent { get; init; }
 }

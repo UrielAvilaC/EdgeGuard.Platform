@@ -19,6 +19,20 @@ export const API_ROUTES = {
     COUNT: '/studies/count',
     STATUS: (id: string) => `/studies/${id}/status`,
     EXPORT: '/studies/export',
+    REPORT: (id: string) => `/studies/${id}/report`,
+    REPORT_PDF: (id: string) => `/studies/${id}/report/pdf`,
+    REPORT_QR: (id: string) => `/studies/${id}/report/qr`,
+  },
+  NOTIFICATION_TEMPLATES: {
+    LIST: '/notification-templates',
+    BY_ID: (id: string) => `/notification-templates/${id}`,
+    TAGS: '/notification-templates/tags',
+    PREVIEW: '/notification-templates/preview',
+  },
+  NOTIFICATION_SETTINGS: {
+    GET: '/notification-settings',
+    AUTO_MODE: '/notification-settings/auto-mode',
+    SMTP_TEST: '/notification-settings/smtp/test',
   },
   PATIENTS: {
     LIST: '/patients',

@@ -15,12 +15,20 @@ public sealed class WhatsAppAutoSendRule : Entity<string>
     public bool IsEnabled { get; private set; }
     public string? Description { get; private set; }
 
+    // Multichannel auto-send: channel + delivery toggles for this status.
+    public string Channel { get; private set; } = "WhatsApp";   // "WhatsApp" | "Email"
+    public bool AttachPdf { get; private set; }
+    public bool IncludeQr { get; private set; }
+
     private WhatsAppAutoSendRule() { }
 
     public static WhatsAppAutoSendRule Create(
         string studyStatus,
         string templateId,
-        string? description = null)
+        string? description = null,
+        string channel = "WhatsApp",
+        bool attachPdf = false,
+        bool includeQr = false)
     {
         if (string.IsNullOrWhiteSpace(studyStatus))
             throw new ArgumentException("Study status cannot be empty.", nameof(studyStatus));
@@ -33,8 +41,20 @@ public sealed class WhatsAppAutoSendRule : Entity<string>
             StudyStatus = studyStatus.Trim(),
             TemplateId = templateId.Trim(),
             IsEnabled = true,
-            Description = description?.Trim()
+            Description = description?.Trim(),
+            Channel = string.IsNullOrWhiteSpace(channel) ? "WhatsApp" : channel.Trim(),
+            AttachPdf = attachPdf,
+            IncludeQr = includeQr
         };
+    }
+
+    /// <summary>Updates the delivery channel and PDF/QR toggles for this rule.</summary>
+    public void SetDelivery(string channel, bool attachPdf, bool includeQr)
+    {
+        Channel = string.IsNullOrWhiteSpace(channel) ? "WhatsApp" : channel.Trim();
+        AttachPdf = attachPdf;
+        IncludeQr = includeQr;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void AssignTemplate(string templateId)

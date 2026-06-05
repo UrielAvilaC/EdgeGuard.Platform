@@ -1011,62 +1011,27 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.ToTable("node_pacs_assignments", (string)null);
                 });
 
-            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppAutoSendRule", b =>
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.Notification", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("id");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Description")
+                    b.Property<string>("AttachmentPath")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
-                        .HasColumnName("description");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_enabled");
-
-                    b.Property<string>("StudyStatus")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("study_status");
-
-                    b.Property<string>("TemplateId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("template_id");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_whatsapp_auto_send_rules");
-
-                    b.HasIndex("StudyStatus")
-                        .IsUnique()
-                        .HasDatabaseName("ix_whatsapp_auto_send_rules_study_status");
-
-                    b.ToTable("whatsapp_auto_send_rules", (string)null);
-                });
-
-            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppNotification", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("id");
+                        .HasColumnName("attachment_path");
 
                     b.Property<int>("Attempts")
                         .HasColumnType("integer")
                         .HasColumnName("attempts");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("channel");
 
                     b.Property<string>("ContentSid")
                         .HasMaxLength(64)
@@ -1077,10 +1042,23 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("ImageLink")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("image_link");
+
+                    b.Property<bool>("IsHtmlBody")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_html_body");
+
                     b.Property<string>("LastError")
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)")
                         .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
 
                     b.Property<string>("NormalizedPhone")
                         .HasMaxLength(32)
@@ -1108,6 +1086,10 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("provider_name");
 
+                    b.Property<string>("RenderedBody")
+                        .HasColumnType("text")
+                        .HasColumnName("rendered_body");
+
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("sent_at");
@@ -1129,10 +1111,20 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("study_status");
 
+                    b.Property<string>("Subject")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("subject");
+
                     b.Property<string>("TemplateId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("template_id");
+
+                    b.Property<string>("ToEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("to_email");
 
                     b.Property<string>("TriggeredBy")
                         .IsRequired()
@@ -1145,28 +1137,153 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_whatsapp_notifications");
+                        .HasName("pk_notifications");
 
                     b.HasIndex("CreatedAt")
-                        .HasDatabaseName("ix_whatsapp_notifications_created_at");
+                        .HasDatabaseName("ix_notifications_created_at");
 
                     b.HasIndex("ProviderName")
-                        .HasDatabaseName("ix_whatsapp_notifications_provider_name");
+                        .HasDatabaseName("ix_notifications_provider_name");
 
                     b.HasIndex("Status")
-                        .HasDatabaseName("ix_whatsapp_notifications_status");
+                        .HasDatabaseName("ix_notifications_status");
 
                     b.HasIndex("StudyId")
-                        .HasDatabaseName("ix_whatsapp_notifications_study_id");
+                        .HasDatabaseName("ix_notifications_study_id");
 
                     b.HasIndex("StudyStatus")
-                        .HasDatabaseName("ix_whatsapp_notifications_study_status");
+                        .HasDatabaseName("ix_notifications_study_status");
 
                     b.HasIndex("Status", "CreatedAt")
-                        .HasDatabaseName("ix_whatsapp_notifications_status_created_at")
+                        .HasDatabaseName("ix_notifications_status_created_at")
                         .HasFilter("status = 'Pending'");
 
-                    b.ToTable("whatsapp_notifications", (string)null);
+                    b.HasIndex("Channel", "Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_notifications_channel_status_next_attempt_at");
+
+                    b.ToTable("notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.NotificationTemplate", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("format");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("subject");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_templates");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("ix_notification_templates_is_active");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_notification_templates_name");
+
+                    b.ToTable("notification_templates", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppAutoSendRule", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AttachPdf")
+                        .HasColumnType("boolean")
+                        .HasColumnName("attach_pdf");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("WhatsApp")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IncludeQr")
+                        .HasColumnType("boolean")
+                        .HasColumnName("include_qr");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("StudyStatus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("study_status");
+
+                    b.Property<string>("TemplateId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("template_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_whatsapp_auto_send_rules");
+
+                    b.HasIndex("StudyStatus", "Channel")
+                        .IsUnique()
+                        .HasDatabaseName("ix_whatsapp_auto_send_rules_study_status_channel");
+
+                    b.ToTable("whatsapp_auto_send_rules", (string)null);
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppTemplate", b =>
@@ -1775,6 +1892,25 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("referring_physician");
 
+                    b.Property<string>("ReportContent")
+                        .HasColumnType("text")
+                        .HasColumnName("report_content");
+
+                    b.Property<string>("ReportFormat")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("report_format");
+
+                    b.Property<string>("ReportPdfPath")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("report_pdf_path");
+
+                    b.Property<DateTime?>("ReportReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("report_received_at");
+
                     b.Property<int>("RetryCount")
                         .HasColumnType("integer")
                         .HasColumnName("retry_count");
@@ -2120,6 +2256,16 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.Property<int>("ReceivedOnPort")
                         .HasColumnType("integer")
                         .HasColumnName("received_on_port");
+
+                    b.Property<string>("ReportFormat")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("report_format");
+
+                    b.Property<string>("ReportText")
+                        .HasColumnType("text")
+                        .HasColumnName("report_text");
 
                     b.Property<DateTime?>("RoutedAt")
                         .HasColumnType("timestamp with time zone")

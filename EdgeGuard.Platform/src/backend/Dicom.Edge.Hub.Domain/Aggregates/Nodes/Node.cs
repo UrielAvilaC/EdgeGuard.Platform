@@ -1,6 +1,6 @@
 using Dicom.Edge.Hub.Domain.Common;
-using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes.Events;
+using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Models.Enums;
 
 namespace Dicom.Edge.Hub.Domain.Aggregates.Nodes;
@@ -84,7 +84,7 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
             HealthCheckIntervalSeconds = healthCheckIntervalSeconds,
         };
 
-        node.AddDomainEvent(new NodeRegisteredEvent(node.Id, name, aeTitle.Value));
+        node.AddDomainEvent(new NodeRegisteredEvent(node.Id, name));
         return node;
     }
 

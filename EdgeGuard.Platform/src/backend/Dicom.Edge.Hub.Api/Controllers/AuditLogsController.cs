@@ -6,12 +6,14 @@ using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/audit-logs")]
 [Authorize(Policy = Policies.ViewAuditLogs)]
+[EnableRateLimiting("api")]
 public class AuditLogsController(
     IHubAuditLogRepository auditLogRepository) : ControllerBase
 {

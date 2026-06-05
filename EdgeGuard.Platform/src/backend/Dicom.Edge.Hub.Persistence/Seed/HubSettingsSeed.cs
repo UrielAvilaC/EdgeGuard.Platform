@@ -52,7 +52,7 @@ public static class HubSettingsSeed
     private static List<SystemSetting> BuildDefaults() =>
     [
         // ── HL7 ─────────────────────────────────────────────────────────────
-        Row(HubSettingKeys.Hl7.TcpPort,                   "2575",   Cat.Hl7,      "TCP Port",                     VT.Int),
+        Row(HubSettingKeys.Hl7.TcpPort,                   "8001",   Cat.Hl7,      "TCP Port",                     VT.Int),
         Row(HubSettingKeys.Hl7.TcpEnabled,                "true",   Cat.Hl7,      "TCP Enabled",                  VT.Bool),
         Row(HubSettingKeys.Hl7.MaxConcurrentConnections,  "50",     Cat.Hl7,      "Max Concurrent Connections",   VT.Int),
         Row(HubSettingKeys.Hl7.MaxQueuedMessages,         "10000",  Cat.Hl7,      "Max Queued Messages",          VT.Int),

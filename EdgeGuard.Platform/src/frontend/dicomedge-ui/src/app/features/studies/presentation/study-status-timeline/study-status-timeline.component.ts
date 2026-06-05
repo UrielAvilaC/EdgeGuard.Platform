@@ -32,6 +32,10 @@ const STATUS_ORDER: Record<StudyStatus, number> = {
   Scheduled: 0,
   Receiving: 1,
   Completed: 2,
+  // Results-phase refinements of "Completed" (awaiting link/report/finalization).
+  WaitingForImageLinks: 2,
+  WaitingForReport: 2,
+  Finalized: 2,
   QueuedForSend: 3,
   Sending: 4,
   SentToPacs: 5,

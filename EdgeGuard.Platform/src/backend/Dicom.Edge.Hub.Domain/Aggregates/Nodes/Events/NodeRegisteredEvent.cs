@@ -4,8 +4,7 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Nodes.Events;
 
 public sealed record NodeRegisteredEvent(
     string NodeId,
-    string Name,
-    string AeTitle) : IDomainEvent
+    string Name) : IDomainEvent
 {
     public DateTime OccurredAtUtc { get; } = DateTime.UtcNow;
 }

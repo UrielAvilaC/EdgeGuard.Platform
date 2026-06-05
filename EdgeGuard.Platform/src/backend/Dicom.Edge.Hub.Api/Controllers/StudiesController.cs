@@ -1,37 +1,132 @@
 using Dicom.Edge.Common.Filters;
 using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Contracts.Notifications;
 using Dicom.Edge.Hub.Api.Mapping;
 using Dicom.Edge.Hub.Application.CsvServices;
+using Dicom.Edge.Hub.Application.Notifications;
+using Dicom.Edge.Hub.Application.Reports;
 using Dicom.Edge.Hub.Application.Studies;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
+using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Security.Authorization;
+using Ganss.Xss;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/studies")]
 [Authorize(Policy = Policies.ViewStudies)]
+[EnableRateLimiting("api")]
 public class StudiesController : ControllerBase
 {
     private readonly IStudyRepository _studyRepository;
     private readonly IStudyService _studyService;
     private readonly ICsvExportService _csvExportService;
+    private readonly IReportStorage _reportStorage;
+    private readonly IQrCodeGenerator _qrCodeGenerator;
+    private readonly IHtmlSanitizer _htmlSanitizer;
     private readonly ILogger<StudiesController> _logger;
 
     public StudiesController(
         IStudyRepository studyRepository,
         IStudyService studyService,
         ICsvExportService csvExportService,
+        IReportStorage reportStorage,
+        IQrCodeGenerator qrCodeGenerator,
+        IHtmlSanitizer htmlSanitizer,
         ILogger<StudiesController> logger)
     {
         _studyRepository = studyRepository;
         _studyService = studyService;
         _csvExportService = csvExportService;
+        _reportStorage = reportStorage;
+        _qrCodeGenerator = qrCodeGenerator;
+        _htmlSanitizer = htmlSanitizer;
         _logger = logger;
     }
+
+    // ── Diagnostic report (ORU results) ──────────────────────────────────────
+
+    /// <summary>GET /api/studies/{id}/report — report metadata + sanitized content + links.</summary>
+    [HttpGet("{id}/report")]
+    public async Task<IActionResult> GetReport(string id, CancellationToken ct)
+    {
+        var study = await _studyRepository.GetByIdAsync(id, ct);
+        if (study is null) return NotFound();
+
+        var content = study.ReportContent;
+        if (study.ReportFormat == ReportFormat.Html && !string.IsNullOrEmpty(content))
+            content = _htmlSanitizer.Sanitize(content);
+
+        return Ok(new ReportDto
+        {
+            StudyId = study.Id,
+            Status = study.Status.ToString(),
+            ReportFormat = study.ReportFormat.ToString(),
+            Content = content,
+            HasPdf = !string.IsNullOrEmpty(study.ReportPdfPath),
+            ImageLinks = SplitLinks(study.ExternalImageLinks)
+        });
+    }
+
+    /// <summary>GET /api/studies/{id}/report/pdf — streams the stored report PDF.</summary>
+    [HttpGet("{id}/report/pdf")]
+    public async Task<IActionResult> GetReportPdf(string id, CancellationToken ct)
+    {
+        var study = await _studyRepository.GetByIdAsync(id, ct);
+        if (study?.ReportPdfPath is null) return NotFound();
+
+        var stream = await _reportStorage.OpenPdfAsync(study.ReportPdfPath, ct);
+        if (stream is null) return NotFound();
+
+        return File(stream, "application/pdf", $"report-{study.Id}.pdf");
+    }
+
+    /// <summary>GET /api/studies/{id}/report/qr — PNG QR code of the image link.</summary>
+    [HttpGet("{id}/report/qr")]
+    public async Task<IActionResult> GetReportQr(string id, [FromQuery] string? link, CancellationToken ct)
+    {
+        var target = link;
+        if (string.IsNullOrWhiteSpace(target))
+        {
+            var study = await _studyRepository.GetByIdAsync(id, ct);
+            if (study is null) return NotFound();
+            target = SplitLinks(study.ExternalImageLinks).FirstOrDefault();
+        }
+
+        if (string.IsNullOrWhiteSpace(target)) return NotFound();
+
+        var png = _qrCodeGenerator.GeneratePng(target);
+        return File(png, "image/png");
+    }
+
+    private static IReadOnlyList<string> SplitLinks(string? links) =>
+        string.IsNullOrEmpty(links)
+            ? []
+            : links.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+    // ── Results delivery ─────────────────────────────────────────────────────
+
+    /// <summary>POST /api/studies/{id}/deliver — enqueue results delivery (email/WhatsApp).</summary>
+    [HttpPost("{id}/deliver")]
+    [Authorize(Policy = Policies.EditStudyMetadata)]
+    public async Task<IActionResult> Deliver(
+        string id, [FromBody] DeliverResultsRequest request,
+        [FromServices] IDeliveryService deliveryService, CancellationToken ct)
+    {
+        var result = await deliveryService.DeliverAsync(id, request, ct);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    /// <summary>GET /api/studies/{id}/deliveries — delivery history for the study.</summary>
+    [HttpGet("{id}/deliveries")]
+    public async Task<IActionResult> GetDeliveries(
+        string id, [FromServices] IDeliveryService deliveryService, CancellationToken ct) =>
+        Ok(await deliveryService.GetHistoryAsync(id, ct));
 
     [HttpGet]
     public async Task<IActionResult> GetPaged([FromQuery] StudyFilter filter, CancellationToken ct = default)

@@ -52,7 +52,8 @@ internal static class NodeSettingsSeed
     [
         // ── General ─────────────────────────────────────────────────────────
         Row(NodeSettingKeys.General.NodeName,     "",   Cat.General,  "Node Name",              VT.String),
-        Row(NodeSettingKeys.General.AeTitle,      "",    Cat.General,  "AE Title",               VT.String),
+        // node.ae_title is DERIVED from dicom.ae_title (single source of truth); seeded for display only.
+        Row(NodeSettingKeys.General.AeTitle,      "EDGE_NODE",    Cat.General,  "AE Title (derived)",     VT.String),
         Row(NodeSettingKeys.General.Description,  "",             Cat.General,  "Description",            VT.String),
         Row(NodeSettingKeys.General.Location,     "",             Cat.General,  "Location",               VT.String),
         Row(NodeSettingKeys.General.FacilityName, "",             Cat.General,  "Facility Name",          VT.String),
@@ -122,7 +123,8 @@ internal static class NodeSettingsSeed
 
         // ── PACS Sender ──────────────────────────────────────────────────────
         Row(NodeSettingKeys.PacsSender.Enabled,                   "true",      Cat.PacsSender, "PACS Sender Enabled",               VT.Bool),
-        Row(NodeSettingKeys.PacsSender.LocalAeTitle,              "EDGENODE",  Cat.PacsSender, "Local AE Title",                    VT.String),
+        // sender.local_ae_title is DERIVED from dicom.ae_title (single source of truth); seeded for display only.
+        Row(NodeSettingKeys.PacsSender.LocalAeTitle,              "EDGE_NODE", Cat.PacsSender, "Local AE Title (derived)",          VT.String),
         Row(NodeSettingKeys.PacsSender.MaxConcurrentSends,        "4",         Cat.PacsSender, "Max Concurrent Sends",              VT.Int),
         Row(NodeSettingKeys.PacsSender.TimeoutSeconds,            "120",       Cat.PacsSender, "Send Timeout (sec)",                VT.Int),
         Row(NodeSettingKeys.PacsSender.MaxRetries,                "3",         Cat.PacsSender, "Max Retries",                       VT.Int),

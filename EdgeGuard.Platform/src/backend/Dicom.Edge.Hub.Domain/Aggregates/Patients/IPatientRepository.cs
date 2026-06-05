@@ -29,4 +29,13 @@ public interface IPatientRepository
     Task<Patient> AddAsync(Patient patient, CancellationToken ct = default);
     Task UpdateAsync(Patient patient, CancellationToken ct = default);
     Task<int> CountAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// P0-7: Returns all patients whose <c>MergedIntoPatientId</c> points to the given
+    /// prior PatientDicomId. Used to collapse merge chains when the surviving patient
+    /// is itself merged later (A→B then B→C must re-point A to C).
+    /// </summary>
+    Task<IReadOnlyList<Patient>> GetByMergedIntoPatientIdAsync(
+        string priorPatientDicomId,
+        CancellationToken ct = default);
 }

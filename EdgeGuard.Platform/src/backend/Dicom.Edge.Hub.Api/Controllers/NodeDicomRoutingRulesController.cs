@@ -5,6 +5,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Routing;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
@@ -16,6 +17,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 [ApiController]
 [Route("api/nodes/{nodeId}/dicom-routing-rules")]
 [Authorize(Policy = Policies.ViewConfiguration)]
+[EnableRateLimiting("api")]
 public sealed class NodeDicomRoutingRulesController(
     INodeDicomRoutingRuleService ruleService,
     INodeDicomRoutingRuleRepository ruleRepository,

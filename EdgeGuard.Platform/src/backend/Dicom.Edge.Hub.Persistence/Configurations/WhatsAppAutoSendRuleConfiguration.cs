@@ -16,6 +16,12 @@ public class WhatsAppAutoSendRuleConfiguration : IEntityTypeConfiguration<WhatsA
         builder.Property(r => r.IsEnabled).IsRequired();
         builder.Property(r => r.Description).HasMaxLength(512);
 
-        builder.HasIndex(r => r.StudyStatus).IsUnique();
+        // Fase 7: multichannel auto-send. Migration: RenameAutoSendRuleAddChannel.
+        builder.Property(r => r.Channel).IsRequired().HasMaxLength(16).HasDefaultValue("WhatsApp");
+        builder.Property(r => r.AttachPdf).IsRequired();
+        builder.Property(r => r.IncludeQr).IsRequired();
+
+        // One rule per (status, channel).
+        builder.HasIndex(r => new { r.StudyStatus, r.Channel }).IsUnique();
     }
 }

@@ -65,6 +65,12 @@ public static class HubSettingKeys
         public const string RetryDelaySeconds = "whatsapp.retry_delay_seconds";
     }
 
+    public static class Notifications
+    {
+        /// <summary>Master switch for automatic results delivery on study finalization.</summary>
+        public const string AutoMode = "notifications.auto_mode";
+    }
+
     public static class BackgroundJobs
     {
         public const string EnableNodeHealth = "jobs.enable_node_health";

@@ -18,7 +18,8 @@ export type SignalREvent =
   | 'NodeHeartbeat'
   | 'Hl7MessageReceived'
   | 'WhatsAppNotificationSent'
-  | 'AuditEvent';
+  | 'AuditEvent'
+  | 'NodePushStatus';
 
 @Injectable({ providedIn: 'root' })
 export class SignalRService {

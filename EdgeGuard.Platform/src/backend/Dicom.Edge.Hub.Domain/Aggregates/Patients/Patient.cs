@@ -128,8 +128,35 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
         if (string.IsNullOrWhiteSpace(survivingPatientDicomId))
             throw new ArgumentException("Surviving patient ID cannot be empty.", nameof(survivingPatientDicomId));
 
+        // P0-7: Self-merge guard. A patient must never merge into itself.
+        if (string.Equals(survivingPatientDicomId, PatientDicomId.Value, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Cannot merge patient {PatientDicomId.Value} into itself.");
+
         MergedIntoPatientId = survivingPatientDicomId;
         IsActive = false;
+        LastUpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// P0-7: Updates the merge target for chain collapsing. Used when the SURVIVING
+    /// patient is later itself merged — every patient previously merged INTO this
+    /// (now-prior) patient must be re-pointed to the new surviving patient.
+    /// </summary>
+    public void UpdateMergeTarget(string newSurvivingPatientDicomId)
+    {
+        if (!IsMerged)
+            throw new InvalidOperationException(
+                "Patient is not merged; use MergeInto for initial merge.");
+        if (string.IsNullOrWhiteSpace(newSurvivingPatientDicomId))
+            throw new ArgumentException("New surviving patient ID cannot be empty.",
+                nameof(newSurvivingPatientDicomId));
+        if (string.Equals(newSurvivingPatientDicomId, PatientDicomId.Value, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Cannot collapse merge chain into self ({PatientDicomId.Value}).");
+
+        MergedIntoPatientId = newSurvivingPatientDicomId;
         LastUpdatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }

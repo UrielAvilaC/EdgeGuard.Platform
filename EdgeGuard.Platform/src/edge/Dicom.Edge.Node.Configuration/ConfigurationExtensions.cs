@@ -1,3 +1,4 @@
+using Dicom.Edge.Abstractions.Configuration;
 using Dicom.Edge.Abstractions.Monitoring;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,11 @@ public static class ConfigurationExtensions
         {
             if (opts.ApiPort == 0)
                 opts.ApiPort = configuration.GetValue("NodeApi:Port", 5120);
+
+            // AE unification: the AE reported to the Hub at registration is DERIVED
+            // from the single source of truth (DicomServer:AeTitle), never set
+            // independently. Keeps the registered Node.AeTitle == SCP/SCU AE.
+            opts.AeTitle = configuration[NodeAeTitle.ConfigPath] ?? NodeAeTitle.Default;
         });
 
         services.AddHttpClient<IHubSyncClient, HubSyncClient>((sp, client) =>

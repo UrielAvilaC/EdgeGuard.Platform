@@ -22,6 +22,12 @@ public static class Hl7ProtocolConstants
     /// <summary>Acknowledgment code for a successfully accepted message.</summary>
     public const string AckCode = "AA";
 
+    /// <summary>NACK: Application Error — message accepted but processing failed (P0-5).</summary>
+    public const string NackErrorCode = "AE";
+
+    /// <summary>NACK: Application Reject — message rejected at the protocol level (P0-5).</summary>
+    public const string NackRejectCode = "AR";
+
     /// <summary>HL7 message type identifier for acknowledgment messages.</summary>
     public const string AckMessageType = "ACK";
 

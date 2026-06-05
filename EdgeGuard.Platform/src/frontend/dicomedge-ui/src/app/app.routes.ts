@@ -83,6 +83,20 @@ export const routes: Routes = [
         loadChildren: () => import('./features/whatsapp/whatsapp.routes').then((m) => m.whatsappRoutes),
       },
       {
+        path: 'email-templates',
+        title: 'Plantillas Email',
+        canActivate: [permissionGuard],
+        data: { permission: 'ViewConfiguration' },
+        loadComponent: () => import('./features/email-templates/email-templates-page.component'),
+      },
+      {
+        path: 'notification-settings',
+        title: 'Notificaciones',
+        canActivate: [permissionGuard],
+        data: { permission: 'ViewConfiguration' },
+        loadComponent: () => import('./features/notification-settings/notification-settings-page.component'),
+      },
+      {
         path: 'users',
         title: 'Usuarios',
         canActivate: [permissionGuard],

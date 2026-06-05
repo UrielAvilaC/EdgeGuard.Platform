@@ -22,7 +22,7 @@ public static class SharedNodeSettingDefaults
         [
             // ── General ─────────────────────────────────────────────────────
             E(K.General.NodeName,     "EdgeNode-1",   C.General,  "Node Name",              V.String),
-            E(K.General.AeTitle,      "EDGE_NODE",    C.General,  "AE Title",               V.String),
+            E(K.General.AeTitle,      "EDGE_NODE",    C.General,  "AE Title (derived)",     V.String),
             E(K.General.Description,  "",             C.General,  "Description",            V.String),
             E(K.General.Location,     "",             C.General,  "Location",               V.String),
             E(K.General.FacilityName, "",             C.General,  "Facility Name",          V.String),
@@ -87,7 +87,7 @@ public static class SharedNodeSettingDefaults
 
             // ── PACS Sender ─────────────────────────────────────────────────
             E(K.PacsSender.Enabled,                   "true",     C.PacsSender, "PACS Sender Enabled",       V.Bool),
-            E(K.PacsSender.LocalAeTitle,              "EDGENODE", C.PacsSender, "Local AE Title",            V.String),
+            E(K.PacsSender.LocalAeTitle,              "EDGE_NODE", C.PacsSender, "Local AE Title (derived)",  V.String),
             E(K.PacsSender.MaxConcurrentSends,        "4",        C.PacsSender, "Max Concurrent Sends",      V.Int),
             E(K.PacsSender.TimeoutSeconds,            "120",      C.PacsSender, "Send Timeout (sec)",        V.Int),
             E(K.PacsSender.MaxRetries,                "3",        C.PacsSender, "Max Retries",               V.Int),

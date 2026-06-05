@@ -1,3 +1,4 @@
+using Dicom.Edge.Abstractions.Configuration;
 using Dicom.Edge.Node.Persistence.Constants;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
@@ -56,6 +57,11 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             MapDicomServer(dbSettings, data);
             MapPacsSender(dbSettings, data);
             MapPacsCEcho(dbSettings, data);
+
+            // AE unification: derive the registration AE and the SCU Calling AE from
+            // the single source of truth (dicom.ae_title). Must run last so it wins
+            // over any redundant DB rows. See NodeAeTitle.
+            DeriveNodeAeTitle(dbSettings, data);
         }
         catch
         {
@@ -119,7 +125,8 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string?> cfg)
     {
         Map(db, cfg, NodeSettingKeys.General.NodeName,     ConfigPaths.HubNodeName);
-        Map(db, cfg, NodeSettingKeys.General.AeTitle,      ConfigPaths.HubAeTitle);
+        // HubConnection:AeTitle is DERIVED from dicom.ae_title (see DeriveNodeAeTitle);
+        // the node.ae_title row is intentionally NOT mapped for the AE.
         Map(db, cfg, NodeSettingKeys.General.IpAddress,    ConfigPaths.HubIpAddress);
         Map(db, cfg, NodeSettingKeys.Dicom.Port,           ConfigPaths.HubPort);
         Map(db, cfg, NodeSettingKeys.General.ApiEndpoint,  ConfigPaths.HubApiEndpoint);
@@ -187,12 +194,34 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string?> cfg)
     {
         Map(db, cfg, NodeSettingKeys.PacsSender.Enabled,                   ConfigPaths.PacsSenderEnabled);
-        Map(db, cfg, NodeSettingKeys.PacsSender.LocalAeTitle,              ConfigPaths.PacsSenderLocalAeTitle);
+        // PacsSender:LocalAeTitle is DERIVED from dicom.ae_title (see DeriveNodeAeTitle);
+        // the sender.local_ae_title row is intentionally NOT mapped for the AE.
         Map(db, cfg, NodeSettingKeys.PacsSender.MaxConcurrentSends,        ConfigPaths.PacsSenderMaxConcurrentSends);
         Map(db, cfg, NodeSettingKeys.PacsSender.TimeoutSeconds,            ConfigPaths.PacsSenderTimeoutSeconds);
         Map(db, cfg, NodeSettingKeys.PacsSender.MaxRetries,                ConfigPaths.PacsSenderMaxRetries);
         Map(db, cfg, NodeSettingKeys.PacsSender.RetryBaseDelaySeconds,     ConfigPaths.PacsSenderRetryBaseDelaySeconds);
         Map(db, cfg, NodeSettingKeys.PacsSender.ProcessingIntervalSeconds, ConfigPaths.PacsSenderProcessingIntervalSeconds);
+    }
+
+    // ── AE unification (single source of truth) ──────────────────────────────
+
+    /// <summary>
+    /// Derives <c>HubConnection:AeTitle</c> and <c>PacsSender:LocalAeTitle</c> from the
+    /// canonical <c>dicom.ae_title</c> setting so the registration AE and the outbound
+    /// SCU Calling AE always equal the SCP AE. Only applied when <c>dicom.ae_title</c>
+    /// is present in the DB, so an absent value defers to appsettings (and the
+    /// PostConfigure derivation on the bound options). See <see cref="NodeAeTitle"/>.
+    /// </summary>
+    private static void DeriveNodeAeTitle(
+        Dictionary<string, string> db,
+        Dictionary<string, string?> cfg)
+    {
+        if (db.TryGetValue(NodeSettingKeys.Dicom.AeTitle, out var ae) &&
+            !string.IsNullOrWhiteSpace(ae))
+        {
+            cfg[ConfigPaths.HubAeTitle] = ae;
+            cfg[ConfigPaths.PacsSenderLocalAeTitle] = ae;
+        }
     }
 
     // ── PacsCEcho ────────────────────────────────────────────────────────────

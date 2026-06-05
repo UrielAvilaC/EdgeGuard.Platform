@@ -6,12 +6,14 @@ using Dicom.Edge.Hub.Domain.Interfaces;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/queue-monitoring")]
 [Authorize(Policy = Policies.ViewQueue)]
+[EnableRateLimiting("api")]
 public class QueueMonitoringController : ControllerBase
 {
     private readonly IHl7MessageRepository _messageRepository;
