@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dicom.Edge.Models.Enums;
 
 namespace Dicom.Edge.Hub.Domain.Entities;
 
@@ -66,6 +67,13 @@ public class Hl7Message
             ? Array.Empty<string>()
             : JsonSerializer.Deserialize<List<string>>(ImageLinksJson) ?? [];
 
+    // ── ORU OBX diagnostic report ─────────────────────────────────────────────
+    /// <summary>Report body (text/HTML) extracted from ORU OBX TX/FT segments. PHI.</summary>
+    public string? ReportText { get; private set; }
+
+    /// <summary>Format of <see cref="ReportText"/> (None when no textual report).</summary>
+    public ReportFormat ReportFormat { get; private set; } = ReportFormat.None;
+
     // ── Dispatch lifecycle ────────────────────────────────────────────────────
     public Hl7DispatchStatus DispatchStatus { get; private set; }
     public string? TargetNodeId { get; private set; }
@@ -89,6 +97,7 @@ public class Hl7Message
         var cleanContent = content.Replace("\v", "").Replace("\x1C", "");
 
         var imageLinks = ExtractObxImageLinks(cleanContent);
+        var (reportText, reportFormat) = ExtractObxReportText(cleanContent);
 
         var messageType  = ExtractField(cleanContent, "MSH", 8)?.Split('^').FirstOrDefault() ?? "UNKNOWN";
         var triggerEvent = ExtractTriggerEvent(cleanContent);
@@ -136,6 +145,9 @@ public class Hl7Message
             ImageLinksJson = imageLinks.Count > 0
                 ? JsonSerializer.Serialize(imageLinks)
                 : null,
+            // OBX diagnostic report (text/HTML)
+            ReportText = reportText,
+            ReportFormat = reportFormat,
             ReceivedAt = DateTime.UtcNow,
             ClientEndpoint = clientEndpoint,
             ReceivedOnPort = receivedOnPort,
@@ -386,6 +398,86 @@ public class Hl7Message
         }
 
         return links;
+    }
+
+    /// <summary>
+    /// Collects the diagnostic report body from ORU OBX segments whose OBX-2 value
+    /// type is "TX" (text) or "FT" (formatted text), ignoring OBX-5 values that are
+    /// plain URLs (those are image links). The format is HTML when any line contains
+    /// markup, otherwise plain text.
+    /// </summary>
+    private static (string? text, ReportFormat format) ExtractObxReportText(string content)
+    {
+        var lines = new List<string>();
+
+        foreach (var segment in content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!segment.StartsWith("OBX|", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var fields = segment.Split('|');
+            if (fields.Length < 6) continue;
+
+            var valueType = fields[2].Trim();
+            var rawValue  = fields[5].Trim();
+
+            var isText = string.Equals(valueType, "TX", StringComparison.OrdinalIgnoreCase)
+                      || string.Equals(valueType, "FT", StringComparison.OrdinalIgnoreCase);
+            if (!isText || string.IsNullOrWhiteSpace(rawValue)) continue;
+
+            // Skip values that are just a URL (those are captured as image links).
+            if (rawValue.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+                rawValue.StartsWith("wado", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            lines.Add(rawValue);
+        }
+
+        if (lines.Count == 0) return (null, ReportFormat.None);
+
+        var body = string.Join('\n', lines);
+        var isHtml = body.Contains('<') && body.Contains('>');
+        return (body, isHtml ? ReportFormat.Html : ReportFormat.PlainText);
+    }
+
+    /// <summary>
+    /// Extracts an embedded PDF (base64) from an ORU OBX segment whose OBX-2 value
+    /// type is "ED" (Encapsulated Data). HL7 ED OBX-5 is component-delimited, e.g.
+    /// <c>^application^pdf^Base64^&lt;b64&gt;</c>; the base64 payload follows the
+    /// "Base64" encoding component. Returns <c>null</c> when no PDF ED is present.
+    /// Public so the ORU handler can re-extract from the persisted raw content.
+    /// </summary>
+    public static string? ExtractReportPdfBase64(string rawContent)
+    {
+        if (string.IsNullOrEmpty(rawContent)) return null;
+        var content = rawContent.Replace("\v", "").Replace("\x1C", "");
+
+        foreach (var segment in content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!segment.StartsWith("OBX|", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var fields = segment.Split('|');
+            if (fields.Length < 6) continue;
+            if (!string.Equals(fields[2].Trim(), "ED", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var components = fields[5].Split('^');
+            var isPdf = components.Any(c => c.Contains("pdf", StringComparison.OrdinalIgnoreCase));
+            if (!isPdf) continue;
+
+            var b64Index = Array.FindIndex(components,
+                c => c.Trim().Equals("Base64", StringComparison.OrdinalIgnoreCase));
+
+            if (b64Index >= 0 && b64Index + 1 < components.Length)
+            {
+                var payload = components[b64Index + 1].Trim();
+                if (!string.IsNullOrEmpty(payload)) return payload;
+            }
+
+            // Fallback: last non-empty component when no explicit Base64 marker.
+            var last = components[^1].Trim();
+            if (!string.IsNullOrEmpty(last)) return last;
+        }
+
+        return null;
     }
 
     /// <summary>

@@ -1,3 +1,5 @@
+using Dicom.Edge.Abstractions.Configuration;
+
 namespace Dicom.Edge.Node.DicomServer;
 
 /// <summary>
@@ -8,7 +10,13 @@ public sealed class DicomServerOptions
     public const string SectionName = "DicomServer";
 
     public bool Enabled { get; set; } = true;
-    public string AeTitle { get; set; } = "EDGENODE";
+
+    /// <summary>
+    /// The node's DICOM AE Title — the SINGLE SOURCE OF TRUTH for node identity.
+    /// The SCU Calling AE (<c>PacsSender:LocalAeTitle</c>) and the Hub-registration AE
+    /// (<c>HubConnection:AeTitle</c>) are derived from this. See <see cref="NodeAeTitle"/>.
+    /// </summary>
+    public string AeTitle { get; set; } = NodeAeTitle.Default;
     public int Port { get; set; } = 11112;
     public int MaxClients { get; set; } = 10;
     public int AssociationTimeoutSeconds { get; set; } = 30;

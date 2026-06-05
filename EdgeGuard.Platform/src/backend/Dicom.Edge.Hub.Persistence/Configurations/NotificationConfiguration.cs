@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dicom.Edge.Hub.Persistence.Configurations;
 
-public class WhatsAppNotificationConfiguration : IEntityTypeConfiguration<WhatsAppNotification>
+public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 {
-    public void Configure(EntityTypeBuilder<WhatsAppNotification> builder)
+    public void Configure(EntityTypeBuilder<Notification> builder)
     {
-        builder.ToTable("whatsapp_notifications");
+        builder.ToTable("notifications");
         builder.HasKey(n => n.Id);
         builder.Property(n => n.Id).HasMaxLength(50);
         builder.Property(n => n.StudyId).IsRequired().HasMaxLength(50);
@@ -24,6 +24,14 @@ public class WhatsAppNotificationConfiguration : IEntityTypeConfiguration<WhatsA
         builder.Property(n => n.ProviderMessageId).HasMaxLength(128);
         builder.Property(n => n.LastError).HasMaxLength(2048);
 
+        // Unified outbox columns. Migration: RenameWhatsAppNotificationToNotification.
+        builder.Property(n => n.Channel).HasConversion<string>().IsRequired().HasMaxLength(16);
+        builder.Property(n => n.ToEmail).HasMaxLength(256);
+        builder.Property(n => n.Subject).HasMaxLength(512);
+        builder.Property(n => n.RenderedBody).HasColumnType("text");
+        builder.Property(n => n.AttachmentPath).HasMaxLength(512);
+        builder.Property(n => n.ImageLink).HasMaxLength(1024);
+
         builder.HasIndex(n => n.StudyId);
         builder.HasIndex(n => n.Status);
         builder.HasIndex(n => n.StudyStatus);
@@ -31,5 +39,7 @@ public class WhatsAppNotificationConfiguration : IEntityTypeConfiguration<WhatsA
         builder.HasIndex(n => n.CreatedAt);
         builder.HasIndex(n => new { n.Status, n.CreatedAt })
                .HasFilter("status = 'Pending'");
+        // Outbox drain index (per-channel, due records first).
+        builder.HasIndex(n => new { n.Channel, n.Status, n.NextAttemptAt });
     }
 }

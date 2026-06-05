@@ -28,6 +28,11 @@ public class StudyConfiguration : IEntityTypeConfiguration<Study>
         // External image/report links from ORU^R01 OBX segments (newline-separated URLs)
         builder.Property(s => s.ExternalImageLinks).HasColumnType("text");
 
+        // Diagnostic report (ORU OBX TX/FT + ED PDF). Migration: AddStudyReport.
+        builder.Property(s => s.ReportFormat).HasConversion<string>().HasMaxLength(16);
+        builder.Property(s => s.ReportContent).HasColumnType("text");
+        builder.Property(s => s.ReportPdfPath).HasMaxLength(512);
+
         builder.OwnsOne(s => s.StudyInstanceUid, vo =>
         {
             vo.Property(v => v.Value)

@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 namespace Dicom.Edge.Hub.Application.WhatsApp;
 
 public sealed class WhatsAppNotificationService(
-    IWhatsAppNotificationRepository notificationRepository,
+    INotificationRepository notificationRepository,
     IWhatsAppAutoSendRuleRepository ruleRepository,
     IWhatsAppTemplateRepository templateRepository,
     IStudyRepository studyRepository,
@@ -74,8 +74,8 @@ public sealed class WhatsAppNotificationService(
 
         var variables = WhatsAppVariableResolver.Resolve(study, patient, template.Variables);
 
-        var notification = WhatsAppNotification.Create(
-            studyId, patient.PhoneNumber, WhatsAppTriggerSource.Automatic,
+        var notification = Notification.Create(
+            studyId, patient.PhoneNumber, NotificationTriggerSource.Automatic,
             studyStatus: statusName, patientId: patient.Id,
             normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid);
 
@@ -90,7 +90,7 @@ public sealed class WhatsAppNotificationService(
         await auditRepository.AddAsync(HubAuditLog.Create(
             AuditEventType.WhatsAppManualSendRequested,
             "Manual WhatsApp send requested",
-            entityId: request.StudyId, entityType: "WhatsAppNotification",
+            entityId: request.StudyId, entityType: "Notification",
             details: $"{{\"studyId\":\"{request.StudyId}\",\"templateId\":\"{request.TemplateId}\",\"recipientCount\":{request.Recipients.Length}}}"), ct);
 
         var study = await studyRepository.GetByIdAsync(request.StudyId, ct)
@@ -123,8 +123,8 @@ public sealed class WhatsAppNotificationService(
                 continue;
             }
 
-            var notification = WhatsAppNotification.Create(
-                request.StudyId, recipient.PhoneNumber, WhatsAppTriggerSource.Manual,
+            var notification = Notification.Create(
+                request.StudyId, recipient.PhoneNumber, NotificationTriggerSource.Manual,
                 studyStatus: study.Status.ToString(), patientId: study.PatientId,
                 normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid);
 
@@ -169,8 +169,8 @@ public sealed class WhatsAppNotificationService(
 
         var activeTemplates = await templateRepository.GetActiveAsync(ct);
         var activeRules = await ruleRepository.GetEnabledAsync(ct);
-        var pending = await notificationRepository.GetByStatusAsync(WhatsAppNotificationStatus.Pending, 0, ct);
-        var failed = await notificationRepository.GetByStatusAsync(WhatsAppNotificationStatus.Failed, 0, ct);
+        var pending = await notificationRepository.GetByStatusAsync(NotificationStatus.Pending, 0, ct);
+        var failed = await notificationRepository.GetByStatusAsync(NotificationStatus.Failed, 0, ct);
 
         return new WhatsAppConfigStatusDto
         {
@@ -254,7 +254,7 @@ public sealed class WhatsAppNotificationService(
     // ── Private helpers ──────────────────────────────────────────────────────
 
     private async Task<SendMessageResult> SendAndRecordAsync(
-        WhatsAppNotification notification, string normalizedPhone, string contentSid,
+        Notification notification, string normalizedPhone, string contentSid,
         Dictionary<int, string> variables, CancellationToken ct)
     {
         await notificationRepository.AddAsync(notification, ct);
@@ -269,7 +269,7 @@ public sealed class WhatsAppNotificationService(
                 await auditRepository.AddAsync(HubAuditLog.Create(
                     AuditEventType.WhatsAppNotificationSent,
                     "WhatsApp notification sent",
-                    entityId: notification.Id, entityType: "WhatsAppNotification",
+                    entityId: notification.Id, entityType: "Notification",
                     details: $"{{\"phone\":\"{PhoneNumberNormalizer.RedactForAudit(normalizedPhone)}\",\"provider\":\"{messagingProvider.ProviderName}\",\"providerMessageId\":\"{result.ProviderMessageId}\"}}"), ct);
             }
             else
@@ -279,7 +279,7 @@ public sealed class WhatsAppNotificationService(
                     AuditEventType.WhatsAppNotificationFailed,
                     "WhatsApp notification failed",
                     severity: AuditSeverity.Warning,
-                    entityId: notification.Id, entityType: "WhatsAppNotification",
+                    entityId: notification.Id, entityType: "Notification",
                     details: $"{{\"phone\":\"{PhoneNumberNormalizer.RedactForAudit(normalizedPhone)}\",\"error\":\"{result.Error}\",\"attempts\":{notification.Attempts}}}"), ct);
             }
 
@@ -299,7 +299,7 @@ public sealed class WhatsAppNotificationService(
         await auditRepository.AddAsync(HubAuditLog.Create(
             AuditEventType.WhatsAppNotificationSkipped,
             "WhatsApp notification skipped",
-            entityId: studyId, entityType: "WhatsAppNotification",
+            entityId: studyId, entityType: "Notification",
             details: $"{{\"studyId\":\"{studyId}\",\"studyStatus\":\"{status}\",\"reason\":\"{reason}\"}}"), ct);
         await unitOfWork.SaveChangesAsync(ct);
         logger.LogDebug("Skipped WhatsApp for study {StudyId}: {Reason}", studyId, reason);
@@ -323,7 +323,7 @@ public sealed class WhatsAppNotificationService(
         return setting?.Value ?? defaultValue;
     }
 
-    private static WhatsAppNotificationDto MapToDto(WhatsAppNotification n) => new()
+    private static WhatsAppNotificationDto MapToDto(Notification n) => new()
     {
         Id = n.Id,
         StudyId = n.StudyId,

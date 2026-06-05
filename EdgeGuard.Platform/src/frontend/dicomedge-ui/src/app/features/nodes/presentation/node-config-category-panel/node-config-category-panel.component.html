@@ -158,22 +158,28 @@
                   class="text-sm px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 max-w-[220px] truncate block"
                   [title]="setting.value"
                 >{{ displayValue(setting) }}</code>
-                @if (setting.isOverridden) {
-                  <ui-chip color="warning">Personalizado</ui-chip>
-                }
-                <ui-icon-button
-                  [icon]="faPen"
-                  tooltip="Editar"
-                  [ariaLabel]="'Editar ' + setting.displayName"
-                  (clicked)="startEdit(setting)"
-                />
-                @if (setting.isOverridden) {
+                @if (isDerived(setting.settingKey)) {
+                  <span title="Heredado de DICOM AE Title (fuente única). Para cambiarlo, edita el ajuste 'DICOM AE Title'.">
+                    <ui-chip color="default">Derivado</ui-chip>
+                  </span>
+                } @else {
+                  @if (setting.isOverridden) {
+                    <ui-chip color="warning">Personalizado</ui-chip>
+                  }
                   <ui-icon-button
-                    [icon]="faUndo"
-                    tooltip="Restablecer al valor por defecto"
-                    [ariaLabel]="'Restablecer ' + setting.displayName"
-                    (clicked)="reset(setting.settingKey)"
+                    [icon]="faPen"
+                    tooltip="Editar"
+                    [ariaLabel]="'Editar ' + setting.displayName"
+                    (clicked)="startEdit(setting)"
                   />
+                  @if (setting.isOverridden) {
+                    <ui-icon-button
+                      [icon]="faUndo"
+                      tooltip="Restablecer al valor por defecto"
+                      [ariaLabel]="'Restablecer ' + setting.displayName"
+                      (clicked)="reset(setting.settingKey)"
+                    />
+                  }
                 }
               }
             </div>

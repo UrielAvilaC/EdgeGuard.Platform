@@ -52,6 +52,16 @@ public static class HubNotificationExtensions
             hub.Clients.Group("dashboard").SendAsync("NodeStatusChanged", payload),
             hub.Clients.Group($"node-{nodeId}").SendAsync("NodeStatusChanged", payload));
 
+    /// <summary>
+    /// Broadcasts the result of an asynchronous configuration push to a node so the
+    /// SPA can show success/failure without blocking on the HTTP request. Payload:
+    /// <c>{ nodeId, kind, success, error? }</c>.
+    /// </summary>
+    public static Task NotifyNodePushStatus(this IHubContext<EdgeHubNotificationHub> hub, string nodeId, object payload) =>
+        Task.WhenAll(
+            hub.Clients.Group("dashboard").SendAsync("NodePushStatus", payload),
+            hub.Clients.Group($"node-{nodeId}").SendAsync("NodePushStatus", payload));
+
     public static Task NotifyNodeHeartbeat(this IHubContext<EdgeHubNotificationHub> hub, string nodeId, object payload) =>
         hub.Clients.Group($"node-{nodeId}").SendAsync("NodeHeartbeat", payload);
 

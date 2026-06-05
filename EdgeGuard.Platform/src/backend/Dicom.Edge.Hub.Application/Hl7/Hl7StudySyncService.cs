@@ -1,8 +1,10 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Application.Constants;
+using Dicom.Edge.Hub.Application.Reports;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Entities;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Dicom.Edge.Hub.Application.Hl7;
 
@@ -22,6 +24,8 @@ namespace Dicom.Edge.Hub.Application.Hl7;
 /// </summary>
 public sealed class Hl7StudySyncService(
     IStudyRepository studyRepository,
+    IReportStorage reportStorage,
+    IOptions<HubWorkspaceOptions> workspaceOptions,
     IUnitOfWork unitOfWork,
     ILogger<Hl7StudySyncService> logger) : IHl7StudySyncService
 {
@@ -145,49 +149,86 @@ public sealed class Hl7StudySyncService(
     {
         if (string.IsNullOrWhiteSpace(message.AccessionNumber))
         {
+            logger.LogInformation("ORU {MessageId}: no AccessionNumber — result sync skipped", message.Id);
+            return;
+        }
+
+        var hasLinks  = message.ImageLinks.Count > 0;
+        var hasReport = !string.IsNullOrWhiteSpace(message.ReportText);
+        // Re-extract the PDF from the persisted raw content (the base64 PHI is never
+        // stored as a field — it is decoded and written to the workspace here).
+        var pdfBase64 = Hl7Message.ExtractReportPdfBase64(message.Content);
+        var hasPdf    = !string.IsNullOrEmpty(pdfBase64);
+
+        if (!hasLinks && !hasReport && !hasPdf)
+        {
             logger.LogInformation(
-                "ORU {MessageId}: no AccessionNumber — image link sync skipped",
+                "ORU {MessageId}: no image links, report text or PDF in OBX — nothing to attach",
                 message.Id);
             return;
         }
 
-        if (message.ImageLinks.Count == 0)
-        {
-            logger.LogInformation(
-                "ORU {MessageId}: no image links in OBX segments — nothing to attach",
-                message.Id);
-            return;
-        }
+        var existing = await studyRepository.GetByAccessionNumberAsync(message.AccessionNumber, ct);
 
-        var study = await studyRepository.GetByAccessionNumberAsync(message.AccessionNumber, ct);
+        // Study not yet in Hub (ORU arrived before ORM/DICOM) → create a stub so the
+        // results are persisted and matched when images eventually arrive.
+        var study = existing ?? Study.CreateFromWorklist(
+            accessionNumber:  message.AccessionNumber,
+            patientId:        message.PatientId,
+            patientName:      message.PatientName,
+            sendingFacility:  message.SendingFacility,
+            studyDate:        ParseStudyDate(message.StudyDate),
+            studyDescription: message.ProcedureDescription);
 
-        if (study is not null)
-        {
+        if (hasLinks)
             study.AttachImageLinks(message.ImageLinks);
+
+        string? pdfPath = null;
+        if (hasPdf)
+        {
+            var bytes = DecodeReportPdf(pdfBase64!, message.Id);
+            if (bytes is not null)
+                pdfPath = await reportStorage.SavePdfAsync(study.Id, bytes, ct);
+        }
+
+        if (hasReport || pdfPath is not null)
+            study.AttachReport(message.ReportFormat, message.ReportText, pdfPath);
+
+        if (existing is null)
+            await studyRepository.AddAsync(study, ct);
+        else
             await studyRepository.UpdateAsync(study, ct);
 
-            logger.LogInformation(
-                "ORU {MessageId}: attached {Count} image link(s) to study {StudyId} (AccessionNumber={AccessionNumber})",
-                message.Id, message.ImageLinks.Count, study.Id, message.AccessionNumber);
-        }
-        else
+        logger.LogInformation(
+            "ORU {MessageId}: study {StudyId} (Accession={Accession}) links={Links} report={Report} pdf={Pdf} → {Status}",
+            message.Id, study.Id, message.AccessionNumber, hasLinks, hasReport, pdfPath is not null, study.Status);
+    }
+
+    /// <summary>Decodes the base64 report PDF, enforcing the configured size limit.</summary>
+    private byte[]? DecodeReportPdf(string base64, Guid messageId)
+    {
+        try
         {
-            // Study not yet in Hub (ORU arrived before ORM or DICOM images) —
-            // create a stub so the links are persisted and matched when images arrive.
-            var stub = Study.CreateFromWorklist(
-                accessionNumber:  message.AccessionNumber,
-                patientId:        message.PatientId,
-                patientName:      message.PatientName,
-                sendingFacility:  message.SendingFacility,
-                studyDate:        ParseStudyDate(message.StudyDate),
-                studyDescription: message.ProcedureDescription);
+            var bytes = Convert.FromBase64String(base64);
+            var maxBytes = (long)workspaceOptions.Value.MaxPdfMb * 1024 * 1024;
+            if (bytes.LongLength > maxBytes)
+            {
+                logger.LogWarning(
+                    "ORU {MessageId}: report PDF {Bytes}B exceeds limit {Max}MB — skipped",
+                    messageId, bytes.LongLength, workspaceOptions.Value.MaxPdfMb);
+                return null;
+            }
 
-            stub.AttachImageLinks(message.ImageLinks);
-            await studyRepository.AddAsync(stub, ct);
+            // Sanity check: PDF magic header "%PDF".
+            if (bytes.Length < 5 || bytes[0] != 0x25 || bytes[1] != 0x50 || bytes[2] != 0x44 || bytes[3] != 0x46)
+                logger.LogWarning("ORU {MessageId}: decoded report does not start with %PDF — storing anyway", messageId);
 
-            logger.LogInformation(
-                "ORU {MessageId}: study not found — created stub {StudyId} with {Count} image link(s)",
-                message.Id, stub.Id, message.ImageLinks.Count);
+            return bytes;
+        }
+        catch (FormatException)
+        {
+            logger.LogWarning("ORU {MessageId}: invalid base64 report PDF — skipped", messageId);
+            return null;
         }
     }
 

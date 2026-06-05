@@ -10,7 +10,7 @@ public static class DicomServerExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-      
+
         services.AddFellowOakDicom();
 
         services.Configure<DicomServerOptions>(

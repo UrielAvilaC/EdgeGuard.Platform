@@ -36,8 +36,9 @@ public sealed class EdgeNodeService(
     public async Task<NodeRegistrationResponse> RegisterAsync(
         HubNodeRegistrationRequest request, CancellationToken ct = default)
     {
-        // Re-registration discovery uses Name + IpAddress (AeTitle is no longer
-        // stored on the Hub side — it lives only as PacsSender:LocalAeTitle on the Node).
+        // Re-registration discovery uses Name + IpAddress. The Hub DOES persist the
+        // node AE (Node.AeTitle); the Node derives it from its single source of truth
+        // (DicomServer:AeTitle) and reports it here at registration.
         var existing = await nodeRepository.GetByNameAndIpAsync(request.Name, request.IpAddress, ct);
         if (existing is not null)
         {
@@ -63,6 +64,7 @@ public sealed class EdgeNodeService(
 
         var node = Node.Create(
             request.Name,
+            AeTitle.Create(request.AeTitle),
             request.IpAddress,
             request.Port,
             request.ApiEndpoint,

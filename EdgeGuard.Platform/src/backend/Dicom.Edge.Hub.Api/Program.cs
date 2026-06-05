@@ -13,6 +13,7 @@ using Dicom.Edge.Hub.Persistence.Configuration;
 using Dicom.Edge.Hub.Persistence.Extensions;
 using Dicom.Edge.Hub.Api.Extensions;
 using Dicom.Edge.Hub.Api.Hubs;
+using Dicom.Edge.Hub.Api.HostedServices;
 using Dicom.Edge.Security.Extensions;
 
 BootstrapLogger.Initialize(HubApiConstants.BootstrapLogPath);
@@ -118,8 +119,15 @@ try
     builder.Services.AddEdgeSecurity(builder.Configuration);
     builder.Services.AddEdgeAuthentication(builder.Configuration);
 
+    // HTML sanitizer for rendering ORU report bodies safely (XSS protection).
+    builder.Services.AddSingleton<Ganss.Xss.IHtmlSanitizer>(_ => new Ganss.Xss.HtmlSanitizer());
+
     // SignalR for real-time dashboard notifications
     builder.Services.AddSignalR();
+
+    // P1-1: background dispatcher that drains the node push queue off the request
+    // path and reports results over SignalR. Lives here because it needs IHubContext.
+    builder.Services.AddHostedService<NodePushDispatchHostedService>();
 
     var app = builder.Build();
 
@@ -159,7 +167,9 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
-    app.MapHub<EdgeHubNotificationHub>("/hubs/notifications");
+    // SignalR uses long-lived connections; a per-request rate limiter would break
+    // the persistent hub channel, so it is explicitly excluded.
+    app.MapHub<EdgeHubNotificationHub>("/hubs/notifications").DisableRateLimiting();
 
     // SPA client-side routing fallback — must be last, only in production.
     if (!app.Environment.IsDevelopment())

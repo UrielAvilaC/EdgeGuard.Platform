@@ -23,7 +23,8 @@ public static class HubHostedServicesExtensions
         services.AddHostedService<StudyCleanupEvaluationHostedService>();
         services.AddHostedService<MessageDispatchHostedService>();
         services.AddHostedService<DataRetentionHostedService>();
-        services.AddHostedService<WhatsAppNotificationHostedService>();
+        // Unified multichannel outbox (replaces the WhatsApp-only hosted service).
+        services.AddHostedService<NotificationOutboxHostedService>();
 
         // Messaging provider (Twilio default)
         services.AddScoped<IMessagingProvider, TwilioMessagingProvider>();

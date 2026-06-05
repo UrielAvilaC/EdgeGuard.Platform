@@ -46,6 +46,69 @@ public sealed class FoDicomPacsSender(
         if (dicomFiles.Length == 0)
             return PacsSendResult.Fail(studyInstanceUid, destination.AeTitle, "No DICOM files found");
 
+        if (destination.AnonymizeBeforeSend)
+            logger.LogInformation(
+                "Anonymization enabled for {AeTitle} — applying Basic Confidentiality profile",
+                destination.AeTitle);
+
+        // P1: Retry on transient failures. Each attempt re-sends ONLY the instances
+        // that were not acknowledged as success. C-STORE is idempotent by SOP Instance
+        // UID, so re-sending an already-stored object is safe.
+        var pending = new List<string>(dicomFiles);
+        string? lastError = null;
+        var maxAttempts = Math.Max(1, Opts.MaxRetries);
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            (pending, lastError) = await SendBatchAsync(pending, destination, ct);
+
+            if (pending.Count == 0)
+                break;
+
+            if (attempt < maxAttempts)
+            {
+                var delay = TimeSpan.FromSeconds(Math.Min(30, Math.Pow(2, attempt)));
+                logger.LogWarning(
+                    "Study {StudyUid} → {AeTitle}: {Failed} instance(s) failed on attempt {Attempt}/{Max}, retrying in {Delay:N0}s",
+                    studyInstanceUid, destination.AeTitle, pending.Count, attempt, maxAttempts, delay.TotalSeconds);
+                await Task.Delay(delay, ct);
+            }
+        }
+
+        sw.Stop();
+        var succeeded = dicomFiles.Length - pending.Count;
+
+        // P1 (2a): A partially-failed transfer must NOT be reported as success —
+        // otherwise instances are silently lost while the study is marked "sent".
+        if (pending.Count > 0)
+        {
+            logger.LogError(
+                "Study {StudyUid} to {AeTitle}: {Sent}/{Total} sent, {Failed} failed after {Attempts} attempt(s)",
+                studyInstanceUid, destination.AeTitle, succeeded, dicomFiles.Length, pending.Count, maxAttempts);
+
+            return PacsSendResult.Fail(studyInstanceUid, destination.AeTitle,
+                $"{pending.Count}/{dicomFiles.Length} instance(s) failed after {maxAttempts} attempt(s). {lastError}".Trim());
+        }
+
+        logger.LogInformation(
+            "Study {StudyUid} sent to {AeTitle}: {Sent} ok in {Duration:N1}s",
+            studyInstanceUid, destination.AeTitle, succeeded, sw.Elapsed.TotalSeconds);
+
+        return PacsSendResult.Ok(studyInstanceUid, destination.AeTitle, succeeded, sw.Elapsed);
+    }
+
+    /// <summary>
+    /// Sends one batch of DICOM files over a single association and returns the subset
+    /// that was NOT acknowledged as success (to be retried) together with the last error.
+    /// An association-level failure marks the whole batch as failed so it is retried.
+    /// </summary>
+    private async Task<(List<string> Failed, string? Error)> SendBatchAsync(
+        IReadOnlyList<string> files,
+        PacsDestination destination,
+        CancellationToken ct)
+    {
+        var failed = new System.Collections.Concurrent.ConcurrentBag<string>();
+
         try
         {
             var client = DicomClientFactory.Create(
@@ -54,15 +117,7 @@ public sealed class FoDicomPacsSender(
 
             client.ClientOptions.AssociationRequestTimeoutInMs = Opts.TimeoutSeconds * 1000;
 
-            var sent = 0;
-            var failed = 0;
-
-            if (destination.AnonymizeBeforeSend)
-                logger.LogInformation(
-                    "Anonymization enabled for {AeTitle} — applying Basic Confidentiality profile",
-                    destination.AeTitle);
-
-            foreach (var filePath in dicomFiles)
+            foreach (var filePath in files)
             {
                 try
                 {
@@ -72,37 +127,36 @@ public sealed class FoDicomPacsSender(
                     if (destination.AnonymizeBeforeSend)
                         file = anonymizer.Anonymize(file, AnonymizationProfile.BasicConfidentiality);
 
+                    var capturedPath = filePath;
                     var request = new DicomCStoreRequest(file);
                     request.OnResponseReceived += (_, response) =>
                     {
-                        if (response.Status == DicomStatus.Success)
-                            Interlocked.Increment(ref sent);
-                        else
-                            Interlocked.Increment(ref failed);
+                        // Only failures are tracked; anything not added here succeeded.
+                        if (response.Status != DicomStatus.Success)
+                            failed.Add(capturedPath);
                     };
                     await client.AddRequestAsync(request);
                 }
                 catch (Exception ex)
                 {
                     logger.LogWarning(ex, "Failed to read DICOM file {Path}", filePath);
-                    Interlocked.Increment(ref failed);
+                    failed.Add(filePath);
                 }
             }
 
             await client.SendAsync(ct);
-            sw.Stop();
-
-            logger.LogInformation(
-                "Study {StudyUid} sent to {AeTitle}: {Sent} ok, {Failed} failed in {Duration:N1}s",
-                studyInstanceUid, destination.AeTitle, sent, failed, sw.Elapsed.TotalSeconds);
-
-            return PacsSendResult.Ok(studyInstanceUid, destination.AeTitle, sent, sw.Elapsed);
+            return (failed.Distinct().ToList(), null);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to send study {StudyUid} to {AeTitle}",
-                studyInstanceUid, destination.AeTitle);
-            return PacsSendResult.Fail(studyInstanceUid, destination.AeTitle, ex.Message);
+            // Association-level failure: no instance in this batch can be considered
+            // delivered, so the whole batch is retried (idempotent by SOP Instance UID).
+            logger.LogWarning(ex, "C-STORE association to {AeTitle} failed", destination.AeTitle);
+            return (files.ToList(), ex.Message);
         }
     }
 

@@ -132,6 +132,8 @@ public sealed class HubConfigSyncHostedService(
 
             // ── General / identity ────────────────────────────────────────────
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.NodeName,     Opts.NodeName,     ct);
+            // Opts.AeTitle is DERIVED from DicomServer:AeTitle (single source of truth),
+            // so node.ae_title mirrors the canonical AE for display purposes only.
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.AeTitle,      Opts.AeTitle,      ct);
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.IpAddress,    Opts.IpAddress,    ct);
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Version,      Opts.Version,      ct);

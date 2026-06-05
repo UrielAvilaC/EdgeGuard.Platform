@@ -134,6 +134,24 @@ public sealed record StudyDto
     public int PacsSendAttempts { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
+
+    // Results (image links + diagnostic report)
+    public string ReportFormat { get; init; } = "None";
+    public bool HasReport { get; init; }
+    public bool HasImageLinks { get; init; }
+    public IReadOnlyList<string> ImageLinks { get; init; } = [];
+}
+
+/// <summary>Diagnostic report view for a study (sanitized content + links + PDF flag).</summary>
+public sealed record ReportDto
+{
+    public required string StudyId { get; init; }
+    public required string Status { get; init; }
+    public string ReportFormat { get; init; } = "None";
+    /// <summary>Sanitized HTML or plain text report body (null when only a PDF/links).</summary>
+    public string? Content { get; init; }
+    public bool HasPdf { get; init; }
+    public IReadOnlyList<string> ImageLinks { get; init; } = [];
 }
 
 // ── PACS Servers ─────────────────────────────────────────────────────────────

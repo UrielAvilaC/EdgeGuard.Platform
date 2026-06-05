@@ -3,7 +3,7 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 /// <summary>
 /// Lifecycle status of a WhatsApp notification.
 /// </summary>
-public enum WhatsAppNotificationStatus
+public enum NotificationStatus
 {
     Pending,
     Sent,
@@ -14,7 +14,7 @@ public enum WhatsAppNotificationStatus
 /// <summary>
 /// Trigger source for the notification.
 /// </summary>
-public enum WhatsAppTriggerSource
+public enum NotificationTriggerSource
 {
     Automatic,
     Manual
@@ -27,6 +27,13 @@ public enum MessagingProvider
 {
     Twilio,
     Meta
+}
+
+/// <summary>Delivery channel of a unified notification record.</summary>
+public enum NotificationChannel
+{
+    WhatsApp,
+    Email
 }
 
 /// <summary>

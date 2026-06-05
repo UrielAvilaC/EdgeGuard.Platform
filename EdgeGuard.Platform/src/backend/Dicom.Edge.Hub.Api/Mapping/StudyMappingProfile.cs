@@ -1,3 +1,4 @@
+using System;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 
@@ -32,6 +33,12 @@ public static class StudyMappingProfile
         SentToPacsAt = entity.SentToPacsAt,
         PacsSendAttempts = entity.PacsSendAttempts,
         CreatedAt = entity.CreatedAt,
-        UpdatedAt = entity.UpdatedAt
+        UpdatedAt = entity.UpdatedAt,
+        ReportFormat = entity.ReportFormat.ToString(),
+        HasReport = entity.HasReport,
+        HasImageLinks = entity.HasImageLinks,
+        ImageLinks = string.IsNullOrEmpty(entity.ExternalImageLinks)
+            ? []
+            : entity.ExternalImageLinks.Split('\n', StringSplitOptions.RemoveEmptyEntries)
     };
 }

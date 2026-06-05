@@ -33,6 +33,7 @@ import { Study, UpdateStudyRequest, STUDY_STATUS_OPTIONS } from '../../models/st
 import { StudiesStore } from '../../services/studies.store';
 import { StudiesFacade } from '../../services/studies.facade';
 import { StudyStatusTimeline } from '../study-status-timeline/study-status-timeline.component';
+import { StudyReportPanel } from '../study-report-panel/study-report-panel.component';
 
 const STATUS_TRANSITION_OPTIONS: DropdownOption<string>[] = [
   { value: 'Completed', label: 'Completado' },
@@ -60,6 +61,7 @@ const STATUS_TRANSITION_OPTIONS: DropdownOption<string>[] = [
     RelativeTimePipe,
     FileSizePipe,
     StudyStatusTimeline,
+    StudyReportPanel,
   ],
   templateUrl: './study-detail-page.component.html',
   styleUrl: './study-detail-page.component.scss'

@@ -29,6 +29,8 @@ public static class HubDomainServiceCollectionExtensions
 
         // Domain event handlers (dispatched by DomainEventDispatchInterceptor)
         services.AddScoped<IDomainEventHandler, AuditDomainEventHandler>();
+        // Fase 7: automatic results delivery when a study is finalized (auto-mode).
+        services.AddScoped<IDomainEventHandler, StudyAutoDeliveryHandler>();
 
         // M2M API key validation for Edge Node authentication
         services.AddScoped<IApiKeyValidator, NodeApiKeyValidator>();

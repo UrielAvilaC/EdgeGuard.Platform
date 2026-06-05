@@ -67,6 +67,10 @@
   </Folder>
   <Folder Name="/docs/10-remediation/">
     <File Path="docs/10-remediation/p0-remediation-plan.md" />
+    <File Path="docs/10-remediation/p1-remediation-plan.md" />
+    <File Path="docs/10-remediation/p1-fase1-implementation.md" />
+    <File Path="docs/10-remediation/node-ae-title-unification-plan.md" />
+    <File Path="docs/10-remediation/oru-report-delivery-plan.md" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/backend/">

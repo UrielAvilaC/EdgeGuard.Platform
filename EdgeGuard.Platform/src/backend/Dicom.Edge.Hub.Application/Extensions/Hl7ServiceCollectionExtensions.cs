@@ -7,6 +7,7 @@ using Dicom.Edge.Hub.Application.Hl7.Pipeline;
 using Dicom.Edge.Hub.Application.Identity;
 using Dicom.Edge.Hub.Application.Nodes;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Hub.Application.Notifications;
 using Dicom.Edge.Hub.Application.PacsServers;
 using Dicom.Edge.Hub.Application.Queue;
 using Dicom.Edge.Hub.Application.Routing;
@@ -44,6 +45,28 @@ public static class HubApplicationServiceCollectionExtensions
         // Configuration services
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<INodeConfigurationService, NodeConfigurationService>();
+
+        // P1-1: in-memory queue that decouples node config pushes from the HTTP
+        // request path. Consumed by NodePushDispatchHostedService (in the API layer).
+        services.Configure<NodePushOptions>(
+            configuration.GetSection(NodePushOptions.SectionName));
+        services.AddSingleton<INodePushQueue, NodePushQueue>();
+
+        // P1: unified notification dispatcher (results delivery → durable outbox).
+        services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+        // Email notification templates (enterprise editor) + merge-tag resolver.
+        services.AddSingleton<INotificationVariableResolver, NotificationVariableResolver>();
+        services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+
+        // Results delivery (manual + auto): resolve templates → enqueue in the outbox.
+        services.AddScoped<IDeliveryService, DeliveryService>();
+
+        // Fase 7: auto-mode master switch.
+        services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.SectionName));
+
+        // Fase 8: notification settings (auto-mode toggle + SMTP status/test).
+        services.AddScoped<INotificationSettingsService, NotificationSettingsService>();
 
         // CRUD application services (write operations)
         services.AddScoped<INodeService, NodeService>();
