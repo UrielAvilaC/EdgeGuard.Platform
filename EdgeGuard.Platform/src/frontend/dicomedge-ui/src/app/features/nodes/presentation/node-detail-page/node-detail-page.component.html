@@ -7,6 +7,9 @@
           <ui-button variant="secondary" size="sm" [icon]="faCog" [routerLink]="['/nodes', n.id, 'config']">
             Configuración
           </ui-button>
+          <ui-button variant="secondary" size="sm" [icon]="faMicrochip" [routerLink]="['/nodes', n.id, 'equipment']">
+            Equipos
+          </ui-button>
           <ui-button variant="secondary" size="sm" [icon]="faPen" (clicked)="openEditDialog()">
             Editar
           </ui-button>

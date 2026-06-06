@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Application.Edge;
+using Dicom.Edge.Hub.Application.Equipment;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Application.Routing;
 using Dicom.Edge.Hub.Domain.Common;
@@ -39,6 +40,7 @@ public static class HubDomainServiceCollectionExtensions
         services.AddScoped<INodeConfigPushService, NodeConfigPushService>();
         services.AddScoped<INodePacsDestinationPushService, NodePacsDestinationPushService>();
         services.AddScoped<INodeDicomRoutingRulePushService, NodeDicomRoutingRulePushService>();
+        services.AddScoped<INodeEquipmentPushService, NodeEquipmentPushService>();
 
         // In-memory PACS C-ECHO status store (refreshed each time a node reports)
         services.AddSingleton<INodePacsEchoStore, NodePacsEchoStore>();

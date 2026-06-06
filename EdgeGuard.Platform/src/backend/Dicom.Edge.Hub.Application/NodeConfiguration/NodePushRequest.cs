@@ -13,7 +13,10 @@ public enum NodePushKind
     Rules,
 
     /// <summary>PACS destination assignments (<c>INodePacsDestinationPushService</c>).</summary>
-    Pacs
+    Pacs,
+
+    /// <summary>Equipment catalog with modality codes (<c>INodeEquipmentPushService</c>).</summary>
+    Equipment
 }
 
 /// <summary>

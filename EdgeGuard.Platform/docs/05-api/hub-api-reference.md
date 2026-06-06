@@ -315,6 +315,69 @@ Instructs the specified node to send a DICOM C-ECHO to this PACS server and repo
 
 ---
 
+## Modalities — `ModalitiesController`
+
+Global, auto-seeded reference catalog of DICOM modality codes. Used by the UI to populate the
+equipment modality picker.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/modalities` | Bearer | List the modality catalog |
+| GET | `/api/modalities?supportedOnly=true` | Bearer | List only image-level, assignable modalities |
+
+**Response `200 OK`:**
+
+```json
+[
+  { "code": "MR", "displayName": "Resonancia Magnética", "isSupported": true, "isActive": true, "sortOrder": 60 },
+  { "code": "US", "displayName": "Ultrasonido",          "isSupported": true, "isActive": true, "sortOrder": 90 }
+]
+```
+
+---
+
+## Node Equipment — `NodeEquipmentController`
+
+Per-node equipment catalog. Each equipment is a modality device identified by its calling AE
+title and linked to a set of allowed modality codes used for per-equipment MWL filtering on
+the node. Writes are pushed to the node automatically. See
+[Equipment Catalog](../04-features/equipment-catalog.md).
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/nodes/{nodeId}/equipment` | `ViewConfiguration` | List equipment for a node |
+| GET | `/api/nodes/{nodeId}/equipment/{id}` | `ViewConfiguration` | Get one equipment |
+| POST | `/api/nodes/{nodeId}/equipment` | `ManageModalities` | Create equipment |
+| PUT | `/api/nodes/{nodeId}/equipment/{id}` | `ManageModalities` | Update equipment |
+| PUT | `/api/nodes/{nodeId}/equipment/{id}/enable` | `ManageModalities` | Enable equipment |
+| PUT | `/api/nodes/{nodeId}/equipment/{id}/disable` | `ManageModalities` | Disable equipment |
+| DELETE | `/api/nodes/{nodeId}/equipment/{id}` | `ManageModalities` | Delete equipment |
+
+### POST `/api/nodes/{nodeId}/equipment`
+
+**Request body:**
+
+```json
+{
+  "aeTitle": "CT_SALA1",
+  "displayName": "CT Urgencias Sala 1",
+  "modalityCodes": ["CT"],
+  "stationAeTitle": "CT_SALA1",
+  "ipAddress": "192.168.1.50",
+  "location": "Urgencias",
+  "department": "Radiología"
+}
+```
+
+`modalityCodes` must reference catalog entries that are supported **and** active. Unsupported
+or unknown codes return **`400 Bad Request`** with the offending codes:
+
+```json
+{ "error": "The following modality codes are unknown or not assignable: SR", "codes": ["SR"] }
+```
+
+---
+
 ## HL7 Status — `Hl7StatusController`
 
 | Method | Path | Auth | Description |

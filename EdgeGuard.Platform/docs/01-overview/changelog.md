@@ -4,6 +4,23 @@ All notable changes to EdgeGuard Platform are documented here. This file follows
 
 ---
 
+## Unreleased
+
+### feat
+- **Equipment catalog & per-equipment MWL filtering** — Operators register, per Edge Node, which modality devices may connect (by calling AE title) and which modalities each one is allowed to see. The Edge Node now **rejects associations** from uncatalogued/disabled equipment and **filters the Modality Worklist per device** (by its allowed modality set ∩ scheduled station AE) instead of returning the whole worklist. Equipment is authored in the Hub (Node → Equipos), validated against a seeded modality reference catalog, and pushed to nodes via `POST /api/equipment/sync`. See [Equipment Catalog](../04-features/equipment-catalog.md).
+- **Modality reference catalog** — New global, auto-seeded `modalities` table (Hub + Edge) flagging image-level modalities as supported; only supported & active modalities may be assigned to equipment. Seeded idempotently from a shared source on startup.
+- **Equipment AE+IP enforcement & connection auditing** — When an equipment declares an IP address, the Edge Node enforces AE+IP on association (source host must match). Every equipment association decision — accepted or rejected (not registered / disabled / IP mismatch) — is persisted to the node's `dicom_associations` audit table.
+
+### deprecated
+- **`ModalityConfiguration` (Edge) / `modality_configurations` table** — Superseded by the new `Equipment` entity and equipment catalog. The type is no longer referenced by application logic; the table is retained for now and will be dropped in a future migration (`DropModalityConfiguration`).
+- **`dicom.allowed_ae_titles`** — Retained only as a fallback used while a node's equipment catalog is empty (rollout safety). Once equipment is registered, the catalog is authoritative. Long-term removal is under review.
+
+### migrations
+- Hub (`HubDbContext`): `AddModalityCatalog`, `AddNodeEquipment`.
+- Edge (`EdgeNodeDbContext`): `AddModalityCatalog`, `AddEquipment` (auto-applied on node startup).
+
+---
+
 ## v1.0.0 — 2026-05-16
 
 ### feat

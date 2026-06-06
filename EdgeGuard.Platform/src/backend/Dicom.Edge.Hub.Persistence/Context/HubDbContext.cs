@@ -3,7 +3,9 @@ using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Cleanup;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
+using Dicom.Edge.Hub.Domain.Aggregates.Equipment;
 using Dicom.Edge.Hub.Domain.Aggregates.Identity;
+using Dicom.Edge.Hub.Domain.Aggregates.Modalities;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
@@ -50,6 +52,11 @@ public class HubDbContext : DbContext
     public DbSet<WhatsAppAutoSendRule> WhatsAppAutoSendRules => Set<WhatsAppAutoSendRule>();
     public DbSet<PacsSendAudit> PacsSendAudits => Set<PacsSendAudit>();
     public DbSet<NodeConfigurationProfile> NodeConfigurationProfiles => Set<NodeConfigurationProfile>();
+
+    // Equipment catalog (per-node equipment + global modality reference catalog)
+    public DbSet<Modality> Modalities => Set<Modality>();
+    public DbSet<NodeEquipment> NodeEquipment => Set<NodeEquipment>();
+    public DbSet<EquipmentModality> EquipmentModalities => Set<EquipmentModality>();
 
     // Identity
     public DbSet<User> Users => Set<User>();

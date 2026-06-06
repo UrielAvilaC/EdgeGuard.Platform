@@ -253,6 +253,121 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.ToTable("system_settings", (string)null);
                 });
 
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Equipment.EquipmentModality", b =>
+                {
+                    b.Property<string>("EquipmentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("equipment_id");
+
+                    b.Property<string>("ModalityCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("modality_code");
+
+                    b.HasKey("EquipmentId", "ModalityCode")
+                        .HasName("pk_equipment_modalities");
+
+                    b.HasIndex("ModalityCode")
+                        .HasDatabaseName("ix_equipment_modalities_code");
+
+                    b.ToTable("equipment_modalities", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Equipment.NodeEquipment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AeTitle")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("ae_title");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Department")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("department");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_online");
+
+                    b.Property<DateTime?>("LastConnectionAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_connection_at");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("location");
+
+                    b.Property<string>("Manufacturer")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("manufacturer");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("model");
+
+                    b.Property<string>("NodeId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("node_id");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("StationAeTitle")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("station_ae_title");
+
+                    b.Property<string>("StationName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("station_name");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_node_equipment");
+
+                    b.HasIndex("NodeId", "AeTitle")
+                        .IsUnique()
+                        .HasDatabaseName("ix_node_equipment_node_ae");
+
+                    b.ToTable("node_equipment", (string)null);
+                });
+
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.HealthCheckRecord", b =>
                 {
                     b.Property<string>("Id")
@@ -702,6 +817,42 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasDatabaseName("ix_user_roles_user_id_role");
 
                     b.ToTable("user_roles", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Modalities.Modality", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsSupported")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_supported");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Code")
+                        .HasName("pk_modalities");
+
+                    b.HasIndex("SortOrder")
+                        .HasDatabaseName("ix_modalities_sort_order");
+
+                    b.ToTable("modalities", (string)null);
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.NodeConfig.NodeConfigurationProfile", b =>
@@ -2332,6 +2483,23 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.ToTable("hl7_messages", (string)null);
                 });
 
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Equipment.EquipmentModality", b =>
+                {
+                    b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.Equipment.NodeEquipment", null)
+                        .WithMany("Modalities")
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_equipment_modalities_node_equipment_equipment_id");
+
+                    b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.Modalities.Modality", null)
+                        .WithMany()
+                        .HasForeignKey("ModalityCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_equipment_modalities_modalities_modality_code");
+                });
+
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.PacsCEchoResult", b =>
                 {
                     b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.HealthCheckRecord", "HealthCheckRecord")
@@ -2531,6 +2699,11 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_study_status_audits_studies_study_id");
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Equipment.NodeEquipment", b =>
+                {
+                    b.Navigation("Modalities");
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.HealthChecks.HealthCheckRecord", b =>

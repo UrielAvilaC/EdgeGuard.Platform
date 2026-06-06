@@ -132,6 +132,15 @@ export const API_ROUTES = {
     DISABLE: (nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/disable`,
     PRIORITY:(nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/priority`,
   },
+  MODALITIES: {
+    LIST: (supportedOnly = false) => `/modalities${supportedOnly ? '?supportedOnly=true' : ''}`,
+  },
+  NODE_EQUIPMENT: {
+    BY_NODE: (nodeId: string) => `/nodes/${nodeId}/equipment`,
+    BY_ID:   (nodeId: string, id: string) => `/nodes/${nodeId}/equipment/${id}`,
+    ENABLE:  (nodeId: string, id: string) => `/nodes/${nodeId}/equipment/${id}/enable`,
+    DISABLE: (nodeId: string, id: string) => `/nodes/${nodeId}/equipment/${id}/disable`,
+  },
   HUB: {
     RUNTIME: '/hub/runtime',
   },

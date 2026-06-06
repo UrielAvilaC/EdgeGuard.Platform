@@ -1,0 +1,133 @@
+<div class="p-6 w-[600px] max-w-full">
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-6">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+        <fa-icon [icon]="faMicrochip" class="text-azure-600 dark:text-azure-400" />
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          {{ isEdit ? 'Editar Equipo' : 'Nuevo Equipo' }}
+        </h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Define el AE Title y las modalidades que verá en su Worklist.
+        </p>
+      </div>
+    </div>
+    <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar" (clicked)="onCancel()" />
+  </div>
+
+  <form (ngSubmit)="onSubmit()" class="space-y-5">
+    <!-- Identity -->
+    <div class="grid grid-cols-2 gap-4">
+      <ui-input-text
+        label="AE Title"
+        placeholder="Ej: CT_SALA1"
+        hint="1-16 caracteres: A-Z, 0-9, _"
+        [(ngModel)]="form.aeTitle"
+        name="aeTitle"
+        required
+      />
+      <ui-input-text
+        label="Nombre visible"
+        placeholder="Ej: CT Urgencias Sala 1"
+        [(ngModel)]="form.displayName"
+        name="displayName"
+      />
+    </div>
+
+    @if (form.aeTitle && !isAeTitleValid) {
+      <p class="text-xs text-amber-600 dark:text-amber-400 -mt-3">
+        El AE Title debe tener 1-16 caracteres (A-Z, 0-9, _).
+      </p>
+    }
+
+    <!-- Modalities -->
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/30">
+      <div>
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+          Modalidades permitidas
+        </h3>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          El equipo solo verá en su MWL los estudios de las modalidades seleccionadas.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        @for (m of modalities; track m.code) {
+          <button
+            type="button"
+            (click)="toggleModality(m.code)"
+            [class]="isSelected(m.code)
+              ? 'px-3 py-1.5 rounded-full text-xs font-medium border border-azure-500 bg-azure-100 text-azure-700 dark:bg-azure-900/40 dark:text-azure-300'
+              : 'px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-azure-400'"
+            [title]="m.displayName"
+          >
+            {{ m.code }} — {{ m.displayName }}
+          </button>
+        }
+      </div>
+
+      @if (selected().size === 0) {
+        <p class="text-xs text-amber-600 dark:text-amber-400">
+          Selecciona al menos una modalidad.
+        </p>
+      }
+    </div>
+
+    <!-- Station / network -->
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+        Estación y red (opcional)
+      </h3>
+
+      <div class="grid grid-cols-2 gap-4">
+        <ui-input-text
+          label="Scheduled Station AE"
+          placeholder="Ej: CT_SALA1"
+          hint="Si se define, filtra la MWL por esta estación."
+          [(ngModel)]="form.stationAeTitle"
+          name="stationAeTitle"
+        />
+        <ui-input-text
+          label="Nombre de estación"
+          placeholder="Ej: Estación CT 1"
+          [(ngModel)]="form.stationName"
+          name="stationName"
+        />
+      </div>
+
+      <ui-input-text
+        label="Dirección IP"
+        placeholder="Ej: 192.168.1.50"
+        [(ngModel)]="form.ipAddress"
+        name="ipAddress"
+      />
+    </div>
+
+    <!-- Inventory -->
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+        Inventario (opcional)
+      </h3>
+
+      <div class="grid grid-cols-2 gap-4">
+        <ui-input-text label="Ubicación" [(ngModel)]="form.location" name="location" />
+        <ui-input-text label="Departamento" [(ngModel)]="form.department" name="department" />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <ui-input-text label="Fabricante" [(ngModel)]="form.manufacturer" name="manufacturer" />
+        <ui-input-text label="Modelo" [(ngModel)]="form.model" name="model" />
+      </div>
+      <ui-input-text label="Notas" [(ngModel)]="form.notes" name="notes" />
+    </div>
+
+    <!-- Footer actions -->
+    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <ui-button variant="secondary" type="button" (clicked)="onCancel()">Cancelar</ui-button>
+      <ui-button type="submit" [disabled]="!isFormValid">
+        {{ isEdit ? 'Guardar cambios' : 'Crear equipo' }}
+      </ui-button>
+    </div>
+  </form>
+</div>

@@ -232,13 +232,18 @@ Composite PK `(EquipmentId, ModalityCode)`. This is the set the Node uses to con
 
 ---
 
-## 7. Open / deferred items
-- Whether to keep `dicom.allowed_ae_titles` long-term or remove it once all nodes are migrated.
-- Whether `IpAddress` enforcement is mandatory or advisory per equipment.
-- Exact `IsSupported` membership of the seed list (Appendix A is the proposed default; confirm
-  with clinical/ops — borderline rows are flagged there).
-- Whether the `Modality` catalog should be a single global table (recommended) or per-node;
-  global keeps codes consistent across the fleet while `IsActive` allows per-deployment trimming.
+## 7. Resolved decisions (was: open / deferred)
+
+| Item | Decision (2026-06-06) |
+|---|---|
+| `dicom.allowed_ae_titles` long-term | **Remove after migration.** Kept now only as the empty-catalog fallback; once all nodes have a catalog it will be retired (follow-up task). |
+| `IpAddress` enforcement | **Mandatory when defined.** If an equipment declares an IP, the association source host must match or the association is rejected. Plus **enterprise connection auditing**: every equipment association (accept/reject + reason) is persisted to `dicom_associations`. **Implemented.** |
+| `IsSupported` seed membership | **Accept the Appendix A default** (25 image modalities supported; non-image objects unsupported). Operators trim per deployment via `IsActive`. |
+| `Modality` catalog scope | **Global** single table (implemented). `IsActive` allows per-deployment trimming. |
+
+### Follow-up tasks (deferred)
+- Backfill `dicom.allowed_ae_titles` → equipment entries, then **remove** the setting fleet-wide.
+- Physically drop the deprecated `modality_configurations` table (`DropModalityConfiguration` migration) once nothing references it.
 
 ---
 

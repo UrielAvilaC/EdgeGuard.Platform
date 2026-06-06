@@ -2,8 +2,10 @@ using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Cleanup;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
+using Dicom.Edge.Hub.Domain.Aggregates.Equipment;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Identity;
+using Dicom.Edge.Hub.Domain.Aggregates.Modalities;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
@@ -83,6 +85,10 @@ public static class HubPersistenceServiceCollectionExtensions
         // Node configuration profiles
         services.AddScoped<INodeConfigurationProfileRepository, NodeConfigurationProfileRepository>();
 
+        // Equipment catalog (modality reference + per-node equipment)
+        services.AddScoped<IModalityRepository, ModalityRepository>();
+        services.AddScoped<INodeEquipmentRepository, NodeEquipmentRepository>();
+
         // Identity
         services.AddScoped<IUserRepository, UserRepository>();
 
@@ -117,6 +123,17 @@ public static class HubPersistenceServiceCollectionExtensions
         using var scope = serviceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
         await HubSettingsSeed.SeedMissingAsync(ctx, ct);
+    }
+
+    /// <summary>
+    /// Seeds the modality reference catalog on startup (idempotent, safe for upgrades).
+    /// Call after the database has been migrated.
+    /// </summary>
+    public static async Task SeedModalityCatalogAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
+        await ModalityCatalogSeed.SeedAsync(ctx, ct);
     }
 
     /// <summary>
