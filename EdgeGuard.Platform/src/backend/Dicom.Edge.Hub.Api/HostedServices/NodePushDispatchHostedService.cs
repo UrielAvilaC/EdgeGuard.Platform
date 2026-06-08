@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Api.Hubs;
+using Dicom.Edge.Hub.Application.Equipment;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Application.Routing;
 using Microsoft.AspNetCore.SignalR;
@@ -79,6 +80,9 @@ public sealed class NodePushDispatchHostedService(
                         .PushAsync(request.NodeId, ct),
             NodePushKind.Pacs =>
                 await sp.GetRequiredService<INodePacsDestinationPushService>()
+                        .PushAsync(request.NodeId, ct),
+            NodePushKind.Equipment =>
+                await sp.GetRequiredService<INodeEquipmentPushService>()
                         .PushAsync(request.NodeId, ct),
             _ => false
         };

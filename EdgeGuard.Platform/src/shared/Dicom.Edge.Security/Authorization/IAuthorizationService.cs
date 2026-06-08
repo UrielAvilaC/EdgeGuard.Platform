@@ -47,9 +47,5 @@ namespace Dicom.Edge.Security.Authorization
         /// <param name="operation">Operation to perform.</param>
         /// <returns>Authorization result.</returns>
         Task<AuthorizationResult> AuthorizeResourceAsync(ClaimsPrincipal user, object resource, string operation);
-
-        // Legacy method for backward compatibility
-        [Obsolete("Use HasPermissionAsync(ClaimsPrincipal, Permission) instead")]
-        bool HasPermission(Role role, Permission permission);
     }
 }

@@ -1,0 +1,131 @@
+<div class="space-y-6">
+  <ui-page-header [title]="pageTitle()">
+    <ui-button variant="ghost" size="sm" [icon]="faArrowLeft" (clicked)="goBack()">
+      Volver al nodo
+    </ui-button>
+
+    <ui-button
+      variant="secondary"
+      size="sm"
+      [icon]="faSync"
+      [disabled]="loading()"
+      (clicked)="reload()"
+    >
+      Actualizar
+    </ui-button>
+
+    <ui-button
+      size="sm"
+      [icon]="faPlus"
+      [disabled]="loading()"
+      (clicked)="openCreateDialog()"
+    >
+      Nuevo equipo
+    </ui-button>
+  </ui-page-header>
+
+  @if (loading()) {
+    <div class="flex justify-center py-12">
+      <ui-loading-spinner [diameter]="36" />
+    </div>
+  } @else if (error(); as err) {
+    <ui-alert type="error" [title]="err" />
+  } @else if (equipment().length === 0) {
+    <ui-empty-state
+      title="Sin equipos registrados"
+      description="Aún no hay equipos en este nodo. Registra el primero para que pueda asociarse y recibir su Worklist filtrada por modalidad."
+    />
+  } @else {
+    <ul class="space-y-2" role="list">
+      @for (item of equipment(); track item.id) {
+        <li
+          class="rounded-lg border transition-colors"
+          [class]="item.isEnabled
+            ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50'
+            : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 opacity-60'"
+        >
+          <div class="flex items-center gap-3 p-4">
+            <!-- Equipment info -->
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {{ item.displayName ?? item.aeTitle }}
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 ml-1">{{ item.aeTitle }}</span>
+              </p>
+              <!-- Modality chips -->
+              <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                @for (code of item.modalityCodes; track code) {
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs
+                               bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono">
+                    {{ code }}
+                  </span>
+                }
+                @if (item.modalityCodes.length === 0) {
+                  <span class="text-xs text-amber-500 italic">Sin modalidades — no verá Worklist</span>
+                }
+                @if (item.stationAeTitle) {
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs
+                               bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">
+                    station: {{ item.stationAeTitle }}
+                  </span>
+                }
+                @if (item.ipAddress) {
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs
+                               bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">
+                    {{ item.ipAddress }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Presence -->
+            <div class="flex flex-col items-end gap-1 shrink-0 mr-1">
+              @if (item.isOnline) {
+                <ui-chip color="success">En línea</ui-chip>
+              } @else if (item.lastConnectionAt) {
+                <span class="text-xs text-gray-400 dark:text-gray-500" [title]="item.lastConnectionAt">
+                  Visto {{ item.lastConnectionAt | relativeTime }}
+                </span>
+              } @else {
+                <span class="text-xs text-gray-400 dark:text-gray-500 italic">Nunca conectado</span>
+              }
+            </div>
+
+            <!-- Status -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              @if (item.isEnabled) {
+                <ui-chip color="success">Habilitado</ui-chip>
+              } @else {
+                <ui-chip color="default">Deshabilitado</ui-chip>
+              }
+            </div>
+
+            <!-- Row actions -->
+            <div class="flex items-center gap-1 shrink-0">
+              <ui-icon-button
+                [icon]="item.isEnabled ? faToggleOn : faToggleOff"
+                [tooltip]="item.isEnabled ? 'Deshabilitar equipo' : 'Habilitar equipo'"
+                [ariaLabel]="item.isEnabled ? 'Deshabilitar' : 'Habilitar'"
+                [disabled]="isBusy(item.id)"
+                (clicked)="toggleEnabled(item)"
+              />
+              <ui-icon-button
+                [icon]="faPen"
+                tooltip="Editar equipo"
+                ariaLabel="Editar"
+                [disabled]="isBusy(item.id)"
+                (clicked)="openEditDialog(item)"
+              />
+              <ui-icon-button
+                [icon]="faTrash"
+                tooltip="Eliminar equipo"
+                ariaLabel="Eliminar"
+                [disabled]="isBusy(item.id)"
+                (clicked)="confirmDelete(item)"
+              />
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

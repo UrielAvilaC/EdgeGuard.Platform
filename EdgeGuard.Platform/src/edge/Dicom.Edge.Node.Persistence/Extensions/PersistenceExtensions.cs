@@ -120,6 +120,12 @@ public static class PersistenceExtensions
         services.AddSingleton<IWorklistManager, SqliteWorklistManager>();
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<INodePacsServerRepository, NodePacsServerRepository>();
+
+        // Equipment catalog: in-memory cache read by the DICOM SCP (association + MWL).
+        services.AddSingleton<IEquipmentCatalog, InMemoryEquipmentCatalog>();
+
+        // Equipment presence: in-memory last-seen tracker written by the SCP on accept.
+        services.AddSingleton<IEquipmentActivityTracker, InMemoryEquipmentActivityTracker>();
     }
 
     // ── Background services ───────────────────────────────────────────────────
@@ -136,6 +142,11 @@ public static class PersistenceExtensions
             sp.GetRequiredService<StudyCompletionWatcherService>());
         services.AddHostedService<StudyCleanupService>();
         services.AddHostedService<RoutingRuleLoaderService>();
+
+        // Equipment loader: singleton so the sync endpoint can force an immediate reload
+        // via LoadNowAsync, plus the same instance runs as the periodic hosted service.
+        services.AddSingleton<EquipmentLoaderService>();
+        services.AddHostedService(sp => sp.GetRequiredService<EquipmentLoaderService>());
     }
 
     // ── OpenTelemetry tracing ─────────────────────────────────────────────────
@@ -190,6 +201,7 @@ internal sealed class PersistenceInitializerService(
 
         // ── Phase 2: Seed missing settings ───────────────────────────────────
         await NodeSettingsSeed.SeedMissingAsync(ctx,logger, cancellationToken);
+        await Seed.ModalityCatalogSeed.SeedAsync(ctx, cancellationToken);
         logger.LogDebug("Seed check complete");
 
         // ── Phase 3: Warm settings cache ─────────────────────────────────────

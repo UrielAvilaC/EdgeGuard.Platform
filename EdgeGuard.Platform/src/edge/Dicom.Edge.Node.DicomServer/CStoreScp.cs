@@ -71,10 +71,71 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
             return;
         }
 
-        // ── CallingAE whitelist validation ────────────────────────────────────
-        if (options.ValidateCallingAe &&
-            options.AllowedCallingAeTitles.Length > 0 &&
-            !options.AllowedCallingAeTitles.Contains(callingAe, StringComparer.OrdinalIgnoreCase))
+        // ── CallingAE validation ──────────────────────────────────────────────
+        // Preferred: the equipment catalog is the authority. When it is populated, only
+        // equipment that is registered AND enabled may associate (strict mode).
+        // Fallback: when the catalog is empty (e.g. a fresh node before the first Hub
+        // push), fall back to the legacy AllowedCallingAeTitles whitelist so the node is
+        // not bricked during rollout.
+        if (!Deps.EquipmentCatalog.IsEmpty)
+        {
+            var equipment = Deps.EquipmentCatalog.FindByAeTitle(callingAe);
+            if (equipment is null || !equipment.IsEnabled)
+            {
+                var reason = equipment is null
+                    ? $"CallingAE '{callingAe}' is not registered in the equipment catalog"
+                    : $"CallingAE '{callingAe}' is registered but disabled";
+
+                Deps.Logger.LogWarning(
+                    "Association REJECTED — {Reason}. Register/enable the equipment on the Hub " +
+                    "(node {CalledAe}) to allow this modality.",
+                    reason, calledAe);
+                await Deps.AssociationTracker.RecordRejectionAsync(
+                    callingAe, calledAe,
+                    association.RemoteHost ?? string.Empty,
+                    association.RemotePort,
+                    reason);
+                await SendAssociationRejectAsync(
+                    DicomRejectResult.Permanent,
+                    DicomRejectSource.ServiceUser,
+                    DicomRejectReason.CallingAENotRecognized);
+                return;
+            }
+
+            // Enterprise AE+IP enforcement: when the equipment declares an IP address,
+            // the remote host must match it. The accept/reject decision is persisted by
+            // the association tracker (dicom_associations) for the equipment audit trail.
+            if (!string.IsNullOrWhiteSpace(equipment.IpAddress))
+            {
+                var remoteHost = association.RemoteHost?.Trim() ?? string.Empty;
+                if (!string.Equals(remoteHost, equipment.IpAddress.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    var reason =
+                        $"CallingAE '{callingAe}' source IP mismatch (expected '{equipment.IpAddress}', got '{remoteHost}')";
+
+                    Deps.Logger.LogWarning(
+                        "Association REJECTED — {Reason}. Update the equipment IP on the Hub or correct the modality network configuration.",
+                        reason);
+                    await Deps.AssociationTracker.RecordRejectionAsync(
+                        callingAe, calledAe,
+                        association.RemoteHost ?? string.Empty,
+                        association.RemotePort,
+                        reason);
+                    await SendAssociationRejectAsync(
+                        DicomRejectResult.Permanent,
+                        DicomRejectSource.ServiceUser,
+                        DicomRejectReason.CallingAENotRecognized);
+                    return;
+                }
+            }
+
+            // Passive presence: the equipment is catalogued, enabled and (if required) IP-matched.
+            // Record the association time so the Hub can show last-seen / online status.
+            Deps.EquipmentActivityTracker.RecordSeen(callingAe);
+        }
+        else if (options.ValidateCallingAe &&
+                 options.AllowedCallingAeTitles.Length > 0 &&
+                 !options.AllowedCallingAeTitles.Contains(callingAe, StringComparer.OrdinalIgnoreCase))
         {
             Deps.Logger.LogWarning(
                 "Association REJECTED — CallingAE '{CallingAe}' is not in the allowed list ({Allowed})",
@@ -252,7 +313,8 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
 
             int resultCount = 0;
 
-            await foreach (var dataset in Deps.MwlHandler.QueryWorklistAsync(request.Dataset))
+            await foreach (var dataset in Deps.MwlHandler.QueryWorklistAsync(
+                               request.Dataset, Association.CallingAE.Trim()))
             {
                 var response = new DicomCFindResponse(request, DicomStatus.Pending)
                 {

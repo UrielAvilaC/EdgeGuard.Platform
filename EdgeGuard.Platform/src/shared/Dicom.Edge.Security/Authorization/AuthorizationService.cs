@@ -205,16 +205,6 @@ namespace Dicom.Edge.Security.Authorization
             return await AuthorizeAsync(user, resourceType, operation);
         }
 
-        [Obsolete("Use HasPermissionAsync(ClaimsPrincipal, Permission) instead")]
-        public bool HasPermission(Role role, Permission permission)
-        {
-            if (_rolePermissions.TryGetValue(role, out var permissions))
-            {
-                return permissions.Contains(permission);
-            }
-            return false;
-        }
-
         private List<Role> GetUserRoles(ClaimsPrincipal user)
         {
             return user.FindAll(ClaimTypes.Role)

@@ -78,6 +78,7 @@ These endpoints receive configuration payloads pushed by the Hub. Each is idempo
 |--------|------|------|-------------|
 | POST | `/api/pacs-destinations/sync` | API Key | Replace node's PACS destination list |
 | POST | `/api/dicom-routing-rules/sync` | API Key | Replace node's DICOM routing rule set |
+| POST | `/api/equipment/sync` | API Key | Replace node's equipment catalog (with modality codes) |
 | POST | `/api/configuration/sync` | API Key | Apply general settings to node |
 
 ### POST `/api/pacs-destinations/sync`
@@ -130,6 +131,39 @@ The Hub sends all active DICOM routing rules for this node ordered by priority.
 ```
 
 **Response `204 No Content`**
+
+### POST `/api/equipment/sync`
+
+The Hub sends the full equipment catalog for this node (full replace). The node upserts the
+incoming equipment, removes any not present, and immediately reloads its in-memory catalog so
+association validation and MWL filtering take effect at once. See
+[Equipment Catalog](../04-features/equipment-catalog.md).
+
+**Request body:**
+
+```json
+{
+  "nodeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "syncedAtUtc": "2026-06-06T12:00:00Z",
+  "equipment": [
+    {
+      "id": "20260606120000-abc123def456",
+      "aeTitle": "CT_SALA1",
+      "displayName": "CT Urgencias Sala 1",
+      "modalityCodes": ["CT"],
+      "stationAeTitle": "CT_SALA1",
+      "ipAddress": "192.168.1.50",
+      "isEnabled": true
+    }
+  ]
+}
+```
+
+**Response `200 OK`:**
+
+```json
+{ "accepted": true, "appliedCount": 1, "removedCount": 0, "appliedAt": "2026-06-06T12:00:01Z" }
+```
 
 ### POST `/api/configuration/sync`
 

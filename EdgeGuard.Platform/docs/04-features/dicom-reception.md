@@ -221,3 +221,4 @@ stateDiagram-v2
 - [HL7 Pipeline Overview](hl7-pipeline.md)
 - [HL7 ORM Message Handling](hl7-orm.md) — creates Scheduled studies visible in MWL
 - [Modality Worklist](modality-worklist.md)
+- [Equipment Catalog](equipment-catalog.md) — calling-AE association acceptance & per-equipment MWL filtering

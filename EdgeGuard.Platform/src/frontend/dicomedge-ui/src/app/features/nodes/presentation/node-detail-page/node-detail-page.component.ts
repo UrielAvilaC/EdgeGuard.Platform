@@ -24,6 +24,7 @@ import {
   faExclamationTriangle,
   faInfoCircle,
   faRoute,
+  faMicrochip,
 } from '@fortawesome/free-solid-svg-icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
@@ -111,6 +112,7 @@ export default class NodeDetailPage {
   protected readonly faExclamationTriangle = faExclamationTriangle;
   protected readonly faInfoCircle = faInfoCircle;
   protected readonly faRoute = faRoute;
+  protected readonly faMicrochip = faMicrochip;
 
   protected readonly nodeStudies = signal<Study[]>([]);
   protected readonly studiesLoading = signal(false);

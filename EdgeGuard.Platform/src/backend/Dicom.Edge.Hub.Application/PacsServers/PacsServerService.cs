@@ -17,8 +17,6 @@ namespace Dicom.Edge.Hub.Application.PacsServers;
 /// </summary>
 public sealed class PacsServerService(
     IPacsServerRepository pacsRepository,
-    INodeRepository nodeRepository,
-    INodePacsDestinationPushService pacsDestinationPushService,
     INodePushQueue pushQueue,
     IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,

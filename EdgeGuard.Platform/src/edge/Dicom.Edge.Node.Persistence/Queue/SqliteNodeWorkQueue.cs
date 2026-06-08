@@ -1,4 +1,3 @@
-using Dicom.Edge.Abstractions.Metrics;
 using Dicom.Edge.Abstractions.Queue;
 using Dicom.Edge.Common.Errors;
 using Dicom.Edge.Common.Results;
@@ -14,7 +13,6 @@ namespace Dicom.Edge.Node.Persistence.Queue;
 /// </summary>
 public sealed class SqliteNodeWorkQueue(
     IEdgeQueue<EdgeQueueItem> edgeQueue,
-    IMetricsCollector metrics,
     ILogger<SqliteNodeWorkQueue> logger) : INodeWorkQueue
 {
     public async Task<Result> EnqueueAsync(NodeWorkItem item, CancellationToken ct = default)
@@ -131,8 +129,7 @@ public sealed class SqliteNodeWorkQueue(
     public SqliteNodeWorkQueue(
         IEdgeQueue<EdgeQueueItem> edgeQueue,
         IDbContextFactory<EdgeNodeDbContext> factory,
-        IMetricsCollector metrics,
-        ILogger<SqliteNodeWorkQueue> logger) : this(edgeQueue, metrics, logger)
+        ILogger<SqliteNodeWorkQueue> logger) : this(edgeQueue, logger)
     {
         _factory = factory;
     }

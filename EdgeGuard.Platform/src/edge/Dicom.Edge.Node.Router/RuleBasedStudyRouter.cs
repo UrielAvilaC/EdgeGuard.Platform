@@ -1,4 +1,3 @@
-using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Node.Sender;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +9,6 @@ namespace Dicom.Edge.Node.Router;
 /// Falls back to a default destination when no rules match.
 /// </summary>
 public sealed class RuleBasedStudyRouter(
-    INodeSettingsService settingsService,
     ILogger<RuleBasedStudyRouter> logger) : IStudyRouter
 {
     // In-memory rules — loaded from node settings or configuration sync

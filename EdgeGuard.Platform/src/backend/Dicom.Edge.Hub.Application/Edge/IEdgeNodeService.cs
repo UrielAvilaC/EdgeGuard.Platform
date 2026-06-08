@@ -38,6 +38,9 @@ public interface IEdgeNodeService
 
     /// <summary>Stores the latest PACS C-ECHO report from a node. Returns null if node not found.</summary>
     Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(NodePacsEchoReportRequest request, CancellationToken ct = default);
+
+    /// <summary>Applies an equipment presence (last-seen) report, updating LastConnectionAt per equipment.</summary>
+    Task<EdgeOperationResult?> ProcessEquipmentStatusReportAsync(NodeEquipmentStatusReportRequest request, CancellationToken ct = default);
 }
 
 /// <summary>

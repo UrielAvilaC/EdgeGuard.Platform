@@ -141,6 +141,17 @@ public class EdgeController : ControllerBase
         return Ok(new { acknowledged = result.Acknowledged });
     }
 
+    /// <summary>POST /edge/equipment-status — Node reports recent equipment activity (passive presence).</summary>
+    [HttpPost("equipment-status")]
+    public async Task<IActionResult> EquipmentStatusReport([FromBody] NodeEquipmentStatusReportRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessEquipmentStatusReportAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new { acknowledged = result.Acknowledged });
+    }
+
     /// <summary>GET /edge/configuration — Node pulls its config as key-value pairs.</summary>
     [HttpGet("configuration")]
     public async Task<IActionResult> PullConfiguration([FromQuery] string nodeId, CancellationToken ct)

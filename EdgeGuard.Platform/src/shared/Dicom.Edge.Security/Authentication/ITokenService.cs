@@ -40,9 +40,5 @@ namespace Dicom.Edge.Security.Authentication
         /// <param name="token">Token to check.</param>
         /// <returns>True if revoked; otherwise false.</returns>
         bool IsTokenRevoked(string token);
-
-        // Legacy methods for backward compatibility
-        [Obsolete("Use GenerateToken(TokenRequest) instead")]
-        string GenerateToken(string userId, string role);
     }
 }

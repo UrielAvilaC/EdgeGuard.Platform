@@ -15,7 +15,6 @@ public sealed class AuthenticationService : IAuthenticationService
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly AuthorizationService _authorizationService;
     private readonly ILogger<AuthenticationService> _logger;
 
     // Static role→permission matrix for building JWT claims
@@ -42,7 +41,6 @@ public sealed class AuthenticationService : IAuthenticationService
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
         _unitOfWork = unitOfWork;
-        _authorizationService = null!; // Not used directly — permissions resolved from matrix
         _logger = logger;
     }
 

@@ -112,6 +112,34 @@ Attributes present in the Identifier dataset but not listed above are accepted w
 
 ---
 
+## Per-Equipment Filtering
+
+In addition to the query keys above, the Edge Node constrains MWL results **per calling
+equipment** using the [Equipment Catalog](equipment-catalog.md). This makes the node — not
+the modality — the authority over what each device may see.
+
+On each MWL C-FIND the node resolves the calling AE to its equipment entry and returns only
+worklist items that fall in the **intersection** of:
+
+- the equipment's **allowed modality set**, and
+- its `ScheduledStationAETitle` (when the equipment declares one).
+
+Behaviour notes:
+
+| Situation | Result |
+|---|---|
+| Calling AE registered + enabled, item modality in allowed set | Returned |
+| Item modality **not** in the equipment's allowed set | Filtered out |
+| Device requests a modality outside its allowed set | Empty result |
+| Equipment has **no** modalities assigned | Empty worklist |
+| Equipment declares a `StationAeTitle`, item has a different one | Filtered out (items with no station AE match leniently) |
+| Equipment catalog is empty (fresh node, pre-sync) | Legacy behaviour — no per-equipment constraint |
+
+Unknown / disabled equipment never reaches MWL: the association is rejected first (see
+[Equipment Catalog → Association acceptance](equipment-catalog.md#association-acceptance-edge)).
+
+---
+
 ## Configuration
 
 ```json
@@ -183,11 +211,14 @@ The platform returns one response dataset per matching Study record:
 | Wrong AccessionNumber on modality | Study merge (ORM+MRG) not applied | Check `MRG-3` in ORM message |
 | MWL SOP class rejected during association | `MwlEnabled = false` or SOP class not negotiated | Verify `MwlEnabled = true` |
 | Date filter returns no results | Date format mismatch | Confirm modality sends `YYYYMMDD` format |
+| Modality returns empty MWL after equipment rollout | Equipment has no modalities assigned, or item modality not in its allowed set | Check the equipment's modality set in Hub UI (Node → Equipos) |
+| Association rejected (`CallingAENotRecognized`) | Calling AE not registered/enabled in the equipment catalog | Register/enable the equipment for the node |
 
 ---
 
 ## Related Documentation
 
+- [Equipment Catalog](equipment-catalog.md) — per-equipment association + MWL filtering
 - [HL7 ORM Message Handling](hl7-orm.md) — source of Scheduled study records
 - [DICOM Reception](dicom-reception.md) — C-STORE and AE title configuration
 - [HL7 Pipeline Overview](hl7-pipeline.md)

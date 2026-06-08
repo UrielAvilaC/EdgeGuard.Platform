@@ -4,6 +4,24 @@ All notable changes to EdgeGuard Platform are documented here. This file follows
 
 ---
 
+## Unreleased
+
+### feat
+- **Equipment catalog & per-equipment MWL filtering** — Operators register, per Edge Node, which modality devices may connect (by calling AE title) and which modalities each one is allowed to see. The Edge Node now **rejects associations** from uncatalogued/disabled equipment and **filters the Modality Worklist per device** (by its allowed modality set ∩ scheduled station AE) instead of returning the whole worklist. Equipment is authored in the Hub (Node → Equipos), validated against a seeded modality reference catalog, and pushed to nodes via `POST /api/equipment/sync`. See [Equipment Catalog](../04-features/equipment-catalog.md).
+- **Modality reference catalog** — New global, auto-seeded `modalities` table (Hub + Edge) flagging image-level modalities as supported; only supported & active modalities may be assigned to equipment. Seeded idempotently from a shared source on startup.
+- **Equipment AE+IP enforcement & connection auditing** — When an equipment declares an IP address, the Edge Node enforces AE+IP on association (source host must match). Every equipment association decision — accepted or rejected (not registered / disabled / IP mismatch) — is persisted to the node's `dicom_associations` audit table.
+- **Equipment presence tracking (last-seen / online)** — The Edge Node passively records each equipment's most recent association and reports deltas to the Hub (`POST /api/edge/equipment-status`); the Hub persists `LastConnectionAt` and derives `IsOnline` at read time from a configurable window (`EquipmentPresence:OnlineWindowMinutes`, default 10). Surfaced on the node Equipment page ("En línea / Visto hace X / Nunca conectado"). No active polling — avoids false offline for SCU-only modalities.
+
+### deprecated
+- **`ModalityConfiguration` (Edge) / `modality_configurations` table** — Superseded by the new `Equipment` entity and equipment catalog. The type is no longer referenced by application logic; the table is retained for now and will be dropped in a future migration (`DropModalityConfiguration`).
+- **`dicom.allowed_ae_titles`** — Retained only as a fallback used while a node's equipment catalog is empty (rollout safety). Once equipment is registered, the catalog is authoritative. Long-term removal is under review.
+
+### migrations
+- Hub (`HubDbContext`): `AddModalityCatalog`, `AddNodeEquipment`.
+- Edge (`EdgeNodeDbContext`): `AddModalityCatalog`, `AddEquipment` (auto-applied on node startup).
+
+---
+
 ## v1.0.0 — 2026-05-16
 
 ### feat
@@ -93,7 +111,7 @@ All notable changes to EdgeGuard Platform are documented here. This file follows
 ## v0.5.0 — 2025-02-01
 
 ### feat
-- **Clean Architecture scaffolding** — Hub API organized into `Domain`, `Application`, `Infrastructure`, and `Api` projects. Dependency inversion enforced via interfaces. MediatR wires CQRS commands and queries.
+- **Clean Architecture scaffolding** — Hub API organized into `Domain`, `Application`, `Infrastructure`, and `Api` projects. Dependency inversion enforced via interfaces. Writes flow through application services; domain events are dispatched after `SaveChanges` by an EF Core interceptor.
 - **PostgreSQL persistence** — EF Core 10 with code-first migrations. Hub DB schema includes: `Patients`, `Studies`, `Instances`, `Nodes`, `PacsDestinations`, `RoutingRules`, `Users`, `RefreshTokens`, `AuditLogs`, `Hl7Messages`.
 - **First Edge Node** — .NET Worker Service with fo-dicom C-STORE SCP. Receives DICOM studies and stores instances in SQLite. Posts a study-received notification to the Hub over HTTP.
 - **Node registration** — Edge Node posts `POST /api/nodes/register` with `NodeId`, `AeTitle`, `IpAddress`, and `ApiPort` on first boot. Hub records the node and returns a node-scoped JWT.

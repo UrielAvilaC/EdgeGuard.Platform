@@ -426,6 +426,33 @@ public sealed class PacsEchoDestinationResult
     public required DateTime CheckedAtUtc { get; init; }
 }
 
+/// <summary>
+/// Node reports recent equipment activity (passive presence) so the Hub can show
+/// per-equipment last-seen / online status. Only equipment seen since the last report
+/// are included (delta).
+/// </summary>
+public sealed class NodeEquipmentStatusReportRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    public DateTime ReportedAtUtc { get; init; } = DateTime.UtcNow;
+
+    public required IReadOnlyList<EquipmentStatusEntry> Equipment { get; init; }
+}
+
+/// <summary>
+/// Per-equipment presence entry inside a <see cref="NodeEquipmentStatusReportRequest"/>.
+/// </summary>
+public sealed class EquipmentStatusEntry
+{
+    [Required, StringLength(16, MinimumLength = 1)]
+    public required string AeTitle { get; init; }
+
+    /// <summary>UTC timestamp of the equipment's most recent accepted association.</summary>
+    public required DateTime LastSeenUtc { get; init; }
+}
+
 // ── Update Study Status (manual) ─────────────────────────────────────────────
 
 public sealed class UpdateStudyStatusRequest

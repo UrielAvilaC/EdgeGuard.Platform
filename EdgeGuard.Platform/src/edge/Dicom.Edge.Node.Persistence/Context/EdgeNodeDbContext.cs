@@ -15,6 +15,11 @@ public sealed class EdgeNodeDbContext(DbContextOptions<EdgeNodeDbContext> option
     public DbSet<NodeRegistrationEntity> NodeRegistration       { get; init; }
     public DbSet<ModalityConfiguration>  ModalityConfigurations { get; init; }
 
+    // ── Equipment catalog (synced from Hub) + local modality reference ─────────
+    public DbSet<Dicom.Edge.Models.Equipment.Equipment> Equipment    { get; init; }
+    public DbSet<EquipmentModality>   EquipmentModalities  { get; init; }
+    public DbSet<ModalityCatalogEntry> Modalities          { get; init; }
+
     // ── DICOM Core ────────────────────────────────────────────────────────────
     public DbSet<DicomPatient>  Patients  { get; init; }
     public DbSet<DicomStudy>    Studies   { get; init; }

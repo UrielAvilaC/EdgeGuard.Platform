@@ -134,6 +134,7 @@ try
     // ── Apply pending migrations & seed system settings ───────────────────
     await app.Services.MigrateHubAsync();
     await app.Services.SeedHubSettingsAsync();
+    await app.Services.SeedModalityCatalogAsync();
     await app.Services.SeedAdminUserAsync();
 
     // Diagnostics middleware pipeline (order matters)

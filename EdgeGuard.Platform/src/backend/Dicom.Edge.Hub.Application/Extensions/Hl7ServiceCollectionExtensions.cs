@@ -2,6 +2,7 @@ using Dicom.Edge.Hub.Application.Configuration;
 using Dicom.Edge.Hub.Application.CsvServices;
 using Dicom.Edge.Hub.Application.Dashboard;
 using Dicom.Edge.Hub.Application.Edge;
+using Dicom.Edge.Hub.Application.Equipment;
 using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Application.Hl7.Pipeline;
 using Dicom.Edge.Hub.Application.Identity;
@@ -73,6 +74,11 @@ public static class HubApplicationServiceCollectionExtensions
         services.AddScoped<IPacsServerService, PacsServerService>();
         services.AddScoped<IRoutingRuleService, RoutingRuleService>();
         services.AddScoped<INodeDicomRoutingRuleService, NodeDicomRoutingRuleService>();
+        services.AddScoped<INodeEquipmentService, NodeEquipmentService>();
+
+        // Equipment presence: online-window used to derive IsOnline at read time.
+        services.Configure<Equipment.EquipmentPresenceOptions>(
+            configuration.GetSection(Equipment.EquipmentPresenceOptions.SectionName));
         services.AddScoped<IStudyService, StudyService>();
 
         // Edge node-facing orchestration service

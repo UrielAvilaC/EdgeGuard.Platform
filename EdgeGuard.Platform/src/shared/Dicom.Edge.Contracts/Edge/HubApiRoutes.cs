@@ -42,6 +42,9 @@ public static class HubApiRoutes
 
     /// <summary>POST — Node reports PACS C-ECHO connectivity results. Returns acknowledgment.</summary>
     public const string PacsEchoReport = "/api/edge/pacs-echo";
+
+    /// <summary>POST — Node reports recent equipment activity (passive presence). Returns acknowledgment.</summary>
+    public const string EquipmentStatusReport = "/api/edge/equipment-status";
 }
 
 /// <summary>

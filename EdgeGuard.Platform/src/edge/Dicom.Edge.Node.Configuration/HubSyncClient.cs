@@ -283,6 +283,28 @@ public sealed class HubSyncClient(
         }
     }
 
+    public async Task<bool> ReportEquipmentStatusAsync(NodeEquipmentStatusReportRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(RegisteredNodeId)) { logger.LogDebug("Skipping equipment status report -- node not yet registered"); return false; }
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.EquipmentStatusReport}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("Equipment status report failed -- StatusCode={StatusCode} NodeId={NodeId}",
+                    (int)response.StatusCode, _registeredNodeId);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Equipment status report error -- NodeId={NodeId} Url={Url}", _registeredNodeId, url);
+            return false;
+        }
+    }
+
     private void ApplyApiKeyHeader(HttpRequestMessage request)
     {
         var apiKey = _apiKey ?? ConnectionOptions.ApiKey;
