@@ -121,10 +121,14 @@ public sealed class NodeEquipment : AggregateRoot<string>
     public void Enable()  { IsEnabled = true;  UpdatedAt = DateTime.UtcNow; }
     public void Disable() { IsEnabled = false; UpdatedAt = DateTime.UtcNow; }
 
+    /// <summary>
+    /// Records the most recent association time for this equipment (passive presence).
+    /// <see cref="IsOnline"/> is intentionally NOT persisted — it is derived at read time
+    /// from <see cref="LastConnectionAt"/> and a configurable online window.
+    /// </summary>
     public void MarkConnected(DateTime atUtc)
     {
         LastConnectionAt = atUtc;
-        IsOnline         = true;
         UpdatedAt        = DateTime.UtcNow;
     }
 }

@@ -74,15 +74,20 @@ public interface IMetricsCollector
 ### Usage Pattern
 
 ```csharp
-// Application layer — depends only on IRepository; no knowledge of EF
-public class GetStudiesQueryHandler(IRepository<Study> studyRepo, IMapper mapper)
-    : IRequestHandler<GetStudiesQuery, PagedResult<StudyDto>>
+// Application layer — depends only on the repository interface; no knowledge of EF.
+// DTO mapping is done with hand-written extension methods (no AutoMapper/MediatR).
+public sealed class StudyService(IStudyRepository studyRepository, IUnitOfWork unitOfWork)
+    : IStudyService
 {
-    public async Task<PagedResult<StudyDto>> Handle(
-        GetStudiesQuery request, CancellationToken ct)
+    public async Task<(Study? Study, string? Error)> UpdateStatusAsync(
+        string id, UpdateStudyStatusRequest request, CancellationToken ct = default)
     {
-        var studies = await studyRepo.ListAsync(ct);
-        return mapper.Map<PagedResult<StudyDto>>(studies);
+        var study = await studyRepository.GetByIdAsync(id, ct);
+        if (study is null) return (null, "Study not found");
+
+        study.ChangeStatus(request.Status);          // raises a domain event
+        await unitOfWork.SaveChangesAsync(ct);       // interceptor dispatches the event
+        return (study, null);
     }
 }
 ```

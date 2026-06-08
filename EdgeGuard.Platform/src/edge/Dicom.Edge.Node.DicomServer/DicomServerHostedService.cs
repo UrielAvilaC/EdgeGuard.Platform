@@ -29,6 +29,7 @@ public sealed class DicomServerHostedService(
     IStudyCompletionTrigger completionTrigger,
     IDicomAssociationTracker associationTracker,
     IEquipmentCatalog equipmentCatalog,
+    IEquipmentActivityTracker equipmentActivityTracker,
     IOptionsMonitor<DicomServerOptions> optionsMonitor,
     IDicomServerFactory dicomServerFactory,
     ILogger<DicomServerHostedService> logger) : IHostedService, IDisposable
@@ -101,6 +102,7 @@ public sealed class DicomServerHostedService(
                 completionTrigger,
                 associationTracker,
                 equipmentCatalog,
+                equipmentActivityTracker,
                 optionsMonitor,
                 logger),
             // P1-2: cap concurrent SCP associations so a flood of connections cannot
@@ -149,6 +151,7 @@ public sealed record DicomScpDependencies(
     IStudyCompletionTrigger CompletionTrigger,
     IDicomAssociationTracker AssociationTracker,
     IEquipmentCatalog EquipmentCatalog,
+    IEquipmentActivityTracker EquipmentActivityTracker,
     IOptionsMonitor<DicomServerOptions> OptionsMonitor,
     ILogger<DicomServerHostedService> Logger)
 {

@@ -25,6 +25,7 @@ import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.compone
 import { UiLoadingSpinner } from '../../../../shared/components/ui-loading-spinner/ui-loading-spinner.component';
 import { UiEmptyState } from '../../../../shared/components/ui-empty-state/ui-empty-state.component';
 import { UiChip } from '../../../../shared/components/ui-chip/ui-chip.component';
+import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { UiConfirmDialog, ConfirmDialogData } from '../../../../shared/components/ui-confirm-dialog/ui-confirm-dialog.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { NodesApiService } from '../../infrastructure/nodes-api.service';
@@ -52,6 +53,7 @@ import {
     UiLoadingSpinner,
     UiEmptyState,
     UiChip,
+    RelativeTimePipe,
   ],
   templateUrl: './node-equipment-page.component.html',
 })

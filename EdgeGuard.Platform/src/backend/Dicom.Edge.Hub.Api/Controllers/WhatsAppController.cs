@@ -14,8 +14,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class WhatsAppController(
     IWhatsAppNotificationService notificationService,
     IWhatsAppTemplateService templateService,
-    IWhatsAppAutoSendRuleService ruleService,
-    ILogger<WhatsAppController> logger) : ControllerBase
+    IWhatsAppAutoSendRuleService ruleService) : ControllerBase
 {
     // ── Config & Tags ────────────────────────────────────────────────────────
 

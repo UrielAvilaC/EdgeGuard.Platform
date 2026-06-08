@@ -144,10 +144,10 @@ sequenceDiagram
 ### Permission Declaration in Controllers
 
 ```csharp
-[Authorize(Policy = EdgePolicies.ManageNodes)]
+[Authorize(Policy = Policies.ManageEdgeNodes)]
 [HttpPost("api/nodes/{id}/push-config")]
-public async Task<IActionResult> PushConfiguration(Guid id)
-    => Ok(await _mediator.Send(new PushNodeConfigCommand(id)));
+public async Task<IActionResult> PushConfiguration(string id, CancellationToken ct)
+    => Ok(await _nodeConfigurationService.PushToNodeAsync(id, ct));
 ```
 
 ---

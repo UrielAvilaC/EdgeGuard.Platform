@@ -77,6 +77,19 @@
               </div>
             </div>
 
+            <!-- Presence -->
+            <div class="flex flex-col items-end gap-1 shrink-0 mr-1">
+              @if (item.isOnline) {
+                <ui-chip color="success">En línea</ui-chip>
+              } @else if (item.lastConnectionAt) {
+                <span class="text-xs text-gray-400 dark:text-gray-500" [title]="item.lastConnectionAt">
+                  Visto {{ item.lastConnectionAt | relativeTime }}
+                </span>
+              } @else {
+                <span class="text-xs text-gray-400 dark:text-gray-500 italic">Nunca conectado</span>
+              }
+            </div>
+
             <!-- Status -->
             <div class="flex items-center gap-1.5 shrink-0">
               @if (item.isEnabled) {

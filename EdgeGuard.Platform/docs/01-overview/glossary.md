@@ -141,7 +141,7 @@ This glossary defines terms used throughout the EdgeGuard Platform documentation
 : An observability framework for collecting distributed traces, metrics, and logs. EdgeGuard exports OTLP traces and metrics when an OpenTelemetry endpoint is configured.
 
 **Clean Architecture**
-: The layering pattern used in the Hub API: `Domain` (entities, value objects, domain events) → `Application` (use cases, CQRS commands/queries) → `Infrastructure` (EF Core, HL7 parser, DICOM client) → `Api` (controllers, middleware, DI composition). Dependencies point inward only.
+: The layering pattern used in the Hub API: `Domain` (entities, value objects, domain events) → `Application` (application services, validation, DTO mapping) → `Infrastructure` (EF Core, HL7 parser, DICOM client, domain event handlers) → `Api` (controllers, middleware, DI composition). Dependencies point inward only.
 
-**CQRS** (Command Query Responsibility Segregation)
-: An architectural pattern used in the Hub Application layer. Write operations are expressed as `ICommand` / `ICommandHandler<T>` pairs; read operations as `IQuery<T>` / `IQueryHandler<T>` pairs. MediatR dispatches both.
+**Read/Write Split**
+: The lightweight separation used in the Hub Application layer. Read operations go directly through repository interfaces (`IStudyRepository.GetByIdAsync`, …); write operations go through application service interfaces (`IStudyService`, `INodeService`, …) that orchestrate the change and commit it via the Unit of Work. There is **no** MediatR / command-handler bus — domain events are dispatched after `SaveChanges` by `DomainEventDispatchInterceptor`.

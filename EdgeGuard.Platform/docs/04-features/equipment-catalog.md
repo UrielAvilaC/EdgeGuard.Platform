@@ -150,6 +150,41 @@ reflect the change without delay. A periodic reload (every 2 minutes) provides a
 
 ---
 
+## Presence tracking (last-seen / online)
+
+Equipment presence is **passive** — derived from the associations a device actually opens
+against the node, never from active polling. (An active node→equipment C-ECHO would falsely
+report SCU-only modalities as offline.)
+
+Flow:
+
+1. **Capture (Edge):** when the SCP accepts an association from a catalogued, enabled
+   equipment, it records the time in an in-memory `IEquipmentActivityTracker`.
+2. **Report (Edge → Hub):** `EquipmentStatusReportHostedService` runs every
+   `EquipmentPresence:IntervalSeconds` (default 60s) and POSTs only the equipment whose
+   last-seen advanced since the previous report to `POST /api/edge/equipment-status`.
+3. **Persist (Hub):** `EdgeNodeService.ProcessEquipmentStatusReportAsync` advances
+   `NodeEquipment.LastConnectionAt` (via `MarkConnected`) only when newer.
+4. **Derive (Hub):** `IsOnline` is **computed at read time** in the API as
+   `LastConnectionAt >= now - OnlineWindow` (never persisted, so no offline-flip job is
+   needed). The window is configurable — `EquipmentPresence:OnlineWindowMinutes` (default 10).
+5. **Display (UI):** the equipment page shows "En línea", "Visto hace X", or "Nunca conectado".
+
+> **Semantics:** "online" means *recently associated*, not a live reachability probe. Keep
+> `OnlineWindowMinutes` comfortably larger than the report interval so a single missed report
+> does not flap the indicator.
+
+**Configuration:**
+
+```jsonc
+// Hub appsettings.json
+"EquipmentPresence": { "OnlineWindowMinutes": 10 }
+// Edge appsettings (optional)
+"EquipmentPresence": { "Enabled": true, "IntervalSeconds": 60 }
+```
+
+---
+
 ## Permissions
 
 | Permission | Policy | Scope |

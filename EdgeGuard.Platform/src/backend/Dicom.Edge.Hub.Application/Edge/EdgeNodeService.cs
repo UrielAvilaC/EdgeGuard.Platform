@@ -2,6 +2,7 @@ using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Hub.Domain.Aggregates.Equipment;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
@@ -29,6 +30,7 @@ public sealed class EdgeNodeService(
     IPacsServerRepository pacsRepository,
     INodeConfigurationService configService,
     INodePacsEchoStore pacsEchoStore,
+    INodeEquipmentRepository equipmentRepository,
     IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,
     ILogger<EdgeNodeService> logger) : IEdgeNodeService
@@ -378,5 +380,38 @@ public sealed class EdgeNodeService(
             request.NodeId, status.TotalChecked, status.TotalReachable);
 
         return Task.FromResult<EdgeOperationResult?>(new EdgeOperationResult(true, DateTime.UtcNow));
+    }
+
+    public async Task<EdgeOperationResult?> ProcessEquipmentStatusReportAsync(
+        NodeEquipmentStatusReportRequest request, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
+        if (node is null)
+            return null;
+
+        var updated = 0;
+        foreach (var entry in request.Equipment)
+        {
+            var equipment = await equipmentRepository.GetByNodeAndAeTitleAsync(request.NodeId, entry.AeTitle, ct);
+            if (equipment is null)
+                continue; // Unknown AE (cosmetic) — skip.
+
+            // Only advance LastConnectionAt — avoids needless writes on repeated reports.
+            if (equipment.LastConnectionAt is null || entry.LastSeenUtc > equipment.LastConnectionAt)
+            {
+                equipment.MarkConnected(entry.LastSeenUtc);
+                await equipmentRepository.UpdateAsync(equipment, ct);
+                updated++;
+            }
+        }
+
+        if (updated > 0)
+            await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogDebug(
+            "Equipment presence report for node {NodeId}: {Updated}/{Total} equipment updated",
+            request.NodeId, updated, request.Equipment.Count);
+
+        return new EdgeOperationResult(true, DateTime.UtcNow);
     }
 }

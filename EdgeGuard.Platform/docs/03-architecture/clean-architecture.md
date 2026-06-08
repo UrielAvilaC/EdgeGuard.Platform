@@ -24,7 +24,7 @@ flowchart TB
 
     subgraph Application["Application Layer"]
         A1["Dicom.Edge.Hub.Application"]
-        AN["Use Cases · Command/Query Handlers · Service Interfaces<br/>MediatR Pipelines · Validators · Mapping"]
+        AN["Application Services (write orchestration + Unit of Work)<br/>Service Interfaces · Validation · DTO Mapping"]
     end
 
     subgraph Domain["Domain Layer"]
@@ -79,7 +79,7 @@ flowchart LR
     subgraph InfraLayer["Infrastructure Layer (implementations)"]
         SR["StudyRepository"]
         PR["PatientRepository"]
-        DB["AppDbContext"]
+        DB["HubDbContext"]
         AL["AuditLogService"]
     end
 
@@ -94,7 +94,7 @@ flowchart LR
     class SR,PR,DB,AL infra
 ```
 
-The Domain layer defines `IStudyRepository` with methods such as `GetByIdAsync`, `AddAsync`, and `UpdateAsync`. The Persistence layer provides `StudyRepository`, which uses EF Core and a PostgreSQL `AppDbContext`. Application services receive `IStudyRepository` via constructor injection and are never aware of which database backs it.
+The Domain layer defines `IStudyRepository` with methods such as `GetByIdAsync`, `AddAsync`, and `UpdateAsync`. The Persistence layer provides `StudyRepository`, which uses EF Core and a PostgreSQL `HubDbContext`. Application services receive `IStudyRepository` via constructor injection and are never aware of which database backs it.
 
 ---
 
@@ -103,10 +103,10 @@ The Domain layer defines `IStudyRepository` with methods such as `GetByIdAsync`,
 | Layer | Projects | Responsibility | May Reference |
 |---|---|---|---|
 | **Domain** | `Dicom.Edge.Hub.Domain` | Aggregates, Entities, Value Objects, Domain Events, Repository & Service interfaces | Nothing outside the layer; only .NET BCL |
-| **Application** | `Dicom.Edge.Hub.Application` | Use cases (CQRS handlers), validation, orchestration, mapping DTOs, domain event handlers | Domain |
-| **Infrastructure** | `Dicom.Edge.Hub.Infrastructure` | External integrations: HL7 listener, fo-dicom, HTTP node client, email, file storage | Application, Domain, Shared.Abstractions |
-| **Persistence** | `Dicom.Edge.Hub.Persistence` | EF Core `AppDbContext`, repository implementations, migrations, query tuning | Application, Domain, Shared.Abstractions |
-| **API** | `Dicom.Edge.Hub.Api` | ASP.NET Core host, controllers, middleware, SignalR, rate limiting, Swagger | Application (MediatR), Infrastructure (DI registration), Shared.Security |
+| **Application** | `Dicom.Edge.Hub.Application` | Application services that orchestrate writes through the Unit of Work, validation, DTO mapping | Domain |
+| **Infrastructure** | `Dicom.Edge.Hub.Infrastructure` | External integrations: HL7 listener, fo-dicom, HTTP node client, email, file storage, **domain event handlers** | Application, Domain, Shared.Abstractions |
+| **Persistence** | `Dicom.Edge.Hub.Persistence` | EF Core `HubDbContext`, repository implementations, migrations, **`DomainEventDispatchInterceptor`**, query tuning | Application, Domain, Shared.Abstractions |
+| **API** | `Dicom.Edge.Hub.Api` | ASP.NET Core host, controllers, middleware, SignalR, rate limiting, Swagger | Application (services), Infrastructure (DI registration), Shared.Security |
 | **Diagnostics** | `Dicom.Edge.Hub.Diagnostics` | Serilog bootstrap, OpenTelemetry, health check endpoints | Application, Infrastructure |
 
 ---
@@ -120,9 +120,10 @@ Application logic can be unit-tested in isolation by substituting in-memory impl
 ```csharp
 // Unit test — no real database needed
 var repo = new InMemoryStudyRepository();
-var handler = new ReceiveStudyCommandHandler(repo, new FakeUnitOfWork());
-var result = await handler.Handle(command, CancellationToken.None);
-Assert.Equal(StudyStatus.Received, result.Status);
+var service = new StudyService(repo, new FakeUnitOfWork());
+var (study, error) = await service.UpdateStatusAsync(id, request, CancellationToken.None);
+Assert.Null(error);
+Assert.Equal(StudyStatus.Sent, study!.Status);
 ```
 
 ### Replaceability
@@ -143,7 +144,7 @@ The following anti-patterns violate the dependency rule and must be avoided:
 
 | Anti-pattern | Why It Is Harmful |
 |---|---|
-| Controller directly instantiating `AppDbContext` | Bypasses repository abstraction; kills testability; creates tight coupling to EF Core |
+| Controller directly instantiating `HubDbContext` | Bypasses repository abstraction; kills testability; creates tight coupling to EF Core |
 | Domain entity importing `Microsoft.EntityFrameworkCore` | Forces domain to depend on an infrastructure concern; breaks portability |
 | Application handler calling `HttpClient` directly | Leaks infrastructure details into business logic; cannot be mocked cleanly |
 | Value Object using `Newtonsoft.Json` attributes | Ties domain model to a serialisation library; violates domain purity |
@@ -151,15 +152,31 @@ The following anti-patterns violate the dependency rule and must be avoided:
 
 ```csharp
 // BAD — controller tightly coupled to EF Core
-[HttpGet("{id}")]
-public async Task<Study> Get(Guid id, AppDbContext db)   // wrong
-    => await db.Studies.FindAsync(id);
+public class StudiesController(HubDbContext db) : ControllerBase   // wrong
+{
+    [HttpGet("{id}")]
+    public async Task<Study?> Get(string id, CancellationToken ct)
+        => await db.Studies.FindAsync([id], ct);
+}
 
-// GOOD — controller dispatches through MediatR; Application handles it
-[HttpGet("{id}")]
-public async Task<StudyDto> Get(Guid id, IMediator mediator) // correct
-    => await mediator.Send(new GetStudyQuery(id));
+// GOOD — reads go through a repository abstraction; writes through an application service
+public class StudiesController(
+    IStudyRepository studyRepository,   // queries
+    IStudyService studyService          // write orchestration + Unit of Work
+) : ControllerBase
+{
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(string id, CancellationToken ct)
+        => Ok((await studyRepository.GetByIdAsync(id, ct))?.ToDto());
+}
 ```
+
+> **Pattern in use:** the Hub does **not** use MediatR/CQRS handlers. Controllers depend on
+> repository interfaces for reads and on application service interfaces (`IStudyService`,
+> `INodeService`, …) for writes. Services raise domain events on aggregates; those events are
+> dispatched after `SaveChanges` by `DomainEventDispatchInterceptor`, which resolves every
+> registered `IDomainEventHandler` (e.g. audit logging, study auto-delivery) — no in-process
+> message bus is involved.
 
 ---
 
@@ -168,16 +185,17 @@ public async Task<StudyDto> Get(Guid id, IMediator mediator) // correct
 Each outer layer registers its own services in an extension method, keeping `Program.cs` clean:
 
 ```csharp
-// Program.cs (Hub API)
-builder.Services
-    .AddDomainServices()           // Domain
-    .AddApplicationServices()      // Application (MediatR, validators)
-    .AddPersistenceServices(conn)  // Persistence (EF Core, repositories)
-    .AddInfrastructureServices()   // Infrastructure (HL7, HTTP clients)
-    .AddHubApiServices();          // API (auth, rate limiting, SignalR)
+// Program.cs (Hub API) — actual registration calls
+builder.Services.AddHubPersistence(builder.Configuration); // EF Core, repositories, DomainEventDispatchInterceptor
+builder.Services.AddHubDomainServices();                   // Domain services
+builder.Services.AddHubApplication(builder.Configuration); // Application services + Infrastructure integrations
+builder.Services.AddWhatsAppServices();                    // WhatsApp messaging
+builder.Services.AddHubHostedServices(builder.Configuration); // Background workers (node push dispatch, etc.)
+builder.Services.AddEdgeSecurity(builder.Configuration);   // ITokenService, IAuthorizationService
+builder.Services.AddEdgeAuthentication(builder.Configuration); // JWT Bearer + authorization policies
 ```
 
-Each extension method is defined in its own project, so the API project references all layers for wiring but controllers only interact with Application layer abstractions.
+Each extension method is defined in its own project, so the API project references all layers for wiring but controllers only interact with Application service interfaces and Domain repository interfaces.
 
 ---
 

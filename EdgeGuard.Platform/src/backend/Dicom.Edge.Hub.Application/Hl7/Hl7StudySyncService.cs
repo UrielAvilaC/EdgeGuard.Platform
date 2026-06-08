@@ -26,7 +26,6 @@ public sealed class Hl7StudySyncService(
     IStudyRepository studyRepository,
     IReportStorage reportStorage,
     IOptions<HubWorkspaceOptions> workspaceOptions,
-    IUnitOfWork unitOfWork,
     ILogger<Hl7StudySyncService> logger) : IHl7StudySyncService
 {
     public async Task SyncFromHl7Async(Hl7Message message, CancellationToken ct = default)

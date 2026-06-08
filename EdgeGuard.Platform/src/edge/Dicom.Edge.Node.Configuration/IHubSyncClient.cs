@@ -26,6 +26,9 @@ public interface IHubSyncClient
 
     /// <summary>Reports PACS C-ECHO results to the Hub so the SPA can display connectivity status.</summary>
     Task<bool> ReportPacsEchoAsync(NodePacsEchoReportRequest request, CancellationToken ct = default);
+
+    /// <summary>Reports recent equipment activity (passive presence) so the Hub can show last-seen / online status.</summary>
+    Task<bool> ReportEquipmentStatusAsync(NodeEquipmentStatusReportRequest request, CancellationToken ct = default);
 }
 
 /// <param name="Success">True if registration was accepted (first or re-registration).</param>

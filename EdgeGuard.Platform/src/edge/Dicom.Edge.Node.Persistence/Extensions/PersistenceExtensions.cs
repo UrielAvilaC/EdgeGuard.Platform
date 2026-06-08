@@ -123,6 +123,9 @@ public static class PersistenceExtensions
 
         // Equipment catalog: in-memory cache read by the DICOM SCP (association + MWL).
         services.AddSingleton<IEquipmentCatalog, InMemoryEquipmentCatalog>();
+
+        // Equipment presence: in-memory last-seen tracker written by the SCP on accept.
+        services.AddSingleton<IEquipmentActivityTracker, InMemoryEquipmentActivityTracker>();
     }
 
     // ── Background services ───────────────────────────────────────────────────

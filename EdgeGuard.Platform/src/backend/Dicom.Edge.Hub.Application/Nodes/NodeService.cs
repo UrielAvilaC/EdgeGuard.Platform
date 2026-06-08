@@ -17,8 +17,6 @@ namespace Dicom.Edge.Hub.Application.Nodes;
 public sealed class NodeService(
     INodeRepository nodeRepository,
     IPacsServerRepository pacsRepository,
-    INodeConfigPushService configPushService,
-    INodePacsDestinationPushService pacsDestinationPushService,
     INodePushQueue pushQueue,
     IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,

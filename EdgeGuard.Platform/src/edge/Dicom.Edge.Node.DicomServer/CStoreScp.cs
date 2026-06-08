@@ -128,6 +128,10 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                     return;
                 }
             }
+
+            // Passive presence: the equipment is catalogued, enabled and (if required) IP-matched.
+            // Record the association time so the Hub can show last-seen / online status.
+            Deps.EquipmentActivityTracker.RecordSeen(callingAe);
         }
         else if (options.ValidateCallingAe &&
                  options.AllowedCallingAeTitles.Length > 0 &&

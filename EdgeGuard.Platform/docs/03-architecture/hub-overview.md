@@ -12,14 +12,14 @@ The EdgeGuard Hub is the central coordination point for the platform. It receive
 flowchart TB
     subgraph Hub["EdgeGuard Hub"]
         API["Dicom.Edge.Hub.Api<br/>REST Controllers · SignalR · Middleware<br/>Rate Limiting · Swagger"]
-        APP["Dicom.Edge.Hub.Application<br/>CQRS Handlers · Validators<br/>Domain Event Handlers · Mapping"]
+        APP["Dicom.Edge.Hub.Application<br/>Application Services · Validation<br/>DTO Mapping"]
         DOM["Dicom.Edge.Hub.Domain<br/>Aggregates · Entities<br/>Value Objects · Repository Interfaces"]
-        PERS[("Dicom.Edge.Hub.Persistence<br/>AppDbContext · EF Core<br/>PostgreSQL · Migrations")]
+        PERS[("Dicom.Edge.Hub.Persistence<br/>HubDbContext · EF Core<br/>PostgreSQL · Migrations · Event Interceptor")]
         INFRA["Dicom.Edge.Hub.Infrastructure<br/>HL7 TCP Listener · Node HTTP Push Client<br/>External Services"]
         DIAG["Dicom.Edge.Hub.Diagnostics<br/>Serilog Bootstrap · OpenTelemetry<br/>Health Checks · PHI Redact"]
     end
 
-    API -- "MediatR commands/queries" --> APP
+    API -- "service & repository interfaces" --> APP
     APP --> DOM
     APP --> PERS
     PERS -. "implements repository interfaces" .-> DOM
@@ -41,9 +41,9 @@ flowchart TB
 | Project | Responsibility | Key Classes / Concepts |
 |---|---|---|
 | `Dicom.Edge.Hub.Domain` | Core business rules, aggregates, domain events, repository contracts | `Study`, `Patient`, `NodeDicomRoutingRule`, `StudyStatus`, `IStudyRepository`, `IPatientRepository` |
-| `Dicom.Edge.Hub.Application` | Orchestrates use cases via CQRS (MediatR), validates inputs, maps domain → DTO | `ReceiveStudyCommandHandler`, `SyncPatientCommandHandler`, `GetStudiesQueryHandler`, `StudyMappingProfile` |
-| `Dicom.Edge.Hub.Infrastructure` | Integrates external systems: HL7 parsing, node HTTP push, background pipelines | `Hl7TcpListenerService`, `MessageDispatchHostedService`, `NodePushClient`, `HL7v2Parser` |
-| `Dicom.Edge.Hub.Persistence` | EF Core data access, PostgreSQL migrations, repository implementations | `AppDbContext`, `StudyRepository`, `PatientRepository`, `Hl7MessageRepository`, EF migrations |
+| `Dicom.Edge.Hub.Application` | Orchestrates writes through application services + Unit of Work, validates inputs, maps domain → DTO | `StudyService`, `NodeService`, `Hl7PatientSyncService`, `StudyMappingProfile` |
+| `Dicom.Edge.Hub.Infrastructure` | Integrates external systems: HL7 parsing, node HTTP push, background pipelines, domain event handlers | `Hl7TcpListenerService`, `NodeConfigPushService`, `AuditDomainEventHandler`, `StudyAutoDeliveryHandler` |
+| `Dicom.Edge.Hub.Persistence` | EF Core data access, PostgreSQL migrations, repository implementations, domain event dispatch | `HubDbContext`, `StudyRepository`, `PatientRepository`, `DomainEventDispatchInterceptor`, EF migrations |
 | `Dicom.Edge.Hub.Api` | ASP.NET Core host: REST API, SignalR, authentication middleware, rate limiting | `StudiesController`, `NodesController`, `EdgeHubNotificationHub`, `Program.cs` |
 | `Dicom.Edge.Hub.Diagnostics` | Cross-cutting observability; consumed by Api and Infrastructure at startup | `SerilogBootstrap`, `PhiRedactionDestructuringPolicy`, `OpenTelemetryRegistration` |
 
@@ -62,7 +62,7 @@ flowchart TB
     VALIDATE["HL7ValidationService<br/>Validates MSH, PID, PV1, OBR segments<br/>Rejects malformed messages with NAK"]
     PATIENT["PatientSyncService<br/>ADT^A01 / A08 / A40<br/>Create / update / merge patient"]
     STUDY["StudySyncService<br/>ORM^O01 / ORU^R01<br/>Create / update study records"]
-    DB[("AppDbContext (PostgreSQL)<br/>hl7_messages · patients · studies")]
+    DB[("HubDbContext (PostgreSQL)<br/>hl7_messages · patients · studies")]
 
     HIS -- "Raw HL7 MLLP frame (TCP)" --> LISTENER
     LISTENER -- "Enqueue raw bytes" --> CHANNEL
@@ -98,15 +98,15 @@ When an administrator saves a PACS destination or routing rule through the Hub A
 sequenceDiagram
     participant Admin as Admin (SPA)
     participant API as Hub API Controller
-    participant Handler as Application Handler
+    participant Service as Application Service
     participant DB as PostgreSQL
     participant EvtHandler as Domain Event Handler
     participant Node as Node HTTP API
 
     Admin->>API: PUT /api/pacs-destinations/{id}
-    API->>Handler: MediatR command
-    Handler->>DB: Persist changes
-    Handler->>EvtHandler: Raise PacsDestinationUpdatedEvent
+    API->>Service: service interface call
+    Service->>DB: SaveChanges (Unit of Work)
+    DB->>EvtHandler: Interceptor dispatches PacsDestinationUpdatedEvent
     EvtHandler->>Node: HTTPS POST /api/pacs-destinations/sync
     EvtHandler->>Node: HTTPS POST /api/dicom-routing-rules/sync
     EvtHandler->>Node: HTTPS POST /api/configuration/sync

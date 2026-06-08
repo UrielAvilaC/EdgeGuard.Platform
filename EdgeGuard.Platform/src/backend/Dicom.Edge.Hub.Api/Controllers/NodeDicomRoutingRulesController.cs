@@ -20,8 +20,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 [EnableRateLimiting("api")]
 public sealed class NodeDicomRoutingRulesController(
     INodeDicomRoutingRuleService ruleService,
-    INodeDicomRoutingRuleRepository ruleRepository,
-    ILogger<NodeDicomRoutingRulesController> logger) : ControllerBase
+    INodeDicomRoutingRuleRepository ruleRepository) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetByNode(string nodeId, CancellationToken ct)

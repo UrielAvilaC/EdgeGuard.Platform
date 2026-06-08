@@ -78,36 +78,6 @@ namespace Dicom.Edge.Security.Extensions
         }
 
         /// <summary>
-        /// Adds EdgeGuard security services with legacy string-based JWT secret (backward compatibility).
-        /// </summary>
-        /// <param name="services">Service collection.</param>
-        /// <param name="jwtSecret">JWT secret key (minimum 32 characters).</param>
-        /// <returns>Service collection for chaining.</returns>
-        [Obsolete("Use AddEdgeSecurity(IConfiguration) or AddEdgeSecurity(Action<JwtTokenServiceOptions>) instead")]
-        public static IServiceCollection AddEdgeSecurity(
-            this IServiceCollection services,
-            string jwtSecret)
-        {
-            if (string.IsNullOrWhiteSpace(jwtSecret))
-                throw new ArgumentException("JWT secret cannot be empty", nameof(jwtSecret));
-
-            if (jwtSecret.Length < 32)
-                throw new ArgumentException("JWT secret must be at least 32 characters", nameof(jwtSecret));
-
-            services.Configure<JwtTokenServiceOptions>(options =>
-            {
-                options.SecretKey = jwtSecret;
-                options.Issuer = "EdgeGuard.Platform";
-                options.Audience = "EdgeGuard.Clients";
-            });
-
-            services.AddSingleton<ITokenService, JwtTokenService>();
-            services.AddSingleton<Dicom.Edge.Security.Authorization.IAuthorizationService, AuthorizationService>();
-
-            return services;
-        }
-
-        /// <summary>
         /// Adds JWT Bearer authentication and permission-based authorization to the ASP.NET pipeline.
         /// Call this in Hub.Api to wire <c>UseAuthentication()</c> + <c>UseAuthorization()</c>.
         /// </summary>

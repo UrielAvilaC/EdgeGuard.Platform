@@ -6,6 +6,7 @@ using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
@@ -20,13 +21,16 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 [EnableRateLimiting("api")]
 public sealed class NodeEquipmentController(
     INodeEquipmentService equipmentService,
-    INodeEquipmentRepository equipmentRepository) : ControllerBase
+    INodeEquipmentRepository equipmentRepository,
+    IOptions<EquipmentPresenceOptions> presenceOptions) : ControllerBase
 {
+    private TimeSpan OnlineWindow => presenceOptions.Value.OnlineWindow;
+
     [HttpGet]
     public async Task<IActionResult> GetByNode(string nodeId, CancellationToken ct)
     {
         var equipment = await equipmentRepository.GetByNodeIdAsync(nodeId, ct);
-        return Ok(equipment.Select(e => e.ToDto()));
+        return Ok(equipment.Select(e => e.ToDto(OnlineWindow)));
     }
 
     [HttpGet("{id}")]
@@ -34,7 +38,7 @@ public sealed class NodeEquipmentController(
     {
         var equipment = await equipmentRepository.GetByIdAsync(id, ct);
         if (equipment is null || equipment.NodeId != nodeId) return NotFound();
-        return Ok(equipment.ToDto());
+        return Ok(equipment.ToDto(OnlineWindow));
     }
 
     [HttpPost]
@@ -47,7 +51,7 @@ public sealed class NodeEquipmentController(
         try
         {
             var equipment = await equipmentService.CreateAsync(nodeId, request, ct);
-            return CreatedAtAction(nameof(GetById), new { nodeId, id = equipment.Id }, equipment.ToDto());
+            return CreatedAtAction(nameof(GetById), new { nodeId, id = equipment.Id }, equipment.ToDto(OnlineWindow));
         }
         catch (UnsupportedModalityCodesException ex)
         {
@@ -66,7 +70,7 @@ public sealed class NodeEquipmentController(
         {
             var equipment = await equipmentService.UpdateAsync(id, request, ct);
             if (equipment is null || equipment.NodeId != nodeId) return NotFound();
-            return Ok(equipment.ToDto());
+            return Ok(equipment.ToDto(OnlineWindow));
         }
         catch (UnsupportedModalityCodesException ex)
         {
