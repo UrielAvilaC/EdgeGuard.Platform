@@ -75,7 +75,7 @@ public interface IMetricsCollector
 
 ```csharp
 // Application layer — depends only on the repository interface; no knowledge of EF.
-// DTO mapping is done with hand-written extension methods (no AutoMapper/MediatR).
+// DTO mapping is done with hand-written extension methods — no mapping or mediator library.
 public sealed class StudyService(IStudyRepository studyRepository, IUnitOfWork unitOfWork)
     : IStudyService
 {

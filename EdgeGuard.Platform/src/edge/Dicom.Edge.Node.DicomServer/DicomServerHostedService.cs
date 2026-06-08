@@ -74,7 +74,8 @@ public sealed class DicomServerHostedService(
             {
                 try
                 {
-                    var cert = new X509Certificate2(opts.Tls.CertificatePath, opts.Tls.CertificatePassword);
+                    var cert = X509CertificateLoader.LoadPkcs12FromFile(
+                        opts.Tls.CertificatePath, opts.Tls.CertificatePassword);
                     tlsAcceptor = new DefaultTlsAcceptor(cert)
                     {
                         RequireMutualAuthentication = opts.Tls.RequireClientCertificate,

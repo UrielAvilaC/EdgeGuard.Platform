@@ -6,7 +6,7 @@ namespace Dicom.Edge.Hub.Application.Studies;
 /// <summary>
 /// Application service for Study aggregate write operations.
 /// Encapsulates metadata updates, state transitions, and persistence.
-/// Read operations remain at the controller-repository level (CQRS-light).
+/// Read operations remain at the controller-repository level (services handle writes only).
 /// </summary>
 public interface IStudyService
 {

@@ -171,7 +171,7 @@ public class StudiesController(
 }
 ```
 
-> **Pattern in use:** the Hub does **not** use MediatR/CQRS handlers. Controllers depend on
+> **Pattern in use:** the Hub does **not** use a command/handler message bus. Controllers depend on
 > repository interfaces for reads and on application service interfaces (`IStudyService`,
 > `INodeService`, …) for writes. Services raise domain events on aggregates; those events are
 > dispatched after `SaveChanges` by `DomainEventDispatchInterceptor`, which resolves every
