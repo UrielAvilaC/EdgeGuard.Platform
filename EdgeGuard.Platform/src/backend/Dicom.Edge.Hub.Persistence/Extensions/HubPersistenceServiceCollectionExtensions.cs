@@ -9,6 +9,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Modalities;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Routing;
@@ -71,6 +72,9 @@ public static class HubPersistenceServiceCollectionExtensions
         // HL7 / Configuration / Routing repositories
         services.AddScoped<IHl7MessageRepository, EfHl7MessageRepository>();
         services.AddScoped<ISystemSettingRepository, SystemSettingRepository>();
+        services.AddScoped<IOutboxTopicRepository, OutboxTopicRepository>();
+        services.AddScoped<INodeOutboxRepository, NodeOutboxRepository>();
+        services.AddScoped<IOutboxActivityRepository, OutboxActivityRepository>();
         services.AddScoped<IHl7RoutingRuleRepository, Hl7RoutingRuleRepository>();
         services.AddScoped<INodeDicomRoutingRuleRepository, NodeDicomRoutingRuleRepository>();
 
@@ -79,7 +83,7 @@ public static class HubPersistenceServiceCollectionExtensions
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
         services.AddScoped<IWhatsAppTemplateRepository, WhatsAppTemplateRepository>();
-        services.AddScoped<IWhatsAppAutoSendRuleRepository, WhatsAppAutoSendRuleRepository>();
+        services.AddScoped<INotificationAutoSendRuleRepository, NotificationAutoSendRuleRepository>();
         services.AddScoped<IPacsSendAuditRepository, PacsSendAuditRepository>();
 
         // Node configuration profiles
@@ -123,6 +127,17 @@ public static class HubPersistenceServiceCollectionExtensions
         using var scope = serviceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
         await HubSettingsSeed.SeedMissingAsync(ctx, ct);
+    }
+
+    /// <summary>
+    /// Seeds the outbox topic catalog on startup (idempotent, safe for upgrades).
+    /// Call after the database has been migrated.
+    /// </summary>
+    public static async Task SeedOutboxTopicsAsync(this IServiceProvider serviceProvider, CancellationToken ct = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
+        await OutboxTopicSeed.SeedMissingAsync(ctx, ct);
     }
 
     /// <summary>

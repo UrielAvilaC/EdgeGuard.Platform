@@ -17,7 +17,7 @@ namespace Dicom.Edge.Hub.Application.PacsServers;
 /// </summary>
 public sealed class PacsServerService(
     IPacsServerRepository pacsRepository,
-    INodePushQueue pushQueue,
+    INodeOutbox nodeOutbox,
     IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,
     IUnitOfWork unitOfWork,
@@ -124,7 +124,7 @@ public sealed class PacsServerService(
             if (pushOptions.Value.Async)
             {
                 foreach (var node in targets)
-                    pushQueue.Enqueue(new NodePushRequest(node.Id, NodePushKind.Pacs));
+                    await nodeOutbox.EnqueueAsync(node.Id, NodePushKind.Pacs, CancellationToken.None);
                 return;
             }
 

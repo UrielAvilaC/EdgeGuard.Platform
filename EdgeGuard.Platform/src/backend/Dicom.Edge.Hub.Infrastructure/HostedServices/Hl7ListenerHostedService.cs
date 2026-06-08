@@ -44,6 +44,15 @@ public class Hl7ListenerHostedService : BackgroundService
                 if (stoppingToken.IsCancellationRequested)
                     break;
 
+                // Intentional configuration restart (e.g. port change): rebind immediately,
+                // no backoff.
+                if (_listener.RestartRequested)
+                {
+                    _logger.LogInformation("HL7 Listener applying configuration restart (rebinding immediately)");
+                    delay = InitialRestartDelay;
+                    continue;
+                }
+
                 // Listener returned without cancellation: treat as unexpected and restart.
                 _logger.LogWarning(
                     "HL7 Listener returned unexpectedly without cancellation — restarting in {Delay}s",

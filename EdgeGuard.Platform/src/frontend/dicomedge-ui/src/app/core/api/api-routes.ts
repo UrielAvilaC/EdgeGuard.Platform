@@ -80,6 +80,12 @@ export const API_ROUTES = {
     BY_STATUS: (status: string) => `/queue-monitoring/by-dispatch-status/${status}`,
     QUEUED: '/queue-monitoring/queued',
   },
+  OUTBOX: {
+    ACTIVITY: '/outbox',
+    TOPICS: '/outbox/topics',
+    RETRY: (store: string, id: string) => `/outbox/${store}/${id}/retry`,
+    DEAD_LETTER: (store: string, id: string) => `/outbox/${store}/${id}/dead-letter`,
+  },
   WHATSAPP: {
     CONFIG_STATUS: '/whatsapp/config-status',
     TAGS: '/whatsapp/tags',

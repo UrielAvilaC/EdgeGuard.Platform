@@ -4,42 +4,42 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Dicom.Edge.Hub.Persistence.Repositories;
 
-public sealed class WhatsAppAutoSendRuleRepository(HubDbContext context) : IWhatsAppAutoSendRuleRepository
+public sealed class NotificationAutoSendRuleRepository(HubDbContext context) : INotificationAutoSendRuleRepository
 {
-    public async Task<WhatsAppAutoSendRule?> GetByIdAsync(string id, CancellationToken ct = default) =>
-        await context.WhatsAppAutoSendRules.FindAsync([id], ct);
+    public async Task<NotificationAutoSendRule?> GetByIdAsync(string id, CancellationToken ct = default) =>
+        await context.NotificationAutoSendRules.FindAsync([id], ct);
 
-    public async Task<WhatsAppAutoSendRule?> GetByStudyStatusAsync(string studyStatus, CancellationToken ct = default) =>
-        await context.WhatsAppAutoSendRules
+    public async Task<NotificationAutoSendRule?> GetByStudyStatusAsync(string studyStatus, CancellationToken ct = default) =>
+        await context.NotificationAutoSendRules
             .FirstOrDefaultAsync(r => r.StudyStatus == studyStatus, ct);
 
-    public async Task<IReadOnlyList<WhatsAppAutoSendRule>> GetAllAsync(CancellationToken ct = default) =>
-        await context.WhatsAppAutoSendRules
+    public async Task<IReadOnlyList<NotificationAutoSendRule>> GetAllAsync(CancellationToken ct = default) =>
+        await context.NotificationAutoSendRules
             .OrderBy(r => r.StudyStatus)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<WhatsAppAutoSendRule>> GetEnabledAsync(CancellationToken ct = default) =>
-        await context.WhatsAppAutoSendRules
+    public async Task<IReadOnlyList<NotificationAutoSendRule>> GetEnabledAsync(CancellationToken ct = default) =>
+        await context.NotificationAutoSendRules
             .Where(r => r.IsEnabled)
             .OrderBy(r => r.StudyStatus)
             .ToListAsync(ct);
 
-    public async Task<WhatsAppAutoSendRule> AddAsync(WhatsAppAutoSendRule rule, CancellationToken ct = default)
+    public async Task<NotificationAutoSendRule> AddAsync(NotificationAutoSendRule rule, CancellationToken ct = default)
     {
-        await context.WhatsAppAutoSendRules.AddAsync(rule, ct);
+        await context.NotificationAutoSendRules.AddAsync(rule, ct);
         return rule;
     }
 
-    public Task UpdateAsync(WhatsAppAutoSendRule rule, CancellationToken ct = default)
+    public Task UpdateAsync(NotificationAutoSendRule rule, CancellationToken ct = default)
     {
-        context.WhatsAppAutoSendRules.Update(rule);
+        context.NotificationAutoSendRules.Update(rule);
         return Task.CompletedTask;
     }
 
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
-        var entity = await context.WhatsAppAutoSendRules.FindAsync([id], ct);
+        var entity = await context.NotificationAutoSendRules.FindAsync([id], ct);
         if (entity is not null)
-            context.WhatsAppAutoSendRules.Remove(entity);
+            context.NotificationAutoSendRules.Remove(entity);
     }
 }

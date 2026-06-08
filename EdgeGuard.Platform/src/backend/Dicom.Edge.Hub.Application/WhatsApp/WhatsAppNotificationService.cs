@@ -17,7 +17,7 @@ namespace Dicom.Edge.Hub.Application.WhatsApp;
 
 public sealed class WhatsAppNotificationService(
     INotificationRepository notificationRepository,
-    IWhatsAppAutoSendRuleRepository ruleRepository,
+    INotificationAutoSendRuleRepository ruleRepository,
     IWhatsAppTemplateRepository templateRepository,
     IStudyRepository studyRepository,
     IPatientRepository patientRepository,

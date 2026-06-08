@@ -17,7 +17,7 @@ public sealed class NodeEquipmentService(
     INodeEquipmentRepository equipmentRepository,
     IModalityRepository modalityRepository,
     INodeEquipmentPushService pushService,
-    INodePushQueue pushQueue,
+    INodeOutbox nodeOutbox,
     IOptions<NodePushOptions> pushOptions,
     IUnitOfWork unitOfWork,
     ILogger<NodeEquipmentService> logger) : INodeEquipmentService
@@ -161,7 +161,7 @@ public sealed class NodeEquipmentService(
     private async Task DispatchAsync(string nodeId, CancellationToken ct)
     {
         if (pushOptions.Value.Async)
-            pushQueue.Enqueue(new NodePushRequest(nodeId, NodePushKind.Equipment));
+            await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Equipment, ct);
         else
             await pushService.PushAsync(nodeId, ct);
     }

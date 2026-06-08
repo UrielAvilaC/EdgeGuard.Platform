@@ -8,7 +8,7 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 /// the associated template is sent to the patient's phone number.
 /// One rule per study status (unique constraint).
 /// </summary>
-public sealed class WhatsAppAutoSendRule : Entity<string>
+public sealed class NotificationAutoSendRule : Entity<string>
 {
     public string StudyStatus { get; private set; } = default!;
     public string TemplateId { get; private set; } = default!;
@@ -20,9 +20,9 @@ public sealed class WhatsAppAutoSendRule : Entity<string>
     public bool AttachPdf { get; private set; }
     public bool IncludeQr { get; private set; }
 
-    private WhatsAppAutoSendRule() { }
+    private NotificationAutoSendRule() { }
 
-    public static WhatsAppAutoSendRule Create(
+    public static NotificationAutoSendRule Create(
         string studyStatus,
         string templateId,
         string? description = null,
@@ -35,7 +35,7 @@ public sealed class WhatsAppAutoSendRule : Entity<string>
         if (string.IsNullOrWhiteSpace(templateId))
             throw new ArgumentException("Template ID cannot be empty.", nameof(templateId));
 
-        return new WhatsAppAutoSendRule
+        return new NotificationAutoSendRule
         {
             Id = IdGenerator.NewId(),
             StudyStatus = studyStatus.Trim(),

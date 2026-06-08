@@ -86,7 +86,8 @@ public static class HubSettingKeys
         public const string AuditLogDays = "retention.audit_log_days";
         public const string Hl7MessageDays = "retention.hl7_message_days";
         public const string HealthCheckDays = "retention.health_check_days";
-        public const string WhatsAppNotificationDays = "retention.whatsapp_notification_days";
+        public const string NotificationDays = "retention.notification_days";
+        public const string NodeOutboxDays = "retention.node_outbox_days";
         public const string PacsSendAuditDays = "retention.pacs_send_audit_days";
         public const string StudyStatusAuditDays = "retention.study_status_audit_days";
         public const string BatchSize = "retention.batch_size";

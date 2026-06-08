@@ -11,6 +11,15 @@ All notable changes to EdgeGuard Platform are documented here. This file follows
 - **Modality reference catalog** — New global, auto-seeded `modalities` table (Hub + Edge) flagging image-level modalities as supported; only supported & active modalities may be assigned to equipment. Seeded idempotently from a shared source on startup.
 - **Equipment AE+IP enforcement & connection auditing** — When an equipment declares an IP address, the Edge Node enforces AE+IP on association (source host must match). Every equipment association decision — accepted or rejected (not registered / disabled / IP mismatch) — is persisted to the node's `dicom_associations` audit table.
 - **Equipment presence tracking (last-seen / online)** — The Edge Node passively records each equipment's most recent association and reports deltas to the Hub (`POST /api/edge/equipment-status`); the Hub persists `LastConnectionAt` and derives `IsOnline` at read time from a configurable window (`EquipmentPresence:OnlineWindowMinutes`, default 10). Surfaced on the node Equipment page ("En línea / Visto hace X / Nunca conectado"). No active polling — avoids false offline for SCU-only modalities.
+- **Unified durable outbox** — Node-sync pushes (config, rules, PACS, equipment) now flow through a durable `node_outbox_messages` store with at-least-once delivery, exponential backoff, dead-lettering and per-node lanes — replacing the in-memory `NodePushQueue` (lost on restart). It shares a single dispatcher skeleton (`OutboxDispatcherBase`) and an `outbox_topics` catalog (FK) with the existing notification outbox. A unified read view (`vw_outbox_activity`) powers a new **Outbox** monitoring page (REST `GET /api/outbox`, retry/dead-letter actions, live SignalR `OutboxEntryChanged`). See [Outbox unification plan](../10-remediation/unified-outbox-retention-masterplan.md).
+- **DB-driven retention, applied hot** — All data-retention policies live in `system_settings` (no appsettings); retention now reads `IOptionsMonitor` each cycle, so changing a retention setting applies without a restart. Adds per-outbox retention (`retention.notification_days`, `retention.node_outbox_days`).
+- **Live HL7 listener reconfiguration** — Changing `hl7.tcp_port` / `hl7.tcp_enabled` via the settings API now **reloads config and rebinds the listener on demand** (explicit restart, no host restart), with port validation and a confirmation response (`{ applied, port, running }`). Backed by a re-entrant `Hl7TcpListener` + `IRuntimeConfigReloader`.
+
+### fixed
+- **System settings were never persisted** — `SystemSettingsService.SetAsync` (and `SeedDefaultsAsync`) updated the tracked entity but never committed (no `SaveChanges`/UnitOfWork), so changing any setting via the API/UI silently had no effect. Now commits via `IUnitOfWork`. *(Found during outbox/hot-reload end-to-end verification.)*
+
+### renamed
+- **WhatsApp → Notification (channel-agnostic parts)** — `WhatsAppAutoSendRule` → `NotificationAutoSendRule` (table `whatsapp_auto_send_rules` → `notification_auto_send_rules`); retention key `retention.whatsapp_notification_days` → `retention.notification_days`. Channel-specific WhatsApp artifacts (templates, sender, Twilio provider config) keep their names.
 
 ### deprecated
 - **`ModalityConfiguration` (Edge) / `modality_configurations` table** — Superseded by the new `Equipment` entity and equipment catalog. The type is no longer referenced by application logic; the table is retained for now and will be dropped in a future migration (`DropModalityConfiguration`).
@@ -18,6 +27,7 @@ All notable changes to EdgeGuard Platform are documented here. This file follows
 
 ### migrations
 - Hub (`HubDbContext`): `AddModalityCatalog`, `AddNodeEquipment`.
+- Hub (`HubDbContext`): `RenameAutoSendRuleToNotification` (table + retention setting key), `AddOutboxTopics`, `AddNotificationTopicId` (column + FK + backfill), `AddNodeOutboxMessages`, `AddOutboxActivityView` (raw-SQL view). Topic catalog + new `system_settings` keys are runtime-seeded (no migration).
 - Edge (`EdgeNodeDbContext`): `AddModalityCatalog`, `AddEquipment` (auto-applied on node startup).
 
 ---

@@ -9,7 +9,7 @@ public static class WhatsAppServiceCollectionExtensions
     public static IServiceCollection AddWhatsAppServices(this IServiceCollection services)
     {
         services.AddScoped<IWhatsAppTemplateService, WhatsAppTemplateService>();
-        services.AddScoped<IWhatsAppAutoSendRuleService, WhatsAppAutoSendRuleService>();
+        services.AddScoped<INotificationAutoSendRuleService, NotificationAutoSendRuleService>();
         services.AddScoped<IWhatsAppNotificationService, WhatsAppNotificationService>();
         services.AddScoped<IHl7PatientSyncService, Hl7PatientSyncService>();
 

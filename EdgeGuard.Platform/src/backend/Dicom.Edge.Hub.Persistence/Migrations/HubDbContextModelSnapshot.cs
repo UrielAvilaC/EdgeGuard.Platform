@@ -17,7 +17,7 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -1277,6 +1277,12 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("to_email");
 
+                    b.Property<string>("TopicId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("topic_id");
+
                     b.Property<string>("TriggeredBy")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1305,6 +1311,9 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.HasIndex("StudyStatus")
                         .HasDatabaseName("ix_notifications_study_status");
 
+                    b.HasIndex("TopicId")
+                        .HasDatabaseName("ix_notifications_topic_id");
+
                     b.HasIndex("Status", "CreatedAt")
                         .HasDatabaseName("ix_notifications_status_created_at")
                         .HasFilter("status = 'Pending'");
@@ -1313,6 +1322,68 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasDatabaseName("ix_notifications_channel_status_next_attempt_at");
 
                     b.ToTable("notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.NotificationAutoSendRule", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AttachPdf")
+                        .HasColumnType("boolean")
+                        .HasColumnName("attach_pdf");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("WhatsApp")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IncludeQr")
+                        .HasColumnType("boolean")
+                        .HasColumnName("include_qr");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("StudyStatus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("study_status");
+
+                    b.Property<string>("TemplateId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("template_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_notification_auto_send_rules");
+
+                    b.HasIndex("StudyStatus", "Channel")
+                        .IsUnique()
+                        .HasDatabaseName("ix_notification_auto_send_rules_study_status_channel");
+
+                    b.ToTable("notification_auto_send_rules", (string)null);
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.NotificationTemplate", b =>
@@ -1373,68 +1444,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasDatabaseName("ix_notification_templates_name");
 
                     b.ToTable("notification_templates", (string)null);
-                });
-
-            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppAutoSendRule", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("id");
-
-                    b.Property<bool>("AttachPdf")
-                        .HasColumnType("boolean")
-                        .HasColumnName("attach_pdf");
-
-                    b.Property<string>("Channel")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasDefaultValue("WhatsApp")
-                        .HasColumnName("channel");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("description");
-
-                    b.Property<bool>("IncludeQr")
-                        .HasColumnType("boolean")
-                        .HasColumnName("include_qr");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_enabled");
-
-                    b.Property<string>("StudyStatus")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("study_status");
-
-                    b.Property<string>("TemplateId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("template_id");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_whatsapp_auto_send_rules");
-
-                    b.HasIndex("StudyStatus", "Channel")
-                        .IsUnique()
-                        .HasDatabaseName("ix_whatsapp_auto_send_rules_study_status_channel");
-
-                    b.ToTable("whatsapp_auto_send_rules", (string)null);
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppTemplate", b =>
@@ -1522,6 +1531,178 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasDatabaseName("ix_whatsapp_template_variables_template_id_position");
 
                     b.ToTable("whatsapp_template_variables", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Outbox.NodeOutboxMessage", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<string>("NodeId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("node_id");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TopicId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("topic_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_node_outbox_messages");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_node_outbox_messages_created_at");
+
+                    b.HasIndex("TopicId")
+                        .HasDatabaseName("ix_node_outbox_messages_topic_id");
+
+                    b.HasIndex("Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_node_outbox_messages_status_next_attempt");
+
+                    b.HasIndex("NodeId", "TopicId", "Status")
+                        .HasDatabaseName("ix_node_outbox_messages_node_topic_status");
+
+                    b.ToTable("node_outbox_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Outbox.OutboxActivity", b =>
+                {
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processed_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Target")
+                        .HasColumnType("text")
+                        .HasColumnName("target");
+
+                    b.Property<string>("TopicId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("topic_id");
+
+                    b.Property<string>("TopicName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("topic_name");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("vw_outbox_activity", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Outbox.OutboxTopic", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DefaultMaxAttempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("default_max_attempts");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbox_topics");
+
+                    b.HasIndex("Category")
+                        .HasDatabaseName("ix_outbox_topics_category");
+
+                    b.ToTable("outbox_topics", (string)null);
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Pacs.PacsSendAudit", b =>
@@ -2582,6 +2763,16 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasConstraintName("fk_node_pacs_assignments_nodes_node_id");
                 });
 
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.Notification", b =>
+                {
+                    b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.Outbox.OutboxTopic", null)
+                        .WithMany()
+                        .HasForeignKey("TopicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_notifications_outbox_topics_topic_id");
+                });
+
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppTemplateVariable", b =>
                 {
                     b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.Notifications.WhatsAppTemplate", null)
@@ -2590,6 +2781,16 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_whatsapp_template_variables_whatsapp_templates_template_id");
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Outbox.NodeOutboxMessage", b =>
+                {
+                    b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.Outbox.OutboxTopic", null)
+                        .WithMany()
+                        .HasForeignKey("TopicId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_node_outbox_messages_outbox_topics_topic_id");
                 });
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Pacs.PacsServer", b =>

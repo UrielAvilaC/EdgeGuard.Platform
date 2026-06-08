@@ -33,6 +33,14 @@ public sealed class EdgeHubNotificationHub : Microsoft.AspNetCore.SignalR.Hub
     /// </summary>
     public Task LeaveNode(string nodeId) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, $"node-{nodeId}");
+
+    /// <summary>Joins the "outbox" group for live outbox activity updates.</summary>
+    public Task JoinOutbox() =>
+        Groups.AddToGroupAsync(Context.ConnectionId, "outbox");
+
+    /// <summary>Leaves the "outbox" group.</summary>
+    public Task LeaveOutbox() =>
+        Groups.RemoveFromGroupAsync(Context.ConnectionId, "outbox");
 }
 
 /// <summary>
@@ -61,6 +69,14 @@ public static class HubNotificationExtensions
         Task.WhenAll(
             hub.Clients.Group("dashboard").SendAsync("NodePushStatus", payload),
             hub.Clients.Group($"node-{nodeId}").SendAsync("NodePushStatus", payload));
+
+    /// <summary>
+    /// Broadcasts a change to one outbox entry (node-sync or notification) to the "outbox"
+    /// group so the monitoring UI updates live. Payload:
+    /// <c>{ category, id, topicId, status, attempts, error? }</c>.
+    /// </summary>
+    public static Task NotifyOutboxEntryChanged(this IHubContext<EdgeHubNotificationHub> hub, object payload) =>
+        hub.Clients.Group("outbox").SendAsync("OutboxEntryChanged", payload);
 
     public static Task NotifyNodeHeartbeat(this IHubContext<EdgeHubNotificationHub> hub, string nodeId, object payload) =>
         hub.Clients.Group($"node-{nodeId}").SendAsync("NodeHeartbeat", payload);

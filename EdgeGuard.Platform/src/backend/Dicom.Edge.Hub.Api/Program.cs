@@ -125,15 +125,20 @@ try
     // SignalR for real-time dashboard notifications
     builder.Services.AddSignalR();
 
-    // P1-1: background dispatcher that drains the node push queue off the request
+    // Real-time outbox monitoring: SignalR transport for IOutboxNotifier (both dispatchers).
+    builder.Services.AddSingleton<Dicom.Edge.Hub.Application.Outbox.IOutboxNotifier,
+        OutboxSignalRNotifier>();
+
+    // P1-1: background dispatcher that drains the durable node outbox off the request
     // path and reports results over SignalR. Lives here because it needs IHubContext.
-    builder.Services.AddHostedService<NodePushDispatchHostedService>();
+    builder.Services.AddHostedService<NodeOutboxHostedService>();
 
     var app = builder.Build();
 
     // ── Apply pending migrations & seed system settings ───────────────────
     await app.Services.MigrateHubAsync();
     await app.Services.SeedHubSettingsAsync();
+    await app.Services.SeedOutboxTopicsAsync();
     await app.Services.SeedModalityCatalogAsync();
     await app.Services.SeedAdminUserAsync();
 

@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dicom.Edge.Hub.Persistence.Configurations;
 
-public class WhatsAppAutoSendRuleConfiguration : IEntityTypeConfiguration<WhatsAppAutoSendRule>
+public class NotificationAutoSendRuleConfiguration : IEntityTypeConfiguration<NotificationAutoSendRule>
 {
-    public void Configure(EntityTypeBuilder<WhatsAppAutoSendRule> builder)
+    public void Configure(EntityTypeBuilder<NotificationAutoSendRule> builder)
     {
-        builder.ToTable("whatsapp_auto_send_rules");
+        builder.ToTable("notification_auto_send_rules");
         builder.HasKey(r => r.Id);
         builder.Property(r => r.Id).HasMaxLength(50);
         builder.Property(r => r.StudyStatus).IsRequired().HasMaxLength(32);

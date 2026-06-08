@@ -108,7 +108,8 @@ internal sealed class HubDatabaseConfigurationProvider : ConfigurationProvider
         Map(db, cfg, HubSettingKeys.DataRetention.AuditLogDays,             "HubBackgroundJobs:DataRetention:AuditLogRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.Hl7MessageDays,           "HubBackgroundJobs:DataRetention:Hl7MessageRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.HealthCheckDays,          "HubBackgroundJobs:DataRetention:HealthCheckRetentionDays");
-        Map(db, cfg, HubSettingKeys.DataRetention.WhatsAppNotificationDays, "HubBackgroundJobs:DataRetention:WhatsAppNotificationRetentionDays");
+        Map(db, cfg, HubSettingKeys.DataRetention.NotificationDays,         "HubBackgroundJobs:DataRetention:NotificationOutboxRetentionDays");
+        Map(db, cfg, HubSettingKeys.DataRetention.NodeOutboxDays,           "HubBackgroundJobs:DataRetention:NodeOutboxRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.PacsSendAuditDays,        "HubBackgroundJobs:DataRetention:PacsSendAuditRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.StudyStatusAuditDays,     "HubBackgroundJobs:DataRetention:StudyStatusAuditRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.BatchSize,                "HubBackgroundJobs:DataRetention:BatchSize");

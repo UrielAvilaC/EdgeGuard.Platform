@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -26,6 +27,13 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
 
         // Unified outbox columns. Migration: RenameWhatsAppNotificationToNotification.
         builder.Property(n => n.Channel).HasConversion<string>().IsRequired().HasMaxLength(16);
+
+        // Outbox topic catalog FK (derived from Channel). Migration: AddNotificationTopicId.
+        builder.Property(n => n.TopicId).IsRequired().HasMaxLength(64);
+        builder.HasOne<OutboxTopic>()
+               .WithMany()
+               .HasForeignKey(n => n.TopicId)
+               .OnDelete(DeleteBehavior.Restrict);
         builder.Property(n => n.ToEmail).HasMaxLength(256);
         builder.Property(n => n.Subject).HasMaxLength(512);
         builder.Property(n => n.RenderedBody).HasColumnType("text");

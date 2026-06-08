@@ -1,3 +1,4 @@
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Dicom.Edge.Hub.Domain.Common;
 
 namespace Dicom.Edge.Hub.Domain.Aggregates.Notifications;
@@ -25,6 +26,9 @@ public sealed class Notification : Entity<string>
 
     // ── Unified outbox: channel + Email payload + retry scheduling ────────────
     public NotificationChannel Channel { get; private set; } = NotificationChannel.WhatsApp;
+
+    /// <summary>FK to <c>outbox_topics</c>; derived from <see cref="Channel"/> at creation.</summary>
+    public string TopicId { get; private set; } = OutboxTopicCatalog.NotificationWhatsApp;
     public string? ToEmail { get; private set; }
     public string? Subject { get; private set; }
     public string? RenderedBody { get; private set; }
@@ -94,6 +98,7 @@ public sealed class Notification : Entity<string>
             PatientId = patientId?.Trim(),
             PhoneNumber = string.Empty,
             Channel = NotificationChannel.Email,
+            TopicId = OutboxTopicCatalog.NotificationEmail,
             ToEmail = toEmail.Trim(),
             Subject = subject,
             RenderedBody = body,
@@ -141,6 +146,15 @@ public sealed class Notification : Entity<string>
     {
         Status = NotificationStatus.Skipped;
         LastError = reason?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Manually returns the record to Pending for immediate re-dispatch.</summary>
+    public void Requeue()
+    {
+        Status = NotificationStatus.Pending;
+        NextAttemptAt = null;
+        LastError = null;
         UpdatedAt = DateTime.UtcNow;
     }
 }

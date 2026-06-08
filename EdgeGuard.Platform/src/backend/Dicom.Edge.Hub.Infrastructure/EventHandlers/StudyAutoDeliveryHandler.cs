@@ -18,7 +18,7 @@ namespace Dicom.Edge.Hub.Infrastructure.EventHandlers;
 /// the delivery enqueue uses its own DbContext — no SaveChanges re-entrancy.
 /// </summary>
 public sealed class StudyAutoDeliveryHandler(
-    IWhatsAppAutoSendRuleRepository ruleRepository,
+    INotificationAutoSendRuleRepository ruleRepository,
     IStudyRepository studyRepository,
     IPatientRepository patientRepository,
     IDeliveryService deliveryService,
