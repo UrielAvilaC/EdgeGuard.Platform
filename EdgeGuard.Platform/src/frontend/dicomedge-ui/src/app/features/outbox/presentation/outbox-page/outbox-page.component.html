@@ -1,81 +1,102 @@
-<section class="outbox">
-  <header class="outbox__header">
-    <div>
-      <h1>Outbox</h1>
-      <p class="subtitle">Actividad unificada: sincronización de nodos y notificaciones.</p>
-    </div>
-    <button class="btn" (click)="load()" [disabled]="loading()">Refrescar</button>
-  </header>
+<div class="space-y-6">
+  <ui-page-header
+    title="Outbox"
+    description="Actividad unificada: sincronización de nodos y notificaciones."
+  >
+    <ui-button variant="secondary" size="sm" [icon]="faSync" [loading]="loading()" (clicked)="load()">
+      Refrescar
+    </ui-button>
+  </ui-page-header>
 
-  <div class="filters">
-    <div class="tabs">
-      @for (c of categories; track c.value) {
-        <button class="tab" [class.tab--active]="category() === c.value" (click)="setCategory(c.value)">
-          {{ c.label }}
-        </button>
-      }
-    </div>
-
-    <select class="select" [value]="status()" (change)="setStatus($any($event.target).value)">
-      @for (s of statuses; track s) {
-        <option [value]="s">{{ s || 'Todos los estados' }}</option>
-      }
-    </select>
-  </div>
-
-  @if (error()) {
-    <div class="alert">{{ error() }}</div>
+  @if (error(); as err) {
+    <ui-alert type="error" [title]="err" [dismissible]="true" (dismissed)="error.set(null)" />
   }
 
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Topic</th>
-          <th>Categoría</th>
-          <th>Destino</th>
-          <th>Estado</th>
-          <th>Intentos</th>
-          <th>Creado</th>
-          <th>Procesado</th>
-          <th>Error</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (item of items(); track item.id) {
-          <tr>
-            <td>{{ item.topicName }}</td>
-            <td>{{ item.category }}</td>
-            <td class="truncate" [title]="item.target">{{ item.target || '—' }}</td>
-            <td><span [class]="statusClass(item.status)">{{ item.status }}</span></td>
-            <td>{{ item.attempts }}</td>
-            <td>{{ item.createdAt | date: 'short' }}</td>
-            <td>{{ item.processedAt ? (item.processedAt | date: 'short') : '—' }}</td>
-            <td class="truncate" [title]="item.lastError">{{ item.lastError || '' }}</td>
-            <td class="actions">
-              @if (canManage()) {
-                @if (item.status !== 'Sent') {
-                  <button class="btn btn--sm" (click)="retry(item)">Reintentar</button>
-                }
-                @if (item.status === 'Pending') {
-                  <button class="btn btn--sm btn--danger" (click)="deadLetter(item)">Dead-letter</button>
-                }
-              }
-            </td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="9" class="empty">{{ loading() ? 'Cargando…' : 'Sin actividad' }}</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+  <!-- Filters -->
+  <div class="flex items-center gap-4 flex-wrap">
+    <div class="min-w-[220px]">
+      <ui-dropdown
+        ariaLabel="Filtrar por categoría"
+        [options]="categoryOptions"
+        [ngModel]="category()"
+        (ngModelChange)="setCategory($event)"
+      />
+    </div>
+    <div class="min-w-[200px]">
+      <ui-dropdown
+        ariaLabel="Filtrar por estado"
+        [options]="statusOptions"
+        [ngModel]="status()"
+        (ngModelChange)="setStatus($event)"
+      />
+    </div>
   </div>
 
-  <footer class="pager">
-    <button class="btn btn--sm" (click)="prevPage()" [disabled]="page() <= 1">Anterior</button>
-    <span>Página {{ page() }} de {{ totalPages() }} · {{ totalCount() }} registros</span>
-    <button class="btn btn--sm" (click)="nextPage()" [disabled]="page() >= totalPages()">Siguiente</button>
-  </footer>
-</section>
+  <ui-data-table
+    [columns]="columns"
+    [data]="items()"
+    [pagination]="pagination()"
+    [loading]="loading()"
+    emptyMessage="Sin actividad."
+    (pageChange)="changePage($event.page, $event.pageSize)"
+  >
+    <ng-template [uiCellDef]="'topicName'" let-value="value">
+      <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+    </ng-template>
+
+    <ng-template [uiCellDef]="'target'" let-value="value">
+      @if (value) {
+        <span class="block max-w-[220px] truncate text-sm" [title]="value">{{ value }}</span>
+      } @else {
+        <span class="text-gray-400">—</span>
+      }
+    </ng-template>
+
+    <ng-template [uiCellDef]="'status'" let-value="value">
+      <ui-status-badge [status]="value" [label]="value" [colorMap]="statusColors" />
+    </ng-template>
+
+    <ng-template [uiCellDef]="'attempts'" let-value="value">
+      <span class="font-mono text-sm">{{ value }}</span>
+    </ng-template>
+
+    <ng-template [uiCellDef]="'createdAt'" let-value="value">
+      {{ value ? (value | relativeTime) : '—' }}
+    </ng-template>
+
+    <ng-template [uiCellDef]="'processedAt'" let-value="value">
+      {{ value ? (value | relativeTime) : '—' }}
+    </ng-template>
+
+    <ng-template [uiCellDef]="'lastError'" let-value="value">
+      @if (value) {
+        <span class="block max-w-[240px] truncate text-sm text-red-600 dark:text-red-400" [title]="value">{{ value }}</span>
+      } @else {
+        <span class="text-gray-400">—</span>
+      }
+    </ng-template>
+
+    <ng-template [uiCellDef]="'actions'" let-row>
+      @if (canManage()) {
+        <div class="flex items-center gap-1" (click)="$event.stopPropagation()">
+          @if (row.status !== 'Sent') {
+            <ui-icon-button
+              [icon]="faRotateRight"
+              tooltip="Reintentar"
+              ariaLabel="Reintentar envío"
+              (clicked)="retry(row)"
+            />
+          }
+          @if (row.status === 'Pending') {
+            <ui-icon-button
+              [icon]="faBan"
+              tooltip="Dead-letter"
+              ariaLabel="Mover a dead-letter"
+              (clicked)="deadLetter(row)"
+            />
+          }
+        </div>
+      }
+    </ng-template>
+  </ui-data-table>
+</div>

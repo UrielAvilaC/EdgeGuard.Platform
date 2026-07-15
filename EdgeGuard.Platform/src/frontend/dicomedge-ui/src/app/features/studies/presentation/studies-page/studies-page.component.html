@@ -35,7 +35,7 @@
       >
         <ng-template [uiCellDef]="'patientName'" let-row let-value="value">
           <div class="flex items-center gap-2">
-            <span class="font-medium" style="color: var(--eg-text-primary)">{{ value }}</span>
+            <span class="font-medium" style="color: var(--eg-text-primary)">{{ value | personName }}</span>
             @if (row.isUrgent) {
               <ui-chip color="danger">
                 <fa-icon [icon]="faExclamationTriangle" class="mr-1 text-xs" />
@@ -50,7 +50,7 @@
         </ng-template>
 
         <ng-template [uiCellDef]="'status'" let-value="value">
-          <ui-status-badge [status]="value" />
+          <ui-status-badge [status]="value" [label]="value | studyStatusLabel" />
         </ng-template>
 
         <ng-template [uiCellDef]="'totalSizeBytes'" let-value="value">

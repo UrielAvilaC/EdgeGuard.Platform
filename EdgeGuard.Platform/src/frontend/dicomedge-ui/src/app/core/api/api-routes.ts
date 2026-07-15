@@ -18,6 +18,8 @@ export const API_ROUTES = {
     PENDING_PACS: '/studies/pending-pacs',
     COUNT: '/studies/count',
     STATUS: (id: string) => `/studies/${id}/status`,
+    REQUEUE: (id: string) => `/studies/${id}/requeue`,
+    INFRASTRUCTURE: (id: string) => `/studies/${id}/infrastructure`,
     EXPORT: '/studies/export',
     REPORT: (id: string) => `/studies/${id}/report`,
     REPORT_PDF: (id: string) => `/studies/${id}/report/pdf`,

@@ -129,6 +129,10 @@ try
     builder.Services.AddSingleton<Dicom.Edge.Hub.Application.Outbox.IOutboxNotifier,
         OutboxSignalRNotifier>();
 
+    // Real-time study status updates: SignalR transport for IStudyRealtimeNotifier.
+    builder.Services.AddSingleton<Dicom.Edge.Hub.Application.Studies.IStudyRealtimeNotifier,
+        StudySignalRNotifier>();
+
     // P1-1: background dispatcher that drains the durable node outbox off the request
     // path and reports results over SignalR. Lives here because it needs IHubContext.
     builder.Services.AddHostedService<NodeOutboxHostedService>();

@@ -49,6 +49,19 @@ public static class HubSettingsDefaults
         Row(HubSettingKeys.WhatsApp.RetryMaxAttempts,           "3",       Cat.WhatsApp, "Retry Max Attempts",            VT.Int),
         Row(HubSettingKeys.WhatsApp.RetryDelaySeconds,          "60",      Cat.WhatsApp, "Retry Delay (sec)",             VT.Int),
 
+        // ── SMTP (Email channel) ─────────────────────────────────────────────
+        // Seeded empty so they DON'T override appsettings (Smtp:*) until the operator
+        // sets a value from the UI — the config provider ignores empty values. Once a
+        // value is saved, the DB value wins (DB-over-appsettings).
+        Row(HubSettingKeys.Smtp.Enabled,   "", Cat.Smtp, "SMTP Enabled",       VT.Bool),
+        Row(HubSettingKeys.Smtp.Host,      "", Cat.Smtp, "SMTP Host",          VT.String),
+        Row(HubSettingKeys.Smtp.Port,      "", Cat.Smtp, "SMTP Port",          VT.Int),
+        Row(HubSettingKeys.Smtp.User,      "", Cat.Smtp, "SMTP User",          VT.String),
+        Row(HubSettingKeys.Smtp.Password,  "", Cat.Smtp, "SMTP Password",      VT.String),
+        Row(HubSettingKeys.Smtp.From,      "", Cat.Smtp, "From Address",       VT.String),
+        Row(HubSettingKeys.Smtp.FromName,  "", Cat.Smtp, "From Name",          VT.String),
+        Row(HubSettingKeys.Smtp.UseTls,    "", Cat.Smtp, "Use TLS (STARTTLS)", VT.Bool),
+
         // ── Background Jobs ──────────────────────────────────────────────────
         Row(HubSettingKeys.BackgroundJobs.EnableNodeHealth,          "true",   Cat.Jobs,      "Enable Node Health Evaluator",         VT.Bool),
         Row(HubSettingKeys.BackgroundJobs.NodeHealthIntervalSec,     "60",     Cat.Jobs,      "Node Health Eval Interval (sec)",      VT.Int),
@@ -92,6 +105,7 @@ public static class HubSettingsDefaults
         public const string Queue = "Queue";
         public const string General = "General";
         public const string WhatsApp = "WhatsApp";
+        public const string Smtp = "Smtp";
         public const string Jobs = "BackgroundJobs";
         public const string Retention = "DataRetention";
     }

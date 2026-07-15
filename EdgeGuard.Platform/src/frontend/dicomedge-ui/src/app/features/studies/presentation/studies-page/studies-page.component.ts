@@ -16,10 +16,12 @@ import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.compone
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { FileSizePipe } from '../../../../shared/pipes/file-size.pipe';
 import { TruncatePipe } from '../../../../shared/pipes/truncate.pipe';
+import { PersonNamePipe } from '../../../../shared/pipes/person-name.pipe';
 import { TableColumn } from '../../../../shared/models/table.model';
 import { Study } from '../../models/study.models';
 import { StudiesStore } from '../../services/studies.store';
 import { StudiesFacade } from '../../services/studies.facade';
+import { StudyStatusLabelPipe } from '../../pipes/study-status-label.pipe';
 import { StudyFilters } from '../study-filters/study-filters.component';
 
 @Component({
@@ -38,6 +40,8 @@ import { StudyFilters } from '../study-filters/study-filters.component';
     RelativeTimePipe,
     FileSizePipe,
     TruncatePipe,
+    PersonNamePipe,
+    StudyStatusLabelPipe,
     StudyFilters,
   ],
   templateUrl: './studies-page.component.html',
@@ -64,6 +68,7 @@ export default class StudiesPage {
 
   constructor() {
     this.facade.loadStudies();
+    this.facade.startRealtimeRefresh();
   }
 
   protected onRowClick(study: Study): void {

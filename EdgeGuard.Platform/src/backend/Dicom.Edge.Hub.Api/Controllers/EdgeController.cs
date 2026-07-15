@@ -108,6 +108,22 @@ public class EdgeController : ControllerBase
         return Ok(new { acknowledged = result.Acknowledged, studyId = result.StudyId });
     }
 
+    /// <summary>POST /edge/studies/pacs-status — Node reports the PACS-send phase (Sending / SentToPacs / Failed).</summary>
+    [HttpPost("studies/pacs-status")]
+    public async Task<IActionResult> StudyPacsStatus([FromBody] StudyPacsStatusNotifyRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessStudyPacsStatusAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new StudyNotifyAckDto
+        {
+            Acknowledged = result.Acknowledged,
+            StudyId = result.StudyId,
+            ReceivedAtUtc = result.ReceivedAtUtc
+        });
+    }
+
     /// <summary>POST /edge/health — Node reports health metrics.</summary>
     [HttpPost("health")]
     public async Task<IActionResult> HealthReport([FromBody] NodeHealthReportRequest request, CancellationToken ct)

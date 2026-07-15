@@ -19,12 +19,12 @@ public interface INotificationSettingsService
 public sealed class NotificationSettingsService(
     ISystemSettingsService settings,
     IOptions<NotificationOptions> notificationOptions,
-    IOptions<SmtpOptions> smtpOptions,
+    IOptionsMonitor<SmtpOptions> smtpOptions,
     IEnumerable<INotificationChannelSender> channelSenders) : INotificationSettingsService
 {
     public async Task<NotificationSettingsDto> GetAsync(CancellationToken ct = default)
     {
-        var smtp = smtpOptions.Value;
+        var smtp = smtpOptions.CurrentValue;
         return new NotificationSettingsDto
         {
             AutoMode = await ResolveAutoModeAsync(ct),

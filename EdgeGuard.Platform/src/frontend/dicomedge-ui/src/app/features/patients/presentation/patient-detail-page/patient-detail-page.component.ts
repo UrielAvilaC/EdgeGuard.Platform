@@ -25,6 +25,7 @@ import { UiStatusBadge } from '../../../../shared/components/ui-status-badge/ui-
 import { UiEmptyState } from '../../../../shared/components/ui-empty-state/ui-empty-state.component';
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { FileSizePipe } from '../../../../shared/pipes/file-size.pipe';
+import { PersonNamePipe } from '../../../../shared/pipes/person-name.pipe';
 import { TableColumn } from '../../../../shared/models/table.model';
 import { UpdatePatientRequest } from '../../models/patient.models';
 import { PatientsStore } from '../../services/patients.store';
@@ -52,6 +53,7 @@ import { Study } from '../../../studies/models/study.models';
     UiEmptyState,
     RelativeTimePipe,
     FileSizePipe,
+    PersonNamePipe,
   ],
   templateUrl: './patient-detail-page.component.html',
   styleUrl: './patient-detail-page.component.scss'

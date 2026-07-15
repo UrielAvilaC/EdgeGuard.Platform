@@ -80,6 +80,8 @@ public static class HubApplicationServiceCollectionExtensions
         services.Configure<Equipment.EquipmentPresenceOptions>(
             configuration.GetSection(Equipment.EquipmentPresenceOptions.SectionName));
         services.AddScoped<IStudyService, StudyService>();
+        services.AddScoped<IStudyResendService, StudyResendService>();
+        services.AddScoped<IStudyInfrastructureService, StudyInfrastructureService>();
 
         // Edge node-facing orchestration service
         services.AddScoped<IEdgeNodeService, EdgeNodeService>();

@@ -45,7 +45,11 @@ public sealed class StudyPipeline(
             InstanceCount    = workItem.InstanceCount,
             Priority         = workItem.Priority,
         };
-        var destinations = await router.ResolveDestinationsAsync(context, ct);
+        // Manual resend from the Hub carries explicit PACS targets and must bypass
+        // routing rules entirely — the operator already chose exactly where to send.
+        var destinations = workItem.ExplicitPacsIds is { Count: > 0 } explicitPacsIds
+            ? await router.ResolveExplicitDestinationsAsync(explicitPacsIds, ct)
+            : await router.ResolveDestinationsAsync(context, ct);
 
         if (destinations.Count == 0)
         {
@@ -72,8 +76,31 @@ public sealed class StudyPipeline(
             seriesCount:      workItem.SeriesCount,
             ct:               ct);
 
+        // Await the completion notification first so the study exists on the Hub
+        // before we report the PACS-send phases (Enviando / Enviado a PACS).
+        var hubNotified = false;
+        try
+        {
+            hubNotified = await hubNotifyTask;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Hub notification failed for study {StudyUid} — pipeline continues", studyInstanceUid);
+        }
+
         if (destinations.Count > 0)
         {
+            // Primary destination AE for status display (Hub tracks a single send status).
+            var primaryAeTitle = destinations[0].AeTitle;
+
+            // ── Enviando a PACS ────────────────────────────────────────────────
+            await hubNotifier.NotifyPacsSendStatusAsync(
+                nodeId:            string.Empty,
+                studyInstanceUid:  studyInstanceUid,
+                status:            "Sending",
+                targetPacsAeTitle: primaryAeTitle,
+                ct:                ct);
+
             var sendTasks = destinations.Select(async dest =>
             {
                 logger.LogInformation("Sending study {StudyUid} to {AeTitle} ({Host}:{Port})", studyInstanceUid, dest.AeTitle, dest.Host, dest.Port);
@@ -92,17 +119,16 @@ public sealed class StudyPipeline(
             });
 
             await Task.WhenAll(sendTasks);
-        }
 
-        // Await Hub result (was running in parallel with PACS sends)
-        var hubNotified = false;
-        try
-        {
-            hubNotified = await hubNotifyTask;
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Hub notification failed for study {StudyUid} — pipeline continues", studyInstanceUid);
+            // ── Enviado a PACS / Failed ────────────────────────────────────────
+            // Mark sent when at least one destination accepted the study; otherwise failed.
+            await hubNotifier.NotifyPacsSendStatusAsync(
+                nodeId:            string.Empty,
+                studyInstanceUid:  studyInstanceUid,
+                status:            sent > 0 ? "SentToPacs" : "Failed",
+                targetPacsAeTitle: primaryAeTitle,
+                error:             sent > 0 ? null : string.Join("; ", errors),
+                ct:                ct);
         }
 
         sw.Stop();

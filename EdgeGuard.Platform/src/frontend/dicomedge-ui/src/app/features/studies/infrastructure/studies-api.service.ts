@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { ApiClient } from '../../../core/api/api-client';
 import { API_ROUTES } from '../../../core/api/api-routes';
 import { PagedResult } from '../../../shared/models/pagination.model';
-import { Study, StudyFilter, StudyReport, UpdateStudyRequest, UpdateStudyStatusRequest } from '../models/study.models';
+import { Study, StudyFilter, StudyInfrastructure, StudyReport, UpdateStudyRequest, UpdateStudyStatusRequest } from '../models/study.models';
 
 @Injectable({ providedIn: 'root' })
 export class StudiesApiService {
@@ -48,6 +48,14 @@ export class StudiesApiService {
     return this.api.put<Study>(API_ROUTES.STUDIES.STATUS(id), request);
   }
 
+  requeue(id: string, pacsIds: string[]): Observable<Study> {
+    return this.api.post<Study>(API_ROUTES.STUDIES.REQUEUE(id), { pacsIds });
+  }
+
+  getInfrastructure(id: string): Observable<StudyInfrastructure> {
+    return this.api.get<StudyInfrastructure>(API_ROUTES.STUDIES.INFRASTRUCTURE(id));
+  }
+
   export(filter: StudyFilter): Observable<import('@angular/common/http').HttpResponse<Blob>> {
     return this.api.getBlob(API_ROUTES.STUDIES.EXPORT, {
       params: filter as Record<string, string | number | boolean | undefined>,
@@ -70,13 +78,26 @@ export class StudiesApiService {
     return this.api.get<{ id: string; name: string }[]>(API_ROUTES.NOTIFICATION_TEMPLATES.LIST);
   }
 
-  deliver(id: string, body: unknown): Observable<{ enqueued: number }> {
+  getWhatsAppTemplates(): Observable<{ id: string; name: string }[]> {
+    return this.api.get<{ id: string; name: string }[]>(API_ROUTES.WHATSAPP.TEMPLATES);
+  }
+
+  deliver(id: string, body: DeliverResultsRequest): Observable<{ enqueued: number }> {
     return this.api.post<{ enqueued: number }>(`/studies/${id}/deliver`, body);
   }
 
   getDeliveries(id: string): Observable<DeliveryHistory[]> {
     return this.api.get<DeliveryHistory[]>(`/studies/${id}/deliveries`);
   }
+}
+
+export interface DeliverResultsRequest {
+  emails: string[];
+  phones: string[];
+  attachPdf: boolean;
+  includeQr: boolean;
+  emailTemplateId?: string | null;
+  whatsAppTemplateId?: string | null;
 }
 
 export interface DeliveryHistory {

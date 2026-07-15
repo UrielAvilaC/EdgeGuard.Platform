@@ -40,6 +40,13 @@ public class Hl7Message
     public string? ProcedureDescription { get; private set; }
     public string? ProcedureId { get; private set; }
 
+    /// <summary>
+    /// Human-readable referring/ordering physician, parsed on demand from the raw message:
+    /// first populated of OBR-16 (Ordering Provider), ORC-12 (Ordering Provider) or
+    /// PV1-8 (Referring Doctor). Not persisted — derived from <see cref="Content"/>.
+    /// </summary>
+    public string? ReferringPhysician => ExtractReferringPhysician(Content);
+
     // ── MRG segment — patient/study merge ────────────────────────────────────
     /// <summary>MRG.1 — Prior patient ID to be merged into <see cref="PatientId"/>.</summary>
     public string? MrgPriorPatientId { get; private set; }
@@ -253,6 +260,32 @@ public class Hl7Message
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Extracts a human-readable physician name from the first populated of
+    /// OBR-16, ORC-12 or PV1-8. XCN format is <c>ID^Family^Given^...</c>; returns
+    /// "Given Family" when name components exist, otherwise the raw (first repetition) value.
+    /// </summary>
+    private static string? ExtractReferringPhysician(string content)
+    {
+        var raw = ExtractField(content, "OBR", 16)
+               ?? ExtractField(content, "ORC", 12)
+               ?? ExtractField(content, "PV1", 8);
+
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        // Use the first repetition only (XCN repetitions separated by ~).
+        var xcn = raw.Split('~')[0];
+        var components = xcn.Split('^');
+
+        var family = components.Length > 1 ? components[1].Trim() : string.Empty;
+        var given  = components.Length > 2 ? components[2].Trim() : string.Empty;
+
+        var name = string.Join(' ',
+            new[] { given, family }.Where(p => !string.IsNullOrEmpty(p)));
+
+        return string.IsNullOrWhiteSpace(name) ? xcn.Trim() : name;
     }
 
     private static string? ExtractTriggerEvent(string content)

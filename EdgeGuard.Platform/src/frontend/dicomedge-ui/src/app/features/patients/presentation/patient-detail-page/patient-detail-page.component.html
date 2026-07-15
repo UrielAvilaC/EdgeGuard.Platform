@@ -31,7 +31,7 @@
                 <div>
                   <dt class="text-sm text-gray-500 dark:text-gray-400">Nombre completo</dt>
                   <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                    {{ p.patientName }}
+                    {{ p.patientName | personName }}
                     @if (!p.isActive) {
                       <ui-chip color="default">Inactivo</ui-chip>
                     }

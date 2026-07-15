@@ -39,4 +39,17 @@ public interface IStudyHubNotifier
         string? studyDescription = null,
         int seriesCount = 0,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Reports the PACS-send phase of a study so the Hub advances its status to
+    /// "Enviando a PACS" / "Enviado a PACS" / "Failed". Fire-and-forget safe — never throws.
+    /// </summary>
+    /// <param name="status">One of <c>Sending</c>, <c>SentToPacs</c> or <c>Failed</c> (matches <c>StudyStatus</c>).</param>
+    Task<bool> NotifyPacsSendStatusAsync(
+        string nodeId,
+        string studyInstanceUid,
+        string status,
+        string? targetPacsAeTitle = null,
+        string? error = null,
+        CancellationToken ct = default);
 }

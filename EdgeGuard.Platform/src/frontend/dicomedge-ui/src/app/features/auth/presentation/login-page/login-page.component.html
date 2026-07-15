@@ -78,17 +78,36 @@
           }
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
-            <ui-input-text
-              formControlName="username"
-              label="Usuario"
-              placeholder="Ingrese su usuario"
-            ></ui-input-text>
+            <div #usernameField>
+              <ui-input-text
+                formControlName="username"
+                label="Usuario"
+                placeholder="Ingrese su usuario"
+              ></ui-input-text>
+            </div>
 
             <ui-input-password
               formControlName="password"
               label="Contraseña"
               placeholder="Ingrese su contraseña"
             ></ui-input-password>
+
+            <div class="form-help-row">
+              <button type="button" class="link-button" (click)="toggleResetHint()">
+                ¿Olvidó su contraseña?
+              </button>
+            </div>
+
+            @if (showResetHint()) {
+              <ui-alert
+                type="info"
+                [dismissible]="true"
+                (dismissed)="showResetHint.set(false)"
+                class="block"
+              >
+                Contacte a su administrador para restablecer su contraseña.
+              </ui-alert>
+            }
 
             <ui-button
               type="submit"
@@ -101,6 +120,14 @@
               Iniciar sesión
             </ui-button>
           </form>
+
+          <div class="form-footer">
+            <span class="secure-badge">
+              <fa-icon [icon]="faLock"></fa-icon>
+              Conexión segura y cifrada
+            </span>
+            <p class="form-copyright">&copy; {{ currentYear() }} EdgeGuard Platform</p>
+          </div>
         </div>
       </div>
     </div>

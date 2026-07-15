@@ -11,6 +11,13 @@ public sealed class NodeWorkItem
     public int Priority { get; set; } = 5;
     public string? SourceAeTitle { get; init; }
     public string? TargetPacsId { get; init; }
+
+    /// <summary>
+    /// When set (manual resend from the Hub), the pipeline sends only to these PACS
+    /// (matched by <c>NodePacsServer.Id</c>), bypassing routing rules entirely.
+    /// </summary>
+    public IReadOnlyList<string>? ExplicitPacsIds { get; init; }
+
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public int RetryCount { get; set; }
     public string? LastError { get; set; }

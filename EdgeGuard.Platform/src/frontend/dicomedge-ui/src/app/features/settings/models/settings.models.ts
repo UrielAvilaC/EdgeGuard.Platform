@@ -45,6 +45,7 @@ export const SETTING_CATEGORIES: { key: string; label: string; icon: string }[] 
   { key: 'Dispatch', label: 'Despacho', icon: 'paper-plane' },
   { key: 'Queue', label: 'Cola', icon: 'sync' },
   { key: 'WhatsApp', label: 'WhatsApp', icon: 'comments' },
+  { key: 'Smtp', label: 'SMTP (Email)', icon: 'envelope' },
   { key: 'BackgroundJobs', label: 'Tareas en segundo plano', icon: 'clock' },
   { key: 'DataRetention', label: 'Retención de datos', icon: 'archive' },
 ];

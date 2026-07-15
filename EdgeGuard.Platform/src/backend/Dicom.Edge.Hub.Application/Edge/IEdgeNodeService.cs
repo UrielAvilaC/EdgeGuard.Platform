@@ -25,6 +25,12 @@ public interface IEdgeNodeService
     /// </summary>
     Task<EdgeStudyNotifyResult?> ProcessStudyProgressAsync(StudyProgressNotifyRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Advances a study's PACS-send status (Sending / SentToPacs / Failed) as reported by the node.
+    /// Returns null if the node or the study is not found.
+    /// </summary>
+    Task<EdgeStudyNotifyResult?> ProcessStudyPacsStatusAsync(StudyPacsStatusNotifyRequest request, CancellationToken ct = default);
+
     /// <summary>Processes a health report from a node. Returns null if node not found.</summary>
     Task<EdgeOperationResult?> ProcessHealthReportAsync(NodeHealthReportRequest request, CancellationToken ct = default);
 

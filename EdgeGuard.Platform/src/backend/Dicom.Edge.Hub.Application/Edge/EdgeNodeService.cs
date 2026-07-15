@@ -7,6 +7,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
+using Dicom.Edge.Hub.Application.Studies;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Security.Authentication;
@@ -33,8 +34,14 @@ public sealed class EdgeNodeService(
     INodeEquipmentRepository equipmentRepository,
     IPasswordHasher passwordHasher,
     IUnitOfWork unitOfWork,
+    IStudyRealtimeNotifier studyRealtimeNotifier,
     ILogger<EdgeNodeService> logger) : IEdgeNodeService
 {
+    private Task NotifyStatusChangedAsync(Study study, string nodeId, CancellationToken ct) =>
+        studyRealtimeNotifier.StatusChangedAsync(
+            new StudyStatusChange(study.Id, study.Status.ToString(), study.PatientName, nodeId, DateTime.UtcNow),
+            ct);
+
     public async Task<NodeRegistrationResponse> RegisterAsync(
         HubNodeRegistrationRequest request, CancellationToken ct = default)
     {
@@ -161,6 +168,7 @@ public sealed class EdgeNodeService(
                 "Study updated from node {NodeId}: StudyUID={StudyUid} Instances={Count}",
                 request.NodeId, request.StudyInstanceUid, request.InstanceCount);
 
+            await NotifyStatusChangedAsync(existing, request.NodeId, ct);
             return new EdgeStudyNotifyResult(true, existing.Id, DateTime.UtcNow);
         }
 
@@ -183,6 +191,7 @@ public sealed class EdgeNodeService(
             "Study created from node {NodeId}: StudyUID={StudyUid} Patient={Patient}",
             request.NodeId, request.StudyInstanceUid, request.PatientName);
 
+        await NotifyStatusChangedAsync(study, request.NodeId, ct);
         return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
     }
 
@@ -241,6 +250,50 @@ public sealed class EdgeNodeService(
             "Study created via progress from node {NodeId}: StudyUID={StudyUid}",
             request.NodeId, request.StudyInstanceUid);
 
+        return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
+    }
+
+    public async Task<EdgeStudyNotifyResult?> ProcessStudyPacsStatusAsync(
+        StudyPacsStatusNotifyRequest request, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
+        if (node is null) return null;
+
+        var study = await studyRepository.GetByStudyInstanceUidAsync(request.StudyInstanceUid, ct);
+        if (study is null)
+        {
+            logger.LogWarning(
+                "PACS status report for unknown study {StudyUid} from node {NodeId} — ignored",
+                request.StudyInstanceUid, request.NodeId);
+            return null;
+        }
+
+        switch (request.Status)
+        {
+            case nameof(StudyStatus.Sending):
+                study.MarkSendingToPacs();
+                break;
+            case nameof(StudyStatus.SentToPacs):
+                study.MarkSentToPacs();
+                break;
+            case nameof(StudyStatus.Failed):
+                study.MarkFailed(request.Error ?? "PACS send failed");
+                break;
+            default:
+                logger.LogWarning(
+                    "Unsupported PACS status '{Status}' for study {StudyUid} from node {NodeId} — ignored",
+                    request.Status, request.StudyInstanceUid, request.NodeId);
+                return null;
+        }
+
+        await studyRepository.UpdateAsync(study, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Study {StudyUid} PACS status advanced to {Status} (node {NodeId}, PACS {Pacs})",
+            request.StudyInstanceUid, request.Status, request.NodeId, request.TargetPacsAeTitle);
+
+        await NotifyStatusChangedAsync(study, request.NodeId, ct);
         return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
     }
 

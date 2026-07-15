@@ -47,7 +47,7 @@ public sealed class NodeEquipmentPushService(
             }).ToList().AsReadOnly(),
         };
 
-        var url = node.ApiEndpoint.TrimEnd('/') + "/api/equipment/sync";
+        var url = node.ApiEndpoint.TrimEnd('/') + "/equipment/sync";
 
         try
         {

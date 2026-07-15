@@ -155,6 +155,15 @@ public class StudiesController : ControllerBase
         return study is null ? NotFound() : Ok(study.ToDto());
     }
 
+    /// <summary>GET /api/studies/{id}/infrastructure — origin node + target PACS identity and connectivity.</summary>
+    [HttpGet("{id}/infrastructure")]
+    public async Task<IActionResult> GetInfrastructure(
+        string id, [FromServices] IStudyInfrastructureService infrastructureService, CancellationToken ct)
+    {
+        var dto = await infrastructureService.GetAsync(id, ct);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
     [HttpGet("by-uid/{studyInstanceUid}")]
     public async Task<IActionResult> GetByUid(string studyInstanceUid, CancellationToken ct)
     {
@@ -174,6 +183,22 @@ public class StudiesController : ControllerBase
     {
         var studies = await _studyRepository.GetByNodeAsync(nodeId, ct);
         return Ok(studies.Select(s => s.ToDto()));
+    }
+
+    /// <summary>POST /api/studies/{id}/requeue — manual resend of a Failed study to chosen PACS.</summary>
+    [HttpPost("{id}/requeue")]
+    [Authorize(Policy = Policies.EditStudyMetadata)]
+    public async Task<IActionResult> Requeue(
+        string id, [FromBody] RequeueStudyRequest request,
+        [FromServices] IStudyResendService resendService, CancellationToken ct)
+    {
+        var result = await resendService.RequeueAsync(id, request.PacsIds, ct);
+
+        if (result.NotFound) return NotFound();
+        if (!result.Accepted) return BadRequest(new ErrorDto { Error = result.Error ?? "Resend failed." });
+
+        var study = await _studyRepository.GetByIdAsync(id, ct);
+        return Ok(study?.ToDto());
     }
 
     [HttpGet("pending-pacs")]

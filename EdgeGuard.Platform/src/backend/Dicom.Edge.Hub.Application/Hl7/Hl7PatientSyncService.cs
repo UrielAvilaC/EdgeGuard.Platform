@@ -29,27 +29,46 @@ public sealed class Hl7PatientSyncService(
         var baseType = message.MessageType.Split('^').FirstOrDefault() ?? message.MessageType;
         var trigger  = message.TriggerEvent ?? string.Empty;
 
+        // ── ADT — patient admission / merge ──
         if (string.Equals(baseType, Hl7ValidationConstants.AdtMessageType, StringComparison.OrdinalIgnoreCase))
         {
             if (string.Equals(trigger, Hl7ValidationConstants.AdtMergePatientTrigger, StringComparison.OrdinalIgnoreCase))
                 await HandleAdtMergeAsync(message, ct);
             else
-                await HandleAdtAdmitAsync(message, ct);
+                await UpsertPatientFromPidAsync(message, ct);
 
             return;
         }
 
-        // ORM with MRG: reassign prior patient's studies (patient record itself not merged)
-        if (string.Equals(baseType, Hl7ValidationConstants.OrmMessageType, StringComparison.OrdinalIgnoreCase)
-            && message.HasMrgSegment)
+        // ── ORM — worklist order: register the patient carried in PID so scheduled
+        //    orders create/refresh the patient record, then apply any MRG reassignment.
+        //    (Previously only ADT created patients, so worklist-driven RIS integrations
+        //    that never send ADT left the Hub with studies but no patients.)
+        if (string.Equals(baseType, Hl7ValidationConstants.OrmMessageType, StringComparison.OrdinalIgnoreCase))
         {
-            await HandleOrmMrgPatientReassignAsync(message, ct);
+            await UpsertPatientFromPidAsync(message, ct);
+
+            if (message.HasMrgSegment)
+                await HandleOrmMrgPatientReassignAsync(message, ct);
+
+            return;
+        }
+
+        // ── ORU — results: ensure the patient exists for the results-first flow. ──
+        if (string.Equals(baseType, Hl7ValidationConstants.OruMessageType, StringComparison.OrdinalIgnoreCase))
+        {
+            await UpsertPatientFromPidAsync(message, ct);
         }
     }
 
-    // ── ADT^A01 — Patient Admission ───────────────────────────────────────────
+    // ── PID upsert (ADT admit / ORM order / ORU result) ───────────────────────
 
-    private async Task HandleAdtAdmitAsync(Hl7Message message, CancellationToken ct)
+    /// <summary>
+    /// Creates or updates a patient from the message's PID demographics. Shared by ADT
+    /// admissions and by ORM/ORU flows so worklist orders and results register the patient
+    /// even when the facility never sends ADT messages. No-op when PID lacks id or name.
+    /// </summary>
+    private async Task UpsertPatientFromPidAsync(Hl7Message message, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(message.PatientId) ||
             string.IsNullOrWhiteSpace(message.PatientName))
@@ -73,8 +92,8 @@ public sealed class Hl7PatientSyncService(
             await patientRepository.UpdateAsync(existing, ct);
 
             logger.LogDebug(
-                "Updated patient {PatientDicomId} from ADT^A01 {MessageId}",
-                message.PatientId, message.Id);
+                "Updated patient {PatientDicomId} from {MessageType} {MessageId}",
+                message.PatientId, message.MessageType, message.Id);
         }
         else
         {
@@ -90,8 +109,8 @@ public sealed class Hl7PatientSyncService(
             await patientRepository.AddAsync(patient, ct);
 
             logger.LogInformation(
-                "Created patient {PatientDicomId} from ADT^A01 {MessageId}",
-                message.PatientId, message.Id);
+                "Created patient {PatientDicomId} from {MessageType} {MessageId}",
+                message.PatientId, message.MessageType, message.Id);
         }
     }
 

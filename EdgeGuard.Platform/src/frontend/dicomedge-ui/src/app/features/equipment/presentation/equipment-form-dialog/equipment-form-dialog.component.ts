@@ -80,7 +80,7 @@ export class EquipmentFormDialog {
   }
 
   protected get isFormValid(): boolean {
-    return this.isAeTitleValid && this.selected().size > 0;
+    return /*this.isAeTitleValid && */this.selected().size > 0;
   }
 
   protected onSubmit(): void {

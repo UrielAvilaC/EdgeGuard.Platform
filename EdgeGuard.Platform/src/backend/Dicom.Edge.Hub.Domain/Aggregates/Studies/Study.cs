@@ -288,6 +288,24 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         AddDomainEvent(new StudySentToPacsEvent(Id, StudyInstanceUid.Value, TargetPacsId));
     }
 
+    /// <summary>
+    /// Manual resend requested from the Hub UI: transitions a <see cref="StudyStatus.Failed"/>
+    /// study back into the send pipeline, targeting only the PACS the operator chose.
+    /// </summary>
+    public void MarkRequeuedManually(IReadOnlyList<string> targetPacsIds)
+    {
+        var old = Status;
+        TargetPacsId = string.Join(",", targetPacsIds);
+        Status = StudyStatus.QueuedForSend;
+        PacsSendLastError = null;
+        CurrentStatusSince = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        var reason = $"Manual resend requested to PACS: {string.Join(", ", targetPacsIds)}";
+        RecordStatusChange(old, Status, null, reason);
+        AddDomainEvent(new StudyStatusChangedEvent(Id, old, Status, reason));
+    }
+
     public void MarkFailed(string error)
     {
         var old = Status;

@@ -8,9 +8,9 @@
       </div>
     } @else {
       <div class="flex items-center gap-0" role="list" aria-label="Timeline de estado del estudio">
-        @for (step of steps; track step.status; let i = $index; let last = $last) {
+        @for (step of steps; track step.label; let i = $index; let last = $last) {
           <div class="flex items-center" role="listitem"
-               [attr.aria-current]="step.status === currentStatus() ? 'step' : null">
+               [attr.aria-current]="isCurrent(i) ? 'step' : null">
             <div class="flex flex-col items-center gap-1.5">
               <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all"
                    [class]="getStepBgClass(step, i)">

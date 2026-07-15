@@ -1,18 +1,22 @@
 import { DestroyRef, inject, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { asyncScheduler, finalize, throttleTime } from 'rxjs';
 
 import { ToastService } from '../../../core/services/toast.service';
+import { SignalRService } from '../../../core/services/signalr.service';
 import { SortParams } from '../../../shared/models/sort.model';
 import { StudiesApiService } from '../infrastructure/studies-api.service';
 import { StudyFilter, UpdateStudyRequest, UpdateStudyStatusRequest } from '../models/study.models';
 import { StudiesStore } from './studies.store';
+
+const SIGNALR_THROTTLE_MS = 3_000;
 
 @Injectable()
 export class StudiesFacade {
   private readonly api = inject(StudiesApiService);
   private readonly store = inject(StudiesStore);
   private readonly toast = inject(ToastService);
+  private readonly signalR = inject(SignalRService);
   private readonly destroyRef = inject(DestroyRef);
 
   // ── Expose store state ──
@@ -27,6 +31,31 @@ export class StudiesFacade {
   readonly hasData = this.store.hasData;
   readonly totalPages = this.store.totalPages;
   readonly activeFilterCount = this.store.activeFilterCount;
+
+  /**
+   * Starts the SignalR connection and refreshes the loaded studies whenever the Hub
+   * broadcasts a `StudyStatusChanged` event (e.g. Enviando a PACS / Enviado a PACS).
+   * Reloads the open detail when a study is selected, otherwise reloads the list.
+   * Safe to call from both the list and detail pages.
+   */
+  startRealtimeRefresh(): void {
+    this.signalR.start(this.destroyRef).then(
+      () => this.signalR.joinDashboard(),
+      () => { /* SignalR unavailable — pages rely on manual refresh */ },
+    );
+
+    this.signalR.on('StudyStatusChanged').pipe(
+      throttleTime(SIGNALR_THROTTLE_MS, asyncScheduler, { leading: true, trailing: true }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(() => {
+      const selected = this.store.selectedStudy();
+      if (selected) {
+        this.loadStudyById(selected.id);
+      } else {
+        this.loadStudies();
+      }
+    });
+  }
 
   // ── Actions ──
   loadStudies(): void {
@@ -114,6 +143,20 @@ export class StudiesFacade {
         this.toast.success('Estado del estudio actualizado');
       },
       error: () => this.toast.error('No se pudo cambiar el estado del estudio'),
+    });
+  }
+
+  requeue(id: string, pacsIds: string[]): void {
+    this.store.setSelectedLoading(true);
+    this.api.requeue(id, pacsIds).pipe(
+      finalize(() => this.store.setSelectedLoading(false)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (updated) => {
+        this.store.updateStudyInList(updated);
+        this.toast.success('Estudio reencolado para reenvío');
+      },
+      error: () => this.toast.error('No se pudo reenviar el estudio'),
     });
   }
 

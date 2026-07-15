@@ -68,6 +68,14 @@ public class SystemSettingsController : ControllerBase
 
         await _settingsService.SetAsync(key, request.Value, ct);
 
+        // SMTP settings are bound via IOptionsMonitor<SmtpOptions>; reload the config root
+        // so DB changes flow into the live options without a restart.
+        if (key.StartsWith("smtp.", StringComparison.OrdinalIgnoreCase))
+        {
+            _configReloader.Reload();
+            return NoContent();
+        }
+
         // Hot-apply HL7 listener bind changes: reload config → restart listener → confirm.
         if (key is HubSettingKeys.Hl7.TcpPort or HubSettingKeys.Hl7.TcpEnabled)
         {

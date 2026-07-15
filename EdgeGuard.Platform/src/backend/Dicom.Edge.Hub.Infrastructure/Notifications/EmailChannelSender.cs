@@ -15,11 +15,13 @@ namespace Dicom.Edge.Hub.Infrastructure.Notifications;
 /// when requested, and embeds the QR as an inline (cid:qr) resource.
 /// </summary>
 public sealed class EmailChannelSender(
-    IOptions<SmtpOptions> options,
+    IOptionsMonitor<SmtpOptions> options,
     IReportStorage reportStorage,
     ILogger<EmailChannelSender> logger) : INotificationChannelSender
 {
-    private SmtpOptions Opts => options.Value;
+    // CurrentValue so UI edits to the DB-backed Smtp:* settings apply without a restart
+    // (after IConfigurationRoot.Reload() runs on save).
+    private SmtpOptions Opts => options.CurrentValue;
 
     public NotificationChannel Channel => NotificationChannel.Email;
 
@@ -64,7 +66,7 @@ public sealed class EmailChannelSender(
             mime.Body = builder.ToMessageBody();
 
             using var client = new SmtpClient();
-            var socketOptions = Opts.UseTls ? SecureSocketOptions.StartTls : SecureSocketOptions.Auto;
+            var socketOptions = Opts.UseTls ? SecureSocketOptions.SslOnConnect: SecureSocketOptions.Auto;
             await client.ConnectAsync(Opts.Host, Opts.Port, socketOptions, ct);
             if (!string.IsNullOrEmpty(Opts.User))
                 await client.AuthenticateAsync(Opts.User, Opts.Password, ct);

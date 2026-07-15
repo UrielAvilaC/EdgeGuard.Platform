@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\shared\Dicom.Edge.Abstractions\Dicom.Edge.Abstractions.csproj" />
+    <ProjectReference Include="..\Dicom.Edge.Node.Queue\Dicom.Edge.Node.Queue.csproj" />
   </ItemGroup>
 
 </Project>

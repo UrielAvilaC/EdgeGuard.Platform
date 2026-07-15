@@ -55,6 +55,24 @@ export interface Study {
   imageLinks: string[];
 }
 
+export interface StudyInfrastructure {
+  sourceNodeId: string | null;
+  sourceNodeName: string | null;
+  sourceAeTitle: string | null;
+  /** Node status enum name (Online/Offline/Degraded/…), or null when unknown. */
+  nodeStatus: string | null;
+  nodeLastHeartbeatAt: string | null;
+  targetPacsId: string | null;
+  targetPacsName: string | null;
+  targetPacsAeTitle: string | null;
+  /** Last known C-ECHO reachability of the PACS from this node; null when never checked. */
+  pacsReachable: boolean | null;
+  pacsLastEchoAt: string | null;
+  sentToPacsAt: string | null;
+  pacsSendAttempts: number;
+  pacsSendLastError: string | null;
+}
+
 export interface StudyFilter extends BaseFilter {
   status?: StudyStatus;
   sourceNodeId?: string;
