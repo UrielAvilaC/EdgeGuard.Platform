@@ -1,5 +1,6 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
@@ -19,6 +20,7 @@ public interface IDeliveryService
 public sealed class DeliveryService(
     IStudyRepository studyRepository,
     IPatientRepository patientRepository,
+    INodeRepository nodeRepository,
     INotificationTemplateRepository emailTemplateRepository,
     IWhatsAppTemplateRepository whatsAppTemplateRepository,
     INotificationVariableResolver resolver,
@@ -36,8 +38,12 @@ public sealed class DeliveryService(
             ? await patientRepository.GetByIdAsync(study.PatientId, ct)
             : null;
 
+        var facilityName = study.SourceNodeId is not null
+            ? (await nodeRepository.GetByIdAsync(study.SourceNodeId, ct))?.Name
+            : null;
+
         var imageLink = SplitFirst(study.ExternalImageLinks);
-        var values = resolver.BuildValues(study, patient, imageLink, reportLink: null);
+        var values = resolver.BuildValues(study, patient, imageLink, reportLink: null, facilityName);
 
         var targets = new List<DeliveryTarget>();
 
@@ -76,7 +82,7 @@ public sealed class DeliveryService(
             var template = await whatsAppTemplateRepository.GetByIdWithVariablesAsync(request.WhatsAppTemplateId, ct);
             if (template is not null)
             {
-                var whatsAppVars = WhatsAppVariableResolver.Resolve(study, patient, template.Variables, imageLink);
+                var whatsAppVars = WhatsAppVariableResolver.Resolve(study, patient, template.Variables, imageLink, facilityName);
                 foreach (var phone in request.Phones.Where(p => !string.IsNullOrWhiteSpace(p)))
                     targets.Add(new DeliveryTarget
                     {

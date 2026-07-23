@@ -140,9 +140,11 @@ export const NOTIFICATION_STATUS_OPTIONS: { value: WhatsAppNotificationStatus; l
 
 // Estatus del flujo clínico del estudio (los relevantes para notificar al paciente).
 // La agenda llega del TCP listener (worklist HL7) como 'Scheduled'; el estudio se
-// 'Completed' al recibir imágenes y se 'Finalized' cuando llegan liga + reporte.
+// 'Completed' al recibir imágenes, pasa a 'WaitingForReport' cuando llega la liga de
+// imágenes (sin reporte aún) y se 'Finalized' cuando llegan liga + reporte.
 export const STUDY_STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'Scheduled', label: 'Agendado' },
   { value: 'Completed', label: 'Completado' },
-  { value: 'Finalized', label: 'Finalizado' },
+  { value: 'WaitingForReport', label: 'Con URL de imágenes' },
+  { value: 'Finalized', label: 'Con reporte finalizado' },
 ];

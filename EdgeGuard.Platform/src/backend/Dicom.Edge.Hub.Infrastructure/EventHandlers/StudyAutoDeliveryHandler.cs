@@ -12,10 +12,11 @@ using Microsoft.Extensions.Options;
 namespace Dicom.Edge.Hub.Infrastructure.EventHandlers;
 
 /// <summary>
-/// On <see cref="StudyFinalizedEvent"/>, when auto-mode is enabled, enqueues automatic
-/// results delivery for each enabled <c>Finalized</c> auto-send rule (per channel) using
-/// the patient's contact details. Runs in the domain-event dispatch scope (post-save), so
-/// the delivery enqueue uses its own DbContext — no SaveChanges re-entrancy.
+/// On a study reaching one of the clinical notification statuses (Scheduled, Completed,
+/// WaitingForReport, Finalized), when auto-mode is enabled, enqueues automatic results
+/// delivery for each enabled auto-send rule bound to that status (per channel) using the
+/// patient's contact details. Runs in the domain-event dispatch scope (post-save), so the
+/// delivery enqueue uses its own DbContext — no SaveChanges re-entrancy.
 /// </summary>
 public sealed class StudyAutoDeliveryHandler(
     INotificationAutoSendRuleRepository ruleRepository,
@@ -27,15 +28,28 @@ public sealed class StudyAutoDeliveryHandler(
 {
     public async Task HandleAsync(IDomainEvent domainEvent, CancellationToken ct = default)
     {
-        if (domainEvent is not StudyFinalizedEvent e) return;
+        // Map the incoming domain event to the clinical status whose rules it should trigger.
+        // Finalized/Completed/Scheduled have dedicated events; WaitingForReport (liga de
+        // imágenes sin reporte) is only signalled via StudyStatusChangedEvent.
+        var (studyId, status) = domainEvent switch
+        {
+            StudyScheduledEvent ev => (ev.StudyId, StudyStatus.Scheduled),
+            StudyCompletedEvent ev => (ev.StudyId, StudyStatus.Completed),
+            StudyFinalizedEvent ev => (ev.StudyId, StudyStatus.Finalized),
+            StudyStatusChangedEvent ev when ev.NewStatus == StudyStatus.WaitingForReport
+                => (ev.StudyId, StudyStatus.WaitingForReport),
+            _ => (null, default),
+        };
+        if (studyId is null) return;
         if (!await settingsService.ResolveAutoModeAsync(ct)) return;
 
+        var statusName = status.ToString();
         var rules = (await ruleRepository.GetEnabledAsync(ct))
-            .Where(r => string.Equals(r.StudyStatus, nameof(StudyStatus.Finalized), StringComparison.OrdinalIgnoreCase))
+            .Where(r => string.Equals(r.StudyStatus, statusName, StringComparison.OrdinalIgnoreCase))
             .ToList();
         if (rules.Count == 0) return;
 
-        var study = await studyRepository.GetByIdAsync(e.StudyId, ct);
+        var study = await studyRepository.GetByIdAsync(studyId, ct);
         if (study is null) return;
         var patient = study.PatientId is not null
             ? await patientRepository.GetByIdAsync(study.PatientId, ct)
@@ -62,12 +76,12 @@ public sealed class StudyAutoDeliveryHandler(
 
             if (request.Emails.Length + request.Phones.Length == 0)
             {
-                logger.LogWarning("Auto-delivery skipped for study {StudyId}: no {Channel} contact", e.StudyId, rule.Channel);
+                logger.LogWarning("Auto-delivery skipped for study {StudyId}: no {Channel} contact", studyId, rule.Channel);
                 continue;
             }
 
-            await deliveryService.DeliverAsync(e.StudyId, request, ct);
-            logger.LogInformation("Auto-delivery enqueued for finalized study {StudyId} via {Channel}", e.StudyId, rule.Channel);
+            await deliveryService.DeliverAsync(studyId, request, ct);
+            logger.LogInformation("Auto-delivery enqueued for study {StudyId} ({Status}) via {Channel}", studyId, statusName, rule.Channel);
         }
     }
 

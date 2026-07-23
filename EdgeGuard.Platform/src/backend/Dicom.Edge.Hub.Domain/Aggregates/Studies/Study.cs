@@ -159,6 +159,7 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         };
 
         study.RecordStatusChange(null, StudyStatus.Scheduled, sendingFacility, "Scheduled from HL7 worklist");
+        study.AddDomainEvent(new StudyScheduledEvent(study.Id, study.AccessionNumber));
 
         return study;
     }
@@ -207,6 +208,7 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         CurrentStatusSince = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
         RecordStatusChange(old, Status, null, "Re-scheduled");
+        AddDomainEvent(new StudyScheduledEvent(Id, AccessionNumber));
     }
 
     /// <summary>

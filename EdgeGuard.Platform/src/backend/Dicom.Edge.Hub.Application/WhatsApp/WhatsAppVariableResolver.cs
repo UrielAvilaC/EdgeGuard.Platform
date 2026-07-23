@@ -13,7 +13,8 @@ public static class WhatsAppVariableResolver
         Study study,
         Patient? patient,
         IReadOnlyList<WhatsAppTemplateVariable> variables,
-        string? imagesUrl = null)
+        string? imagesUrl = null,
+        string? facilityName = null)
     {
         var result = new Dictionary<int, string>();
 
@@ -27,9 +28,9 @@ public static class WhatsAppVariableResolver
                 WhatsAppTemplateTags.StudyDate => study.StudyDate?.ToString("dd/MM/yyyy") ?? "",
                 WhatsAppTemplateTags.AppointmentDate => study.WorklistReadAt?.ToString("dd/MM/yyyy") ?? "",
                 WhatsAppTemplateTags.StudyDescription => study.StudyDescription ?? "",
-                WhatsAppTemplateTags.Modality => study.Series.FirstOrDefault()?.Modality ?? "",
+                WhatsAppTemplateTags.Modality => study.Series.FirstOrDefault()?.Modality ?? study.WorklistReadByModality ?? "",
                 WhatsAppTemplateTags.ReferringPhysician => study.ReferringPhysician ?? "",
-                WhatsAppTemplateTags.InstitutionName => "",
+                WhatsAppTemplateTags.InstitutionName => facilityName ?? "",
                 WhatsAppTemplateTags.PacsViewerLink => "",
                 WhatsAppTemplateTags.ImagesUrl => imagesUrl ?? "",
                 _ => ""
