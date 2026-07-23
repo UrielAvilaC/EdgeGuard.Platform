@@ -15,6 +15,10 @@ public sealed class Notification : Entity<string>
     public string? NormalizedPhone { get; private set; }
     public string? TemplateId { get; private set; }
     public string? ContentSid { get; private set; }
+    /// <summary>Resolved WhatsApp Content template variables as a JSON object of position→value
+    /// (e.g. <c>{"1":"Juan Pérez","2":"https://..."}</c>). Persisted so the outbox processor can
+    /// re-hydrate them at send time — the WhatsApp analogue of <see cref="RenderedBody"/> for email.</summary>
+    public string? ContentVariables { get; private set; }
     public string? StudyStatus { get; private set; }
     public NotificationStatus Status { get; private set; }
     public NotificationTriggerSource TriggeredBy { get; private set; }
@@ -49,7 +53,8 @@ public sealed class Notification : Entity<string>
         string? patientId = null,
         string? normalizedPhone = null,
         string? templateId = null,
-        string? contentSid = null)
+        string? contentSid = null,
+        string? contentVariables = null)
     {
         if (string.IsNullOrWhiteSpace(studyId))
             throw new ArgumentException("Study ID cannot be empty.", nameof(studyId));
@@ -65,6 +70,7 @@ public sealed class Notification : Entity<string>
             NormalizedPhone = normalizedPhone?.Trim(),
             TemplateId = templateId?.Trim(),
             ContentSid = contentSid?.Trim(),
+            ContentVariables = string.IsNullOrWhiteSpace(contentVariables) ? null : contentVariables,
             StudyStatus = studyStatus?.Trim(),
             Status = NotificationStatus.Pending,
             TriggeredBy = triggeredBy,

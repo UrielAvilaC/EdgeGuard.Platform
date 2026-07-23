@@ -77,7 +77,8 @@ public sealed class WhatsAppNotificationService(
         var notification = Notification.Create(
             studyId, patient.PhoneNumber, NotificationTriggerSource.Automatic,
             studyStatus: statusName, patientId: patient.Id,
-            normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid);
+            normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid,
+            contentVariables: SerializeContentVariables(variables));
 
         await SendAndRecordAsync(notification, normalized, template.ContentSid, variables, ct);
     }
@@ -126,7 +127,8 @@ public sealed class WhatsAppNotificationService(
             var notification = Notification.Create(
                 request.StudyId, recipient.PhoneNumber, NotificationTriggerSource.Manual,
                 studyStatus: study.Status.ToString(), patientId: study.PatientId,
-                normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid);
+                normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid,
+                contentVariables: SerializeContentVariables(variables));
 
             var sendResult = await SendAndRecordAsync(notification, normalized, template.ContentSid, variables, ct);
 
@@ -231,7 +233,8 @@ public sealed class WhatsAppNotificationService(
             try
             {
                 var result = await messagingProvider.SendContentMessageAsync(
-                    notification.NormalizedPhone, notification.ContentSid, [], ct);
+                    notification.NormalizedPhone, notification.ContentSid,
+                    DeserializeContentVariables(notification.ContentVariables), ct);
 
                 if (result.Success)
                     notification.MarkSent(messagingProvider.ProviderName, result.ProviderMessageId);
@@ -292,6 +295,25 @@ public sealed class WhatsAppNotificationService(
             await unitOfWork.SaveChangesAsync(ct);
             return new SendMessageResult(false, null, ex.Message);
         }
+    }
+
+    /// <summary>Serializes positional variables to the JSON object Twilio ContentVariables expects
+    /// (string keys). Returns null when empty. Persisted on the Notification for retry re-hydration.</summary>
+    private static string? SerializeContentVariables(Dictionary<int, string> variables) =>
+        variables.Count == 0
+            ? null
+            : JsonSerializer.Serialize(variables.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value));
+
+    /// <summary>Inverse of <see cref="SerializeContentVariables"/>: rehydrates the persisted JSON.</summary>
+    private static Dictionary<int, string> DeserializeContentVariables(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+        var raw = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        return raw is null
+            ? []
+            : raw.Where(kv => int.TryParse(kv.Key, out _))
+                 .ToDictionary(kv => int.Parse(kv.Key), kv => kv.Value);
     }
 
     private async Task AuditSkippedAsync(string studyId, string status, string reason, CancellationToken ct)

@@ -18,6 +18,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.NormalizedPhone).HasMaxLength(32);
         builder.Property(n => n.TemplateId).HasMaxLength(50);
         builder.Property(n => n.ContentSid).HasMaxLength(64);
+        builder.Property(n => n.ContentVariables).HasColumnType("text");
         builder.Property(n => n.StudyStatus).HasMaxLength(32);
         builder.Property(n => n.Status).HasConversion<string>().IsRequired().HasMaxLength(20);
         builder.Property(n => n.TriggeredBy).HasConversion<string>().IsRequired().HasMaxLength(20);

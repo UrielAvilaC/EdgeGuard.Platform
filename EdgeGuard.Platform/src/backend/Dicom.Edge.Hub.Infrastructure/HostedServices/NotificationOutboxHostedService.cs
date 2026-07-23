@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Application.Notifications;
 using Dicom.Edge.Hub.Application.Outbox;
@@ -100,6 +101,21 @@ public sealed class NotificationOutboxHostedService(
             Channel = NotificationChannel.WhatsApp,
             To = n.NormalizedPhone ?? n.PhoneNumber,
             ContentSid = n.ContentSid,
+            Variables = DeserializeVariables(n.ContentVariables),
         },
     };
+
+    /// <summary>Rehydrates the persisted JSON object (string position→value) into the
+    /// position-keyed dictionary the WhatsApp sender / Twilio ContentVariables expects.</summary>
+    private static Dictionary<int, string> DeserializeVariables(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new Dictionary<int, string>();
+
+        var raw = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        return raw is null
+            ? new Dictionary<int, string>()
+            : raw.Where(kv => int.TryParse(kv.Key, out _))
+                 .ToDictionary(kv => int.Parse(kv.Key), kv => kv.Value);
+    }
 }

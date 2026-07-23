@@ -237,12 +237,16 @@ export class StudyDeliverDialog {
   protected attachPdf = false;
 
   constructor() {
-    if (this.channels.emailEnabled()) {
-      this.api.getEmailTemplates().subscribe((t) => this.emailTemplates.set(t));
-    }
-    if (this.channels.whatsAppEnabled()) {
-      this.api.getWhatsAppTemplates().subscribe((t) => this.whatsAppTemplates.set(t));
-    }
+    // Re-check channel enablement on open so a channel toggled server-side
+    // (e.g. WhatsApp enabled in settings/DB) is reflected without a full reload.
+    this.channels.refresh().subscribe(() => {
+      if (this.channels.emailEnabled()) {
+        this.api.getEmailTemplates().subscribe((t) => this.emailTemplates.set(t));
+      }
+      if (this.channels.whatsAppEnabled()) {
+        this.api.getWhatsAppTemplates().subscribe((t) => this.whatsAppTemplates.set(t));
+      }
+    });
     this.loadDeliveries();
   }
 

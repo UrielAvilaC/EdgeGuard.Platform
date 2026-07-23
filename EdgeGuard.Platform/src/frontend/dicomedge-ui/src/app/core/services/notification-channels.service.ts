@@ -65,4 +65,16 @@ export class NotificationChannelsService {
   load(): void {
     this.ensureLoaded().subscribe();
   }
+
+  /**
+   * Discards the cached state and re-fetches from the Hub. Use when the channel
+   * enablement may have changed server-side (e.g. WhatsApp toggled in settings/DB)
+   * and the SPA is still running, since {@link ensureLoaded} otherwise serves the
+   * value cached at startup indefinitely.
+   */
+  refresh(): Observable<NotificationChannelsState> {
+    this.state.set(null);
+    this.inFlight$ = undefined;
+    return this.ensureLoaded();
+  }
 }

@@ -12,11 +12,13 @@ public sealed record MessagingProviderConfig
     public string? MessagingServiceSid { get; init; }
 
     /// <summary>
-    /// Returns <c>true</c> if all required fields are populated.
+    /// Returns <c>true</c> if the credentials required to send are populated.
+    /// A sender can be specified either by <see cref="PhoneNumber"/> or by
+    /// <see cref="MessagingServiceSid"/>; at least one is required.
     /// </summary>
     public bool IsComplete() =>
         !string.IsNullOrWhiteSpace(AccountSid) &&
         !string.IsNullOrWhiteSpace(AuthToken) &&
-        !string.IsNullOrWhiteSpace(PhoneNumber) &&
-        !string.IsNullOrWhiteSpace(MessagingServiceSid);
+        (!string.IsNullOrWhiteSpace(PhoneNumber) ||
+         !string.IsNullOrWhiteSpace(MessagingServiceSid));
 }

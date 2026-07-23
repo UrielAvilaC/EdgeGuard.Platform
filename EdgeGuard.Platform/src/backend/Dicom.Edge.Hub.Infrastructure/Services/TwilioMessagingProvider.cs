@@ -40,15 +40,31 @@ public sealed class TwilioMessagingProvider(
                 ? JsonSerializer.Serialize(variables.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value))
                 : null;
 
-            var message = await MessageResource.CreateAsync(
-                to: new PhoneNumber($"whatsapp:{toPhoneNumber}"),
-                from: new PhoneNumber($"whatsapp:{config.PhoneNumber}"),
-                contentSid: contentSid,
-                contentVariables: contentVariables,
-                messagingServiceSid: config.MessagingServiceSid);
+            var options = new CreateMessageOptions(new PhoneNumber($"whatsapp:{toPhoneNumber}"))
+            {
+                ContentSid = contentSid,
+                ContentVariables = contentVariables,
+            };
 
-            logger.LogInformation("Twilio message sent: SID={MessageSid} To={To}",
-                message.Sid, toPhoneNumber);
+            // A Messaging Service and an explicit sender number are mutually exclusive.
+            // Prefer the Messaging Service when configured; otherwise send from the number.
+            var sender = !string.IsNullOrWhiteSpace(config.MessagingServiceSid)
+                ? $"MessagingServiceSid={config.MessagingServiceSid}"
+                : $"From=whatsapp:{config.PhoneNumber}";
+            if (!string.IsNullOrWhiteSpace(config.MessagingServiceSid))
+                options.MessagingServiceSid = config.MessagingServiceSid;
+            else
+                options.From = new PhoneNumber($"whatsapp:{config.PhoneNumber}");
+
+            logger.LogInformation(
+                "Sending Twilio WhatsApp message to {To}: ContentSid={ContentSid} Sender={Sender} Variables={Variables}",
+                toPhoneNumber, contentSid, sender, contentVariables ?? "{}");
+
+            var message = await MessageResource.CreateAsync(options);
+
+            logger.LogInformation(
+                "Twilio message sent: SID={MessageSid} Status={Status} To={To} ContentSid={ContentSid} Variables={Variables}",
+                message.Sid, message.Status, toPhoneNumber, contentSid, contentVariables ?? "{}");
 
             return new SendMessageResult(true, message.Sid, null);
         }

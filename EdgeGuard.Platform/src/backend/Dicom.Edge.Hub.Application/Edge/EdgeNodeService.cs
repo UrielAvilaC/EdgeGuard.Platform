@@ -406,9 +406,11 @@ public sealed class EdgeNodeService(
     public Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(
         NodePacsEchoReportRequest request, CancellationToken ct = default)
     {
-        var node = nodeRepository.GetByIdAsync(request.NodeId, ct);
-        // We don't await the existence check — just store optimistically.
-        // If the node disappears it's a cosmetic issue.
+        // Store optimistically without checking node existence — the echo status
+        // lives in an in-memory store, so a stale node id is only a cosmetic issue.
+        // (Do NOT fire-and-forget an EF query here: an un-awaited DbContext read
+        // outlives the request scope, disposing the context mid-read and corrupting
+        // the Npgsql connection — "BindComplete while expecting ReadyForQueryMessage".)
         var status = new NodePacsCEchoStatusDto
         {
             NodeId        = request.NodeId,

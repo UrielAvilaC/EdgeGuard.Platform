@@ -80,7 +80,7 @@ export class StudyReportPanel {
   protected readonly qrUrl = signal<SafeUrl | null>(null);
 
   constructor() {
-    this.channels.load();
+    this.channels.refresh().subscribe();
     effect(() => {
       const id = this.studyId();
       if (id) this.load(id);

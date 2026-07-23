@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,8 @@ public sealed class NotificationDispatcher(
                     request.PatientId,
                     target.NormalizedPhone ?? target.To,
                     target.TemplateId,
-                    target.ContentSid),
+                    target.ContentSid,
+                    SerializeVariables(target.Variables)),
             };
 
             await repository.AddAsync(notification, ct);
@@ -57,4 +59,11 @@ public sealed class NotificationDispatcher(
 
         return new DeliveryResult(count);
     }
+
+    /// <summary>Serializes resolved WhatsApp variables to a JSON object of position→value
+    /// (string keys, as Twilio's ContentVariables expects). Returns null when there are none.</summary>
+    private static string? SerializeVariables(IReadOnlyDictionary<int, string>? variables) =>
+        variables is null or { Count: 0 }
+            ? null
+            : JsonSerializer.Serialize(variables.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value));
 }

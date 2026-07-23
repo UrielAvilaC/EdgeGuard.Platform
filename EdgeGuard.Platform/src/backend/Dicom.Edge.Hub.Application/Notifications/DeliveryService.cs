@@ -3,6 +3,7 @@ using Dicom.Edge.Contracts.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
+using Dicom.Edge.Hub.Application.WhatsApp;
 using Dicom.Edge.Models.Enums;
 using Microsoft.Extensions.Logging;
 
@@ -70,8 +71,12 @@ public sealed class DeliveryService(
         // ── WhatsApp (Twilio ContentSid) ──
         if (request.Phones.Length > 0 && !string.IsNullOrEmpty(request.WhatsAppTemplateId))
         {
-            var template = await whatsAppTemplateRepository.GetByIdAsync(request.WhatsAppTemplateId, ct);
+            // Load WITH variables so we can resolve the positional Content template values —
+            // GetByIdAsync alone leaves template.Variables empty and Twilio receives {}.
+            var template = await whatsAppTemplateRepository.GetByIdWithVariablesAsync(request.WhatsAppTemplateId, ct);
             if (template is not null)
+            {
+                var whatsAppVars = WhatsAppVariableResolver.Resolve(study, patient, template.Variables, imageLink);
                 foreach (var phone in request.Phones.Where(p => !string.IsNullOrWhiteSpace(p)))
                     targets.Add(new DeliveryTarget
                     {
@@ -80,7 +85,9 @@ public sealed class DeliveryService(
                         NormalizedPhone = phone.Trim(),
                         ContentSid = template.ContentSid,
                         TemplateId = template.Id,
+                        Variables = whatsAppVars,
                     });
+            }
         }
 
         if (targets.Count == 0) return new DeliverResultsResponse { Enqueued = 0 };
