@@ -175,19 +175,36 @@ const PHONE_RE = /^\+[1-9]\d{7,14}$/;
         <!-- Delivery history -->
         @if (deliveries().length > 0) {
           <div class="space-y-1.5 pt-1">
-            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Historial de entregas
-            </div>
-            @for (d of deliveries(); track d.id) {
-              <div class="text-xs flex items-center gap-2">
-                <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700">{{ d.channel }}</span>
-                <span class="text-gray-600 dark:text-gray-300 truncate flex-1">{{ d.to }}</span>
-                <span
-                  [class.text-emerald-600]="d.status === 'Sent'"
-                  [class.text-red-500]="d.status === 'Failed'"
-                >{{ d.status }}</span>
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Historial de entregas
               </div>
-            }
+              @if (hiddenDeliveryCount() > 0) {
+                <button
+                  type="button"
+                  class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                  (click)="toggleDeliveries()"
+                >
+                  @if (showAllDeliveries()) {
+                    Ver menos
+                  } @else {
+                    Ver más ({{ hiddenDeliveryCount() }})
+                  }
+                </button>
+              }
+            </div>
+            <div [class.max-h-40]="showAllDeliveries()" [class.overflow-y-auto]="showAllDeliveries()" class="space-y-1.5 pr-1">
+              @for (d of visibleDeliveries(); track d.id) {
+                <div class="text-xs flex items-center gap-2">
+                  <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700">{{ d.channel }}</span>
+                  <span class="text-gray-600 dark:text-gray-300 truncate flex-1">{{ d.to }}</span>
+                  <span
+                    [class.text-emerald-600]="d.status === 'Sent'"
+                    [class.text-red-500]="d.status === 'Failed'"
+                  >{{ d.status }}</span>
+                </div>
+              }
+            </div>
           </div>
         }
 
@@ -215,6 +232,18 @@ export class StudyDeliverDialog {
 
   protected readonly sending = signal(false);
   protected readonly deliveries = signal<DeliveryHistory[]>([]);
+
+  /** Number of most-recent deliveries shown before the "Ver más" toggle. */
+  private static readonly DELIVERY_PREVIEW_COUNT = 5;
+  protected readonly showAllDeliveries = signal(false);
+  protected readonly visibleDeliveries = computed(() =>
+    this.showAllDeliveries()
+      ? this.deliveries()
+      : this.deliveries().slice(0, StudyDeliverDialog.DELIVERY_PREVIEW_COUNT),
+  );
+  protected readonly hiddenDeliveryCount = computed(() =>
+    Math.max(0, this.deliveries().length - StudyDeliverDialog.DELIVERY_PREVIEW_COUNT),
+  );
 
   private readonly emailTemplates = signal<{ id: string; name: string }[]>([]);
   private readonly whatsAppTemplates = signal<{ id: string; name: string }[]>([]);
@@ -252,6 +281,10 @@ export class StudyDeliverDialog {
 
   private loadDeliveries(): void {
     this.api.getDeliveries(this.data.studyId).subscribe((d) => this.deliveries.set(d));
+  }
+
+  protected toggleDeliveries(): void {
+    this.showAllDeliveries.update((v) => !v);
   }
 
   protected addEmail(event: MatChipInputEvent): void {

@@ -10,7 +10,7 @@
           {{ isEdit ? 'Editar Equipo' : 'Nuevo Equipo' }}
         </h2>
         <p class="text-sm text-gray-500 dark:text-gray-400">
-          Define el AE Title y las modalidades que verá en su Worklist.
+          Define el AE Title, la IP y las modalidades que verá en su Worklist.
         </p>
       </div>
     </div>
@@ -42,84 +42,103 @@
       </p>
     }
 
+    <!-- IP address (required: sin ella no se otorgan permisos al equipo) -->
+    <ui-input-text
+      label="Dirección IP"
+      placeholder="Ej: 192.168.1.50"
+      hint="Obligatoria: sin IP no se otorgan permisos de asociación al equipo."
+      [(ngModel)]="form.ipAddress"
+      name="ipAddress"
+      required
+    />
+
+    @if (form.ipAddress && !isIpAddressValid) {
+      <p class="text-xs text-amber-600 dark:text-amber-400 -mt-3">
+        Introduce una dirección IPv4 válida (Ej: 192.168.1.50).
+      </p>
+    }
+
     <!-- Modalities -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/30">
-      <div>
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          Modalidades permitidas
-        </h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-          El equipo solo verá en su MWL los estudios de las modalidades seleccionadas.
-        </p>
-      </div>
+    <ui-dropdown
+      label="Modalidades permitidas"
+      placeholder="Selecciona una o más modalidades"
+      hint="El equipo solo verá en su MWL los estudios de las modalidades seleccionadas."
+      [options]="modalityOptions"
+      [multiple]="true"
+      [(ngModel)]="form.modalityCodes"
+      name="modalityCodes"
+    />
 
-      <div class="flex flex-wrap gap-2">
-        @for (m of modalities; track m.code) {
-          <button
-            type="button"
-            (click)="toggleModality(m.code)"
-            [class]="isSelected(m.code)
-              ? 'px-3 py-1.5 rounded-full text-xs font-medium border border-azure-500 bg-azure-100 text-azure-700 dark:bg-azure-900/40 dark:text-azure-300'
-              : 'px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-azure-400'"
-            [title]="m.displayName"
-          >
-            {{ m.code }} — {{ m.displayName }}
-          </button>
-        }
-      </div>
+    @if (form.modalityCodes.length === 0) {
+      <p class="text-xs text-amber-600 dark:text-amber-400 -mt-3">
+        Selecciona al menos una modalidad.
+      </p>
+    }
 
-      @if (selected().size === 0) {
-        <p class="text-xs text-amber-600 dark:text-amber-400">
-          Selecciona al menos una modalidad.
-        </p>
+    <!-- Station (optional, collapsed) -->
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+      <button
+        type="button"
+        class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200"
+        [attr.aria-expanded]="stationExpanded"
+        (click)="stationExpanded = !stationExpanded"
+      >
+        <span>Estación (opcional)</span>
+        <fa-icon
+          [icon]="faChevronDown"
+          class="text-gray-400 transition-transform"
+          [class.rotate-180]="stationExpanded"
+        />
+      </button>
+
+      @if (stationExpanded) {
+        <div class="px-4 pb-4 grid grid-cols-2 gap-4">
+          <ui-input-text
+            label="Scheduled Station AE"
+            placeholder="Ej: CT_SALA1"
+            hint="Si se define, filtra la MWL por esta estación."
+            [(ngModel)]="form.stationAeTitle"
+            name="stationAeTitle"
+          />
+          <ui-input-text
+            label="Nombre de estación"
+            placeholder="Ej: Estación CT 1"
+            [(ngModel)]="form.stationName"
+            name="stationName"
+          />
+        </div>
       }
     </div>
 
-    <!-- Station / network -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-        Estación y red (opcional)
-      </h3>
-
-      <div class="grid grid-cols-2 gap-4">
-        <ui-input-text
-          label="Scheduled Station AE"
-          placeholder="Ej: CT_SALA1"
-          hint="Si se define, filtra la MWL por esta estación."
-          [(ngModel)]="form.stationAeTitle"
-          name="stationAeTitle"
+    <!-- Inventory (optional, collapsed) -->
+    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+      <button
+        type="button"
+        class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200"
+        [attr.aria-expanded]="inventoryExpanded"
+        (click)="inventoryExpanded = !inventoryExpanded"
+      >
+        <span>Inventario (opcional)</span>
+        <fa-icon
+          [icon]="faChevronDown"
+          class="text-gray-400 transition-transform"
+          [class.rotate-180]="inventoryExpanded"
         />
-        <ui-input-text
-          label="Nombre de estación"
-          placeholder="Ej: Estación CT 1"
-          [(ngModel)]="form.stationName"
-          name="stationName"
-        />
-      </div>
+      </button>
 
-      <ui-input-text
-        label="Dirección IP"
-        placeholder="Ej: 192.168.1.50"
-        [(ngModel)]="form.ipAddress"
-        name="ipAddress"
-      />
-    </div>
-
-    <!-- Inventory -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-        Inventario (opcional)
-      </h3>
-
-      <div class="grid grid-cols-2 gap-4">
-        <ui-input-text label="Ubicación" [(ngModel)]="form.location" name="location" />
-        <ui-input-text label="Departamento" [(ngModel)]="form.department" name="department" />
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <ui-input-text label="Fabricante" [(ngModel)]="form.manufacturer" name="manufacturer" />
-        <ui-input-text label="Modelo" [(ngModel)]="form.model" name="model" />
-      </div>
-      <ui-input-text label="Notas" [(ngModel)]="form.notes" name="notes" />
+      @if (inventoryExpanded) {
+        <div class="px-4 pb-4 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <ui-input-text label="Ubicación" [(ngModel)]="form.location" name="location" />
+            <ui-input-text label="Departamento" [(ngModel)]="form.department" name="department" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <ui-input-text label="Fabricante" [(ngModel)]="form.manufacturer" name="manufacturer" />
+            <ui-input-text label="Modelo" [(ngModel)]="form.model" name="model" />
+          </div>
+          <ui-input-text label="Notas" [(ngModel)]="form.notes" name="notes" />
+        </div>
+      }
     </div>
 
     <!-- Footer actions -->

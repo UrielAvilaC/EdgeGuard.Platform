@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, TemplateRef, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faFileExport,
@@ -50,6 +50,7 @@ import { StudyFilters } from '../study-filters/study-filters.component';
 export default class StudiesPage {
   protected readonly facade = inject(StudiesFacade);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly faFileExport = faFileExport;
   protected readonly faExclamationTriangle = faExclamationTriangle;
@@ -67,7 +68,13 @@ export default class StudiesPage {
   ];
 
   constructor() {
-    this.facade.loadStudies();
+    // Support deep-linking a pre-filtered list, e.g. from the patient detail page.
+    const patientId = this.route.snapshot.queryParamMap.get('patientId');
+    if (patientId) {
+      this.facade.updateFilter({ patientId });
+    } else {
+      this.facade.loadStudies();
+    }
     this.facade.startRealtimeRefresh();
   }
 

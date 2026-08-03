@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.WhatsApp;
@@ -150,6 +151,7 @@ public sealed class WhatsAppNotificationService(
             new() { Tag = WhatsAppTemplateTags.InstitutionName, Description = "Institution name", Example = "General Hospital" },
             new() { Tag = WhatsAppTemplateTags.PacsViewerLink, Description = "PACS viewer URL", Example = "https://pacs.example.com/view/123" },
             new() { Tag = WhatsAppTemplateTags.ImagesUrl, Description = "Images download URL", Example = "https://images.example.com/study/123" },
+            new() { Tag = WhatsAppTemplateTags.ImagesUrlPath, Description = "Images URL path only (no domain) — for URL buttons with a fixed domain", Example = "Integrator.aspx?AccNo=123" },
         ];
         return Task.FromResult(tags);
     }
@@ -252,10 +254,15 @@ public sealed class WhatsAppNotificationService(
 
     /// <summary>Serializes positional variables to the JSON object Twilio ContentVariables expects
     /// (string keys). Returns null when empty. Persisted on the Notification for retry re-hydration.</summary>
+    private static readonly JsonSerializerOptions ContentVariablesOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private static string? SerializeContentVariables(Dictionary<int, string> variables) =>
         variables.Count == 0
             ? null
-            : JsonSerializer.Serialize(variables.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value));
+            : JsonSerializer.Serialize(variables.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value), ContentVariablesOptions);
 
     /// <summary>Inverse of <see cref="SerializeContentVariables"/>: rehydrates the persisted JSON.</summary>
     private static Dictionary<int, string> DeserializeContentVariables(string? json)

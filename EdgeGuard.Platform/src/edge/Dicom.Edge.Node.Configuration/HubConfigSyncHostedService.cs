@@ -117,7 +117,10 @@ public sealed class HubConfigSyncHostedService(
     }
 
     /// <summary>
-    /// Writes appsettings values to the DB for any field that is still empty.
+    /// Writes appsettings identity values (node name, AE, IP, version, location,
+    /// facility, API endpoint) to the DB for any field that is still empty.
+    /// These are taken from the bound options, so derived values (AE title unified
+    /// from <c>DicomServer:AeTitle</c>, auto-composed API endpoint) are included.
     /// This establishes DB as the source of truth after first run:
     /// <c>NodeDatabaseConfigurationProvider</c> reads DB at startup; appsettings
     /// is only the bootstrap fallback for keys that have never been persisted.
@@ -141,35 +144,17 @@ public sealed class HubConfigSyncHostedService(
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.FacilityName, Opts.FacilityName, ct);
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.ApiEndpoint,  Opts.ApiEndpoint,  ct);
 
-            // ── Hub connection — decompose HubBaseUrl into individual DB keys ─
-            // The DB stores protocol, hostname and port separately so the Hub UI
-            // can edit each field independently.  appsettings exposes a single
-            // composed URL, so we parse it on first run and persist each part.
-            if (Uri.TryCreate(Opts.HubBaseUrl, UriKind.Absolute, out var hubUri))
-            {
-                await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.Protocol, hubUri.Scheme, ct);
-                await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.Hostname, hubUri.Host,   ct);
-                await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.Port,
-                    hubUri.IsDefaultPort ? string.Empty : hubUri.Port.ToString(), ct);
-            }
+            // Note: the hub.* rows (protocol / hostname / port / timeouts / reconnect)
+            // are hydrated from appsettings by NodeSettingsHubHydrator right after the
+            // migration, before any IOptions binding — see PersistenceInitializerService.
+            // Doing it here as well would be redundant and runs too late for the
+            // HttpClient BaseAddress, which is built from the composed HubBaseUrl.
+            //
+            // ApiKey and NodeId are intentionally never seeded from appsettings — they
+            // are written by PersistApiKeyAsync / PersistNodeIdAsync only after a
+            // successful Hub registration, to avoid persisting stale credentials.
 
-            // ── Hub operational settings ──────────────────────────────────────
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.TimeoutSeconds,
-                Opts.TimeoutSeconds.ToString(), ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.HeartbeatIntervalSec,
-                Opts.HeartbeatIntervalSeconds.ToString(), ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.RegisterOnStartup,
-                Opts.RegisterOnStartup.ToString().ToLowerInvariant(), ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.MaxReconnectAttempts,
-                Opts.MaxReconnectAttempts.ToString(), ct);
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Hub.ReconnectDelaySeconds,
-                Opts.ReconnectDelaySeconds.ToString(), ct);
-
-            // Note: ApiKey and NodeId are intentionally excluded — they are written
-            // by PersistApiKeyAsync / PersistNodeIdAsync only after Hub registration
-            // to avoid seeding stale credentials from appsettings.
-
-            logger.LogDebug("Appsettings → DB sync complete (Hub connection + identity fields)");
+            logger.LogDebug("Appsettings → DB sync complete (identity fields)");
         }
         catch (Exception ex)
         {
