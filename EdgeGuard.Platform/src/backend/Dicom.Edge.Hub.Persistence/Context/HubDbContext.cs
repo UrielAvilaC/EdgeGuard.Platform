@@ -9,6 +9,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Modalities;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Routing;
@@ -42,6 +43,9 @@ public class HubDbContext : DbContext
     public DbSet<StudyCleanupPolicy> StudyCleanupPolicies => Set<StudyCleanupPolicy>();
     public DbSet<Hl7Message> Hl7Messages => Set<Hl7Message>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<OutboxTopic> OutboxTopics => Set<OutboxTopic>();
+    public DbSet<NodeOutboxMessage> NodeOutboxMessages => Set<NodeOutboxMessage>();
+    public DbSet<OutboxActivity> OutboxActivity => Set<OutboxActivity>();
     public DbSet<Hl7RoutingRule> Hl7RoutingRules => Set<Hl7RoutingRule>();
     public DbSet<NodeDicomRoutingRule> NodeDicomRoutingRules => Set<NodeDicomRoutingRule>();
     public DbSet<HubAuditLog> HubAuditLogs => Set<HubAuditLog>();
@@ -49,7 +53,7 @@ public class HubDbContext : DbContext
     public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
     public DbSet<WhatsAppTemplate> WhatsAppTemplates => Set<WhatsAppTemplate>();
     public DbSet<WhatsAppTemplateVariable> WhatsAppTemplateVariables => Set<WhatsAppTemplateVariable>();
-    public DbSet<WhatsAppAutoSendRule> WhatsAppAutoSendRules => Set<WhatsAppAutoSendRule>();
+    public DbSet<NotificationAutoSendRule> NotificationAutoSendRules => Set<NotificationAutoSendRule>();
     public DbSet<PacsSendAudit> PacsSendAudits => Set<PacsSendAudit>();
     public DbSet<NodeConfigurationProfile> NodeConfigurationProfiles => Set<NodeConfigurationProfile>();
 

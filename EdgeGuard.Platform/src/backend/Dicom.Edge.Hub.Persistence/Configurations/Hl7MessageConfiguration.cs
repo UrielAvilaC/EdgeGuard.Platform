@@ -47,6 +47,7 @@ public sealed class Hl7MessageConfiguration : IEntityTypeConfiguration<Hl7Messag
 
         builder.Ignore(m => m.ImageLinks);
         builder.Ignore(m => m.HasMrgSegment);
+        builder.Ignore(m => m.ReferringPhysician);
 
         builder.Property(m => m.TargetNodeId).HasMaxLength(100);
         builder.Property(m => m.TargetNodeName).HasMaxLength(200);

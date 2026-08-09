@@ -71,6 +71,23 @@ public static class HubSettingKeys
         public const string AutoMode = "notifications.auto_mode";
     }
 
+    /// <summary>
+    /// SMTP (email channel) configuration. Mapped to the <c>Smtp:*</c> configuration
+    /// section by <c>HubDatabaseConfigurationProvider</c>, so a populated DB value
+    /// overrides the corresponding <c>appsettings</c> value.
+    /// </summary>
+    public static class Smtp
+    {
+        public const string Enabled  = "smtp.enabled";
+        public const string Host     = "smtp.host";
+        public const string Port     = "smtp.port";
+        public const string User     = "smtp.user";
+        public const string Password = "smtp.password";
+        public const string From     = "smtp.from";
+        public const string FromName = "smtp.from_name";
+        public const string UseTls   = "smtp.use_tls";
+    }
+
     public static class BackgroundJobs
     {
         public const string EnableNodeHealth = "jobs.enable_node_health";
@@ -86,7 +103,8 @@ public static class HubSettingKeys
         public const string AuditLogDays = "retention.audit_log_days";
         public const string Hl7MessageDays = "retention.hl7_message_days";
         public const string HealthCheckDays = "retention.health_check_days";
-        public const string WhatsAppNotificationDays = "retention.whatsapp_notification_days";
+        public const string NotificationDays = "retention.notification_days";
+        public const string NodeOutboxDays = "retention.node_outbox_days";
         public const string PacsSendAuditDays = "retention.pacs_send_audit_days";
         public const string StudyStatusAuditDays = "retention.study_status_audit_days";
         public const string BatchSize = "retention.batch_size";

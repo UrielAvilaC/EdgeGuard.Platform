@@ -173,6 +173,7 @@ internal sealed class PersistenceInitializerService(
     IDbContextFactory<EdgeNodeDbContext> factory,
     INodeSettingsService settingsService,
     INodeConfigurationReloader configReloader,
+    IConfiguration configuration,
     ILogger<PersistenceInitializerService> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -204,8 +205,20 @@ internal sealed class PersistenceInitializerService(
         await Seed.ModalityCatalogSeed.SeedAsync(ctx, cancellationToken);
         logger.LogDebug("Seed check complete");
 
+        // ── Phase 2b: Hydrate empty hub.* rows from appsettings ──────────────
+        // Hub settings are seeded empty (their values live in appsettings), so they
+        // must be filled here — immediately after the migration and before any
+        // IOptions<HubConnectionOptions> binding — otherwise the DB configuration
+        // provider (higher precedence) would blank out the deployed configuration.
+        // Rows that already hold a value are never overwritten.
+        var hydrated = await NodeSettingsHubHydrator.HydrateFromConfigurationAsync(
+            ctx, configuration, logger, cancellationToken);
+
         // ── Phase 3: Warm settings cache ─────────────────────────────────────
         await settingsService.ReloadAsync(cancellationToken);
+
+        // Republish the freshly hydrated rows to IConfiguration / IOptionsMonitor.
+        if (hydrated > 0) configReloader.Reload();
         logger.LogInformation("NodeSettings cache warmed ({Count} entries loaded)",
             (await ctx.NodeSettings.CountAsync(cancellationToken)));
 

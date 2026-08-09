@@ -152,6 +152,32 @@ public sealed class StudyProgressNotifyRequest
     public int SeriesCount { get; init; }
 }
 
+/// <summary>
+/// Sent by the Edge Node to report the PACS-send phase of a study so the Hub can
+/// advance its status to <c>Sending</c> (Enviando a PACS) / <c>SentToPacs</c> (Enviado a PACS) / <c>Failed</c>.
+/// These states are surfaced in the study-detail timeline.
+/// </summary>
+public sealed class StudyPacsStatusNotifyRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    [Required, StringLength(64, MinimumLength = 1)]
+    public required string StudyInstanceUid { get; init; }
+
+    /// <summary>One of <c>Sending</c>, <c>SentToPacs</c> or <c>Failed</c>.</summary>
+    [Required, StringLength(32, MinimumLength = 1)]
+    public required string Status { get; init; }
+
+    /// <summary>AE Title of the destination PACS, when known.</summary>
+    [StringLength(16)]
+    public string? TargetPacsAeTitle { get; init; }
+
+    /// <summary>Error message when <see cref="Status"/> is <c>Failed</c>.</summary>
+    [StringLength(500)]
+    public string? Error { get; init; }
+}
+
 public sealed class NodeHealthReportRequest
 {
     [Required, StringLength(36, MinimumLength = 1)]
@@ -462,6 +488,15 @@ public sealed class UpdateStudyStatusRequest
 
     [StringLength(500)]
     public string? Reason { get; init; }
+}
+
+// ── Manual study resend ───────────────────────────────────────────────────────
+
+/// <summary>POST /api/studies/{id}/requeue — manual resend of a Failed study to chosen PACS.</summary>
+public sealed class RequeueStudyRequest
+{
+    [Required, MinLength(1)]
+    public required IReadOnlyList<string> PacsIds { get; init; }
 }
 
 // ── Node Configuration ───────────────────────────────────────────────────────

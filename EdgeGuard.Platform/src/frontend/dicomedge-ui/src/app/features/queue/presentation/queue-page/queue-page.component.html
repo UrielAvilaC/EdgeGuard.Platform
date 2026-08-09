@@ -97,7 +97,7 @@
                   <td class="px-4 py-3">
                     @if (msg.patientName) {
                       <div>
-                        <span class="font-medium text-gray-900 dark:text-white">{{ msg.patientName }}</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ msg.patientName | personName }}</span>
                         @if (msg.patientId) {
                           <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">({{ msg.patientId }})</span>
                         }

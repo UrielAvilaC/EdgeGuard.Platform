@@ -33,6 +33,7 @@ public sealed class HubAuthenticationMiddleware
         "/api/dicom-routing-rules",
         "/api/pacs-destinations",
         "/api/configuration",
+        "/api/studies",
     ];
 
     private readonly RequestDelegate _next;

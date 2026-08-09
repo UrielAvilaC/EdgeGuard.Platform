@@ -1,3 +1,4 @@
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Dicom.Edge.Hub.Domain.Common;
 
 namespace Dicom.Edge.Hub.Domain.Aggregates.Notifications;
@@ -14,6 +15,10 @@ public sealed class Notification : Entity<string>
     public string? NormalizedPhone { get; private set; }
     public string? TemplateId { get; private set; }
     public string? ContentSid { get; private set; }
+    /// <summary>Resolved WhatsApp Content template variables as a JSON object of position→value
+    /// (e.g. <c>{"1":"Juan Pérez","2":"https://..."}</c>). Persisted so the outbox processor can
+    /// re-hydrate them at send time — the WhatsApp analogue of <see cref="RenderedBody"/> for email.</summary>
+    public string? ContentVariables { get; private set; }
     public string? StudyStatus { get; private set; }
     public NotificationStatus Status { get; private set; }
     public NotificationTriggerSource TriggeredBy { get; private set; }
@@ -25,6 +30,9 @@ public sealed class Notification : Entity<string>
 
     // ── Unified outbox: channel + Email payload + retry scheduling ────────────
     public NotificationChannel Channel { get; private set; } = NotificationChannel.WhatsApp;
+
+    /// <summary>FK to <c>outbox_topics</c>; derived from <see cref="Channel"/> at creation.</summary>
+    public string TopicId { get; private set; } = OutboxTopicCatalog.NotificationWhatsApp;
     public string? ToEmail { get; private set; }
     public string? Subject { get; private set; }
     public string? RenderedBody { get; private set; }
@@ -45,7 +53,8 @@ public sealed class Notification : Entity<string>
         string? patientId = null,
         string? normalizedPhone = null,
         string? templateId = null,
-        string? contentSid = null)
+        string? contentSid = null,
+        string? contentVariables = null)
     {
         if (string.IsNullOrWhiteSpace(studyId))
             throw new ArgumentException("Study ID cannot be empty.", nameof(studyId));
@@ -61,6 +70,7 @@ public sealed class Notification : Entity<string>
             NormalizedPhone = normalizedPhone?.Trim(),
             TemplateId = templateId?.Trim(),
             ContentSid = contentSid?.Trim(),
+            ContentVariables = string.IsNullOrWhiteSpace(contentVariables) ? null : contentVariables,
             StudyStatus = studyStatus?.Trim(),
             Status = NotificationStatus.Pending,
             TriggeredBy = triggeredBy,
@@ -94,6 +104,7 @@ public sealed class Notification : Entity<string>
             PatientId = patientId?.Trim(),
             PhoneNumber = string.Empty,
             Channel = NotificationChannel.Email,
+            TopicId = OutboxTopicCatalog.NotificationEmail,
             ToEmail = toEmail.Trim(),
             Subject = subject,
             RenderedBody = body,
@@ -141,6 +152,15 @@ public sealed class Notification : Entity<string>
     {
         Status = NotificationStatus.Skipped;
         LastError = reason?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Manually returns the record to Pending for immediate re-dispatch.</summary>
+    public void Requeue()
+    {
+        Status = NotificationStatus.Pending;
+        NextAttemptAt = null;
+        LastError = null;
         UpdatedAt = DateTime.UtcNow;
     }
 }

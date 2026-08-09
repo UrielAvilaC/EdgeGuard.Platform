@@ -1,52 +1,36 @@
+using System.Text.Json;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Application.Notifications;
+using Dicom.Edge.Hub.Application.Outbox;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Infrastructure.HostedServices;
 
 /// <summary>
-/// Unified, durable notification outbox processor. Drains pending <c>Notification</c>
-/// records and dispatches each to the matching <see cref="INotificationChannelSender"/>.
-/// Channels are processed in independent lanes (a slow SMTP server does not block
-/// WhatsApp), and failures are retried with exponential backoff via <c>NextAttemptAt</c>.
-/// Replaces the WhatsApp-only hosted service.
+/// Durable notification outbox processor. Drains pending <c>Notification</c> records and
+/// dispatches each to the matching <see cref="INotificationChannelSender"/>. Channels are
+/// processed in independent lanes (a slow SMTP server does not block WhatsApp), and failures
+/// are retried with exponential backoff via <c>NextAttemptAt</c>. The drain loop, interval
+/// and backoff live in <see cref="OutboxDispatcherBase"/>.
 /// </summary>
 public sealed class NotificationOutboxHostedService(
     IServiceScopeFactory scopeFactory,
     IQrCodeGenerator qrCodeGenerator,
-    ILogger<NotificationOutboxHostedService> logger) : BackgroundService
+    IOutboxNotifier notifier,
+    ILogger<NotificationOutboxHostedService> logger)
+    : OutboxDispatcherBase(scopeFactory, logger)
 {
-    private const int IntervalSeconds = 30;
     private const int BatchSize = 100;
     private const int MaxAttempts = 5;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override string WorkerName => "Notification outbox worker";
+    protected override int IntervalSeconds => 30;
+
+    protected override async Task DrainAsync(IServiceScope scope, CancellationToken ct)
     {
-        logger.LogInformation("Notification outbox worker started");
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await DrainAsync(stoppingToken);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "Notification outbox drain failed");
-            }
-
-            await Task.Delay(TimeSpan.FromSeconds(IntervalSeconds), stoppingToken);
-        }
-
-        logger.LogInformation("Notification outbox worker stopped");
-    }
-
-    private async Task DrainAsync(CancellationToken ct)
-    {
-        using var scope = scopeFactory.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var senders = scope.ServiceProvider.GetServices<INotificationChannelSender>()
@@ -93,6 +77,9 @@ public sealed class NotificationOutboxHostedService(
                 n.ScheduleRetry(Backoff(n.Attempts), result.Error ?? "Send failed");
 
             await repo.UpdateAsync(n, ct);
+            await notifier.EntryChangedAsync(new OutboxEntryChange(
+                OutboxTopicCatalog.Categories.Notification, n.Id, n.TopicId,
+                n.Status.ToString(), n.Attempts, n.LastError), ct);
         }
     }
 
@@ -114,9 +101,21 @@ public sealed class NotificationOutboxHostedService(
             Channel = NotificationChannel.WhatsApp,
             To = n.NormalizedPhone ?? n.PhoneNumber,
             ContentSid = n.ContentSid,
+            Variables = DeserializeVariables(n.ContentVariables),
         },
     };
 
-    private static TimeSpan Backoff(int attempts) =>
-        TimeSpan.FromSeconds(Math.Min(300, Math.Pow(2, attempts + 1)));
+    /// <summary>Rehydrates the persisted JSON object (string position→value) into the
+    /// position-keyed dictionary the WhatsApp sender / Twilio ContentVariables expects.</summary>
+    private static Dictionary<int, string> DeserializeVariables(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new Dictionary<int, string>();
+
+        var raw = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        return raw is null
+            ? new Dictionary<int, string>()
+            : raw.Where(kv => int.TryParse(kv.Key, out _))
+                 .ToDictionary(kv => int.Parse(kv.Key), kv => kv.Value);
+    }
 }

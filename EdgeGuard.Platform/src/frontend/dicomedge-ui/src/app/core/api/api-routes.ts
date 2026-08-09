@@ -18,6 +18,8 @@ export const API_ROUTES = {
     PENDING_PACS: '/studies/pending-pacs',
     COUNT: '/studies/count',
     STATUS: (id: string) => `/studies/${id}/status`,
+    REQUEUE: (id: string) => `/studies/${id}/requeue`,
+    INFRASTRUCTURE: (id: string) => `/studies/${id}/infrastructure`,
     EXPORT: '/studies/export',
     REPORT: (id: string) => `/studies/${id}/report`,
     REPORT_PDF: (id: string) => `/studies/${id}/report/pdf`,
@@ -79,6 +81,12 @@ export const API_ROUTES = {
     SUMMARY: '/queue-monitoring/summary',
     BY_STATUS: (status: string) => `/queue-monitoring/by-dispatch-status/${status}`,
     QUEUED: '/queue-monitoring/queued',
+  },
+  OUTBOX: {
+    ACTIVITY: '/outbox',
+    TOPICS: '/outbox/topics',
+    RETRY: (store: string, id: string) => `/outbox/${store}/${id}/retry`,
+    DEAD_LETTER: (store: string, id: string) => `/outbox/${store}/${id}/dead-letter`,
   },
   WHATSAPP: {
     CONFIG_STATUS: '/whatsapp/config-status',

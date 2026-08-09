@@ -161,6 +161,22 @@ internal sealed class DicomInstanceHandler(
             study.InstanceCount++;
             study.LastImageReceivedAt = now;
             study.TotalSizeBytes += fileSize;
+
+            // New images arrived for a study the node already closed (Completed/Sent/Failed/etc.).
+            // Reopen it as Receiving so StudyCompletionWatcher re-detects completion and the study
+            // is re-routed to PACS. Without this, re-sent studies stay in their terminal status and
+            // are never completed or delivered again. Also clear the soft-delete flags in case the
+            // cleanup service already purged it — otherwise the completion watcher (which filters
+            // out IsDeleted rows) would never see the reopened study.
+            if (study.Status != StudyStatus.Receiving || study.IsDeleted)
+            {
+                logger.LogInformation(
+                    "Study {StudyUid} received new image(s) while in status {PreviousStatus} (deleted={WasDeleted}) — reopening as Receiving",
+                    studyUid, study.Status, study.IsDeleted);
+                study.Status = StudyStatus.Receiving;
+                study.IsDeleted = false;
+                study.DeletedAt = null;
+            }
         }
 
         // ── Upsert Series ────────────────────────────────────────────────

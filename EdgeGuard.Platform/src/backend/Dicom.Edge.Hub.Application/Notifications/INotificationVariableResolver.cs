@@ -12,7 +12,7 @@ public interface INotificationVariableResolver
 {
     string Render(string template, IReadOnlyDictionary<string, string> values);
     IReadOnlyDictionary<string, string> SampleValues();
-    IReadOnlyDictionary<string, string> BuildValues(Study study, Patient? patient, string? imageLink, string? reportLink);
+    IReadOnlyDictionary<string, string> BuildValues(Study study, Patient? patient, string? imageLink, string? reportLink, string? facilityName = null);
 }
 
 public sealed partial class NotificationVariableResolver : INotificationVariableResolver
@@ -35,19 +35,33 @@ public sealed partial class NotificationVariableResolver : INotificationVariable
         NotificationTags.All.ToDictionary(t => t.Tag, t => t.Example);
 
     public IReadOnlyDictionary<string, string> BuildValues(
-        Study study, Patient? patient, string? imageLink, string? reportLink) =>
+        Study study, Patient? patient, string? imageLink, string? reportLink, string? facilityName = null) =>
         new Dictionary<string, string>
         {
-            [NotificationTags.PatientName]       = study.PatientName ?? patient?.PatientName ?? "",
+            [NotificationTags.PatientName]       = CleanPersonName(study.PatientName ?? patient?.PatientName),
             [NotificationTags.PatientCode]       = patient?.PatientDicomId.Value ?? study.PatientId ?? "",
             [NotificationTags.AccessionNumber]   = study.AccessionNumber ?? "",
             [NotificationTags.StudyDescription]  = study.StudyDescription ?? "",
             [NotificationTags.StudyDate]         = study.StudyDate?.ToString("dd/MM/yyyy") ?? "",
-            [NotificationTags.Modality]          = study.Series.FirstOrDefault()?.Modality ?? "",
-            [NotificationTags.ReferringPhysician]= study.ReferringPhysician ?? "",
-            [NotificationTags.FacilityName]      = "",
+            [NotificationTags.Modality]          = study.Series.FirstOrDefault()?.Modality ?? study.WorklistReadByModality ?? "",
+            [NotificationTags.ReferringPhysician]= CleanPersonName(study.ReferringPhysician),
+            [NotificationTags.FacilityName]      = facilityName ?? "",
             [NotificationTags.ImageLink]         = imageLink ?? "",
             [NotificationTags.ReportLink]        = reportLink ?? "",
             [NotificationTags.QrCode]            = imageLink is not null ? "<img src=\"cid:qr\" alt=\"QR\">" : "",
         };
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespacePattern();
+
+    /// <summary>
+    /// Cleans a DICOM person name (PN) for display: replaces the <c>^</c> component
+    /// separators (e.g. <c>PEREZ^JUAN^^^</c>) with spaces, collapses repeated
+    /// whitespace and trims, yielding <c>PEREZ JUAN</c>.
+    /// </summary>
+    private static string CleanPersonName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        return WhitespacePattern().Replace(value.Replace('^', ' '), " ").Trim();
+    }
 }

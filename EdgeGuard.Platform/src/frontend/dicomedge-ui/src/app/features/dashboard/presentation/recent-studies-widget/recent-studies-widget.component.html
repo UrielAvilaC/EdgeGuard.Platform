@@ -15,7 +15,7 @@
             <div class="study-row">
               <div class="study-info">
                 <div class="study-main">
-                  <span class="study-patient">{{ study.patientName ?? 'Desconocido' }}</span>
+                  <span class="study-patient">{{ study.patientName | personName: 'Desconocido' }}</span>
                   @if (study.isUrgent) {
                     <span class="urgent-badge">URGENTE</span>
                   }

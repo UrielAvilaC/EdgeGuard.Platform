@@ -15,7 +15,7 @@ namespace Dicom.Edge.Node.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
 
             modelBuilder.Entity("Dicom.Edge.Models.Audit.AuditLog", b =>
                 {
@@ -744,6 +744,114 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                         .HasFilter("\"is_resolved\" = 0");
 
                     b.ToTable("transfer_errors", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Models.Equipment.Equipment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AeTitle")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ae_title");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("ip_address");
+
+                    b.Property<bool>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_enabled");
+
+                    b.Property<string>("StationAeTitle")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("station_ae_title");
+
+                    b.Property<string>("StationName")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("station_name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AeTitle")
+                        .IsUnique()
+                        .HasDatabaseName("uq_equipment_ae_title");
+
+                    b.ToTable("equipment", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Models.Equipment.EquipmentModality", b =>
+                {
+                    b.Property<string>("EquipmentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("equipment_id");
+
+                    b.Property<string>("ModalityCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("modality_code");
+
+                    b.HasKey("EquipmentId", "ModalityCode");
+
+                    b.HasIndex("ModalityCode")
+                        .HasDatabaseName("ix_equipment_modalities_code");
+
+                    b.ToTable("equipment_modalities", (string)null);
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Models.Equipment.ModalityCatalogEntry", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("code");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsSupported")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_supported");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("modalities", (string)null);
                 });
 
             modelBuilder.Entity("Dicom.Edge.Models.Metrics.StudyMetrics", b =>
@@ -1536,6 +1644,15 @@ namespace Dicom.Edge.Node.Persistence.Migrations
                     b.Navigation("Patient");
                 });
 
+            modelBuilder.Entity("Dicom.Edge.Models.Equipment.EquipmentModality", b =>
+                {
+                    b.HasOne("Dicom.Edge.Models.Equipment.Equipment", null)
+                        .WithMany("Modalities")
+                        .HasForeignKey("EquipmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Dicom.Edge.Models.Core.DicomSeries", b =>
                 {
                     b.Navigation("Instances");
@@ -1544,6 +1661,11 @@ namespace Dicom.Edge.Node.Persistence.Migrations
             modelBuilder.Entity("Dicom.Edge.Models.Core.DicomStudy", b =>
                 {
                     b.Navigation("Series");
+                });
+
+            modelBuilder.Entity("Dicom.Edge.Models.Equipment.Equipment", b =>
+                {
+                    b.Navigation("Modalities");
                 });
 #pragma warning restore 612, 618
         }

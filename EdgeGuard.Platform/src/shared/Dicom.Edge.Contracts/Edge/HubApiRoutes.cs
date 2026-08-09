@@ -25,6 +25,9 @@ public static class HubApiRoutes
     /// <summary>POST — Send incremental study progress (per-instance) while receiving. Enables real-time SPA updates and HL7 merge.</summary>
     public const string StudyProgress = "/api/edge/studies/progress";
 
+    /// <summary>POST — Notify Hub of the PACS-send phase (Sending / SentToPacs / Failed). Returns acknowledgment.</summary>
+    public const string StudyPacsStatus = "/api/edge/studies/pacs-status";
+
     /// <summary>POST — Report node health metrics. Returns acknowledgment.</summary>
     public const string HealthReport = "/api/edge/health";
 
@@ -80,4 +83,10 @@ public static class NodeApiRoutes
     /// Called immediately after any PACS assignment change.
     /// </summary>
     public const string PacsDestinationsSync = "/pacs-destinations/sync";
+
+    /// <summary>
+    /// POST — Hub requests a manual resend of a study to specific PACS destinations.
+    /// Bypasses routing rules; sends only to the requested destinations.
+    /// </summary>
+    public const string StudiesRequeue = "/studies/requeue";
 }

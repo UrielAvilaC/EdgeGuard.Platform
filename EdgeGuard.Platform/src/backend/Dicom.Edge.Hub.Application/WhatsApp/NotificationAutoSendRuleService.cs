@@ -6,12 +6,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Application.WhatsApp;
 
-public sealed class WhatsAppAutoSendRuleService(
-    IWhatsAppAutoSendRuleRepository ruleRepository,
+public sealed class NotificationAutoSendRuleService(
+    INotificationAutoSendRuleRepository ruleRepository,
     IWhatsAppTemplateRepository templateRepository,
     IHubAuditLogRepository auditRepository,
     IUnitOfWork unitOfWork,
-    ILogger<WhatsAppAutoSendRuleService> logger) : IWhatsAppAutoSendRuleService
+    ILogger<NotificationAutoSendRuleService> logger) : INotificationAutoSendRuleService
 {
     public async Task<IReadOnlyList<WhatsAppAutoSendRuleDto>> GetAllAsync(CancellationToken ct = default)
     {
@@ -31,13 +31,13 @@ public sealed class WhatsAppAutoSendRuleService(
         var template = await templateRepository.GetByIdAsync(request.TemplateId, ct)
             ?? throw new KeyNotFoundException($"Template '{request.TemplateId}' not found.");
 
-        var rule = WhatsAppAutoSendRule.Create(request.StudyStatus, request.TemplateId, request.Description);
+        var rule = NotificationAutoSendRule.Create(request.StudyStatus, request.TemplateId, request.Description);
         await ruleRepository.AddAsync(rule, ct);
 
         await auditRepository.AddAsync(HubAuditLog.Create(
             AuditEventType.WhatsAppAutoSendRuleChanged,
             $"Auto-send rule created for status '{request.StudyStatus}'",
-            entityId: rule.Id, entityType: "WhatsAppAutoSendRule",
+            entityId: rule.Id, entityType: "NotificationAutoSendRule",
             details: $"{{\"ruleId\":\"{rule.Id}\",\"studyStatus\":\"{request.StudyStatus}\",\"templateId\":\"{request.TemplateId}\",\"isEnabled\":true}}"), ct);
         await unitOfWork.SaveChangesAsync(ct);
 
@@ -67,7 +67,7 @@ public sealed class WhatsAppAutoSendRuleService(
         await auditRepository.AddAsync(HubAuditLog.Create(
             AuditEventType.WhatsAppAutoSendRuleChanged,
             $"Auto-send rule updated for status '{rule.StudyStatus}'",
-            entityId: id, entityType: "WhatsAppAutoSendRule"), ct);
+            entityId: id, entityType: "NotificationAutoSendRule"), ct);
         await unitOfWork.SaveChangesAsync(ct);
 
         logger.LogInformation("Updated auto-send rule {RuleId}", id);
@@ -86,13 +86,13 @@ public sealed class WhatsAppAutoSendRuleService(
             AuditEventType.WhatsAppAutoSendRuleChanged,
             "Auto-send rule deleted",
             severity: AuditSeverity.Warning,
-            entityId: id, entityType: "WhatsAppAutoSendRule"), ct);
+            entityId: id, entityType: "NotificationAutoSendRule"), ct);
         await unitOfWork.SaveChangesAsync(ct);
 
         logger.LogInformation("Deleted auto-send rule {RuleId}", id);
     }
 
-    private static WhatsAppAutoSendRuleDto MapToDto(WhatsAppAutoSendRule r, string? templateName) => new()
+    private static WhatsAppAutoSendRuleDto MapToDto(NotificationAutoSendRule r, string? templateName) => new()
     {
         Id = r.Id,
         StudyStatus = r.StudyStatus,

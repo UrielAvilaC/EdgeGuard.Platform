@@ -76,6 +76,13 @@ export const routes: Routes = [
         loadChildren: () => import('./features/queue/queue.routes').then((m) => m.queueRoutes),
       },
       {
+        path: 'outbox',
+        title: 'Outbox',
+        canActivate: [permissionGuard],
+        data: { permission: 'ViewSystemStatus' },
+        loadChildren: () => import('./features/outbox/outbox.routes').then((m) => m.outboxRoutes),
+      },
+      {
         path: 'whatsapp',
         title: 'WhatsApp',
         canActivate: [permissionGuard],

@@ -7,6 +7,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Sidebar } from '../sidebar/sidebar.component';
 import { Header } from '../header/header.component';
+import { NotificationChannelsService } from '../../core/services/notification-channels.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -19,6 +20,7 @@ export class MainLayout {
   @ViewChild('sidenav') sidenav!: MatSidenav;
 
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly channels = inject(NotificationChannelsService);
 
   protected readonly isMobile = toSignal(
     this.breakpointObserver.observe([Breakpoints.Handset]).pipe(
@@ -34,6 +36,9 @@ export class MainLayout {
     bp.subscribe((result) => {
       this.sidenavOpen.set(!result.matches);
     });
+
+    // Warm channel enablement so the sidebar can gate WhatsApp / Email-templates items.
+    this.channels.load();
   }
 
   toggleSidenav(): void {

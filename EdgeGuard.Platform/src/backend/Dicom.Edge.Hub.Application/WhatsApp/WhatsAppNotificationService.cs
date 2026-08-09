@@ -1,9 +1,11 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.WhatsApp;
 using Dicom.Edge.Hub.Application.Messaging;
 using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
+using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
@@ -17,71 +19,17 @@ namespace Dicom.Edge.Hub.Application.WhatsApp;
 
 public sealed class WhatsAppNotificationService(
     INotificationRepository notificationRepository,
-    IWhatsAppAutoSendRuleRepository ruleRepository,
+    INotificationAutoSendRuleRepository ruleRepository,
     IWhatsAppTemplateRepository templateRepository,
     IStudyRepository studyRepository,
     IPatientRepository patientRepository,
+    INodeRepository nodeRepository,
     ISystemSettingRepository settingRepository,
     IHubAuditLogRepository auditRepository,
     IMessagingProvider messagingProvider,
     IUnitOfWork unitOfWork,
     ILogger<WhatsAppNotificationService> logger) : IWhatsAppNotificationService
 {
-    public async Task EvaluateAutoSendAsync(string studyId, StudyStatus newStatus, CancellationToken ct = default)
-    {
-        if (!await IsEnabledAsync(ct) || !await IsAutomaticDeliveryEnabledAsync(ct))
-            return;
-
-        var statusName = newStatus.ToString();
-        var rule = await ruleRepository.GetByStudyStatusAsync(statusName, ct);
-        if (rule is null || !rule.IsEnabled)
-            return;
-
-        var template = await templateRepository.GetByIdWithVariablesAsync(rule.TemplateId, ct);
-        if (template is null || !template.IsActive)
-        {
-            await AuditSkippedAsync(studyId, statusName, "Template not found or inactive", ct);
-            return;
-        }
-
-        var study = await studyRepository.GetByIdAsync(studyId, ct);
-        if (study is null) return;
-
-        var patient = study.PatientId is not null
-            ? await patientRepository.GetByIdAsync(study.PatientId, ct)
-            : null;
-
-        if (patient is null)
-        {
-            await AuditSkippedAsync(studyId, statusName, "Patient not found", ct);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(patient.PhoneNumber))
-        {
-            await AuditSkippedAsync(studyId, statusName, "No phone number for patient", ct);
-            return;
-        }
-
-        var prefix = await GetSettingValueAsync(HubSettingKeys.WhatsApp.DefaultCountryPrefix, "+521", ct);
-        var normalized = PhoneNumberNormalizer.Normalize(patient.PhoneNumber, prefix);
-        if (normalized is null)
-        {
-            await AuditSkippedAsync(studyId, statusName,
-                $"Invalid phone format: {PhoneNumberNormalizer.RedactForAudit(patient.PhoneNumber)}", ct);
-            return;
-        }
-
-        var variables = WhatsAppVariableResolver.Resolve(study, patient, template.Variables);
-
-        var notification = Notification.Create(
-            studyId, patient.PhoneNumber, NotificationTriggerSource.Automatic,
-            studyStatus: statusName, patientId: patient.Id,
-            normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid);
-
-        await SendAndRecordAsync(notification, normalized, template.ContentSid, variables, ct);
-    }
-
     public async Task<SendWhatsAppManualResponse> SendManualAsync(SendWhatsAppManualRequest request, CancellationToken ct = default)
     {
         if (!await IsEnabledAsync(ct))
@@ -104,7 +52,8 @@ public sealed class WhatsAppNotificationService(
             : null;
 
         var prefix = await GetSettingValueAsync(HubSettingKeys.WhatsApp.DefaultCountryPrefix, "+521", ct);
-        var variables = WhatsAppVariableResolver.Resolve(study, patient, template.Variables);
+        var facilityName = await ResolveFacilityNameAsync(study, ct);
+        var variables = WhatsAppVariableResolver.Resolve(study, patient, template.Variables, facilityName: facilityName);
 
         var results = new List<WhatsAppSendResultDto>();
         var notificationIds = new List<string>();
@@ -126,7 +75,8 @@ public sealed class WhatsAppNotificationService(
             var notification = Notification.Create(
                 request.StudyId, recipient.PhoneNumber, NotificationTriggerSource.Manual,
                 studyStatus: study.Status.ToString(), patientId: study.PatientId,
-                normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid);
+                normalizedPhone: normalized, templateId: template.Id, contentSid: template.ContentSid,
+                contentVariables: SerializeContentVariables(variables));
 
             var sendResult = await SendAndRecordAsync(notification, normalized, template.ContentSid, variables, ct);
 
@@ -201,6 +151,7 @@ public sealed class WhatsAppNotificationService(
             new() { Tag = WhatsAppTemplateTags.InstitutionName, Description = "Institution name", Example = "General Hospital" },
             new() { Tag = WhatsAppTemplateTags.PacsViewerLink, Description = "PACS viewer URL", Example = "https://pacs.example.com/view/123" },
             new() { Tag = WhatsAppTemplateTags.ImagesUrl, Description = "Images download URL", Example = "https://images.example.com/study/123" },
+            new() { Tag = WhatsAppTemplateTags.ImagesUrlPath, Description = "Images URL path only (no domain) — for URL buttons with a fixed domain", Example = "Integrator.aspx?AccNo=123" },
         ];
         return Task.FromResult(tags);
     }
@@ -231,7 +182,8 @@ public sealed class WhatsAppNotificationService(
             try
             {
                 var result = await messagingProvider.SendContentMessageAsync(
-                    notification.NormalizedPhone, notification.ContentSid, [], ct);
+                    notification.NormalizedPhone, notification.ContentSid,
+                    DeserializeContentVariables(notification.ContentVariables), ct);
 
                 if (result.Success)
                     notification.MarkSent(messagingProvider.ProviderName, result.ProviderMessageId);
@@ -252,6 +204,12 @@ public sealed class WhatsAppNotificationService(
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
+
+    /// <summary>Resolves the origin node's display name for the {{institutionName}} tag.</summary>
+    private async Task<string?> ResolveFacilityNameAsync(Study study, CancellationToken ct) =>
+        study.SourceNodeId is not null
+            ? (await nodeRepository.GetByIdAsync(study.SourceNodeId, ct))?.Name
+            : null;
 
     private async Task<SendMessageResult> SendAndRecordAsync(
         Notification notification, string normalizedPhone, string contentSid,
@@ -294,22 +252,32 @@ public sealed class WhatsAppNotificationService(
         }
     }
 
-    private async Task AuditSkippedAsync(string studyId, string status, string reason, CancellationToken ct)
+    /// <summary>Serializes positional variables to the JSON object Twilio ContentVariables expects
+    /// (string keys). Returns null when empty. Persisted on the Notification for retry re-hydration.</summary>
+    private static readonly JsonSerializerOptions ContentVariablesOptions = new()
     {
-        await auditRepository.AddAsync(HubAuditLog.Create(
-            AuditEventType.WhatsAppNotificationSkipped,
-            "WhatsApp notification skipped",
-            entityId: studyId, entityType: "Notification",
-            details: $"{{\"studyId\":\"{studyId}\",\"studyStatus\":\"{status}\",\"reason\":\"{reason}\"}}"), ct);
-        await unitOfWork.SaveChangesAsync(ct);
-        logger.LogDebug("Skipped WhatsApp for study {StudyId}: {Reason}", studyId, reason);
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    private static string? SerializeContentVariables(Dictionary<int, string> variables) =>
+        variables.Count == 0
+            ? null
+            : JsonSerializer.Serialize(variables.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value), ContentVariablesOptions);
+
+    /// <summary>Inverse of <see cref="SerializeContentVariables"/>: rehydrates the persisted JSON.</summary>
+    private static Dictionary<int, string> DeserializeContentVariables(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+        var raw = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        return raw is null
+            ? []
+            : raw.Where(kv => int.TryParse(kv.Key, out _))
+                 .ToDictionary(kv => int.Parse(kv.Key), kv => kv.Value);
     }
 
     private async Task<bool> IsEnabledAsync(CancellationToken ct) =>
         await GetSettingBoolAsync(HubSettingKeys.WhatsApp.Enabled, ct);
-
-    private async Task<bool> IsAutomaticDeliveryEnabledAsync(CancellationToken ct) =>
-        await GetSettingBoolAsync(HubSettingKeys.WhatsApp.EnableAutomaticDelivery, ct);
 
     private async Task<bool> GetSettingBoolAsync(string key, CancellationToken ct)
     {

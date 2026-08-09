@@ -65,21 +65,26 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.General.ApiEndpoint,  "",             Cat.General,  "API Endpoint",           VT.String),
 
         // ── Hub ─────────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Hub.Enabled,               "false",  Cat.Hub, "Hub Integration Enabled",       VT.Bool),
-        Row(NodeSettingKeys.Hub.Protocol,              "https",   Cat.Hub, "Hub Protocol",                  VT.String),
-        Row(NodeSettingKeys.Hub.Hostname,              "",        Cat.Hub, "Hub Hostname",                  VT.String),
-        Row(NodeSettingKeys.Hub.Port,                  "443",     Cat.Hub, "Hub Port",                      VT.Int),
-        Row(NodeSettingKeys.Hub.BasePath,              "/api",    Cat.Hub, "Hub API Base Path",             VT.String),
-        Row(NodeSettingKeys.Hub.ApiKey,                "",        Cat.Hub, "Hub API Key",                   VT.String),
-        Row(NodeSettingKeys.Hub.NodeId,                "",        Cat.Hub, "Hub Node ID",                   VT.String),
-        Row(NodeSettingKeys.Hub.TimeoutSeconds,        "30",      Cat.Hub, "Hub Request Timeout (sec)",     VT.Int),
-        Row(NodeSettingKeys.Hub.HeartbeatIntervalSec,  "60",      Cat.Hub, "Heartbeat Interval (sec)",      VT.Int),
-        Row(NodeSettingKeys.Hub.RegisterOnStartup,     "true",    Cat.Hub, "Register on Startup",           VT.Bool),
-        Row(NodeSettingKeys.Hub.PullConfigOnStartup,   "true",    Cat.Hub, "Pull Config on Startup",        VT.Bool),
-        Row(NodeSettingKeys.Hub.PullConfigIntervalMin, "15",      Cat.Hub, "Config Pull Interval (min)",    VT.Int),
-        Row(NodeSettingKeys.Hub.TlsVerifyCertificate,  "true",    Cat.Hub, "Verify TLS Certificate",        VT.Bool),
-        Row(NodeSettingKeys.Hub.MaxReconnectAttempts,  "5",       Cat.Hub, "Max Reconnect Attempts",        VT.Int),
-        Row(NodeSettingKeys.Hub.ReconnectDelaySeconds, "30",      Cat.Hub, "Reconnect Delay (sec)",         VT.Int),
+        // Hub rows are seeded EMPTY on purpose: their real values live in
+        // appsettings (HubConnection section) and are copied into these rows by
+        // NodeSettingsHubHydrator right after migrations. A non-empty seed would
+        // win over appsettings (the DB configuration provider has higher
+        // precedence) and silently override the deployed configuration.
+        Row(NodeSettingKeys.Hub.Enabled,               "",     Cat.Hub, "Hub Integration Enabled",       VT.Bool),
+        Row(NodeSettingKeys.Hub.Protocol,              "",     Cat.Hub, "Hub Protocol",                  VT.String),
+        Row(NodeSettingKeys.Hub.Hostname,              "",     Cat.Hub, "Hub Hostname",                  VT.String),
+        Row(NodeSettingKeys.Hub.Port,                  "",     Cat.Hub, "Hub Port",                      VT.Int),
+        Row(NodeSettingKeys.Hub.BasePath,              "/api", Cat.Hub, "Hub API Base Path",             VT.String),
+        Row(NodeSettingKeys.Hub.ApiKey,                "",     Cat.Hub, "Hub API Key",                   VT.String),
+        Row(NodeSettingKeys.Hub.NodeId,                "",     Cat.Hub, "Hub Node ID",                   VT.String),
+        Row(NodeSettingKeys.Hub.TimeoutSeconds,        "",     Cat.Hub, "Hub Request Timeout (sec)",     VT.Int),
+        Row(NodeSettingKeys.Hub.HeartbeatIntervalSec,  "",     Cat.Hub, "Heartbeat Interval (sec)",      VT.Int),
+        Row(NodeSettingKeys.Hub.RegisterOnStartup,     "",     Cat.Hub, "Register on Startup",           VT.Bool),
+        Row(NodeSettingKeys.Hub.PullConfigOnStartup,   "true", Cat.Hub, "Pull Config on Startup",        VT.Bool),
+        Row(NodeSettingKeys.Hub.PullConfigIntervalMin, "",     Cat.Hub, "Config Pull Interval (min)",    VT.Int),
+        Row(NodeSettingKeys.Hub.TlsVerifyCertificate,  "true", Cat.Hub, "Verify TLS Certificate",        VT.Bool),
+        Row(NodeSettingKeys.Hub.MaxReconnectAttempts,  "",     Cat.Hub, "Max Reconnect Attempts",        VT.Int),
+        Row(NodeSettingKeys.Hub.ReconnectDelaySeconds, "",     Cat.Hub, "Reconnect Delay (sec)",         VT.Int),
 
         // ── DICOM ────────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Dicom.Enabled,                   "true",      Cat.Dicom, "DICOM Server Enabled",              VT.Bool),

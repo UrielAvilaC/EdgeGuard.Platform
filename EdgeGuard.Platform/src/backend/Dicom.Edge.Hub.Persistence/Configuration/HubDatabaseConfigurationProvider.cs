@@ -44,6 +44,7 @@ internal sealed class HubDatabaseConfigurationProvider : ConfigurationProvider
             MapMessageQueue(dbSettings, data);
             MapBackgroundJobs(dbSettings, data);
             MapDataRetention(dbSettings, data);
+            MapSmtp(dbSettings, data);
         }
         catch
         {
@@ -108,10 +109,27 @@ internal sealed class HubDatabaseConfigurationProvider : ConfigurationProvider
         Map(db, cfg, HubSettingKeys.DataRetention.AuditLogDays,             "HubBackgroundJobs:DataRetention:AuditLogRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.Hl7MessageDays,           "HubBackgroundJobs:DataRetention:Hl7MessageRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.HealthCheckDays,          "HubBackgroundJobs:DataRetention:HealthCheckRetentionDays");
-        Map(db, cfg, HubSettingKeys.DataRetention.WhatsAppNotificationDays, "HubBackgroundJobs:DataRetention:WhatsAppNotificationRetentionDays");
+        Map(db, cfg, HubSettingKeys.DataRetention.NotificationDays,         "HubBackgroundJobs:DataRetention:NotificationOutboxRetentionDays");
+        Map(db, cfg, HubSettingKeys.DataRetention.NodeOutboxDays,           "HubBackgroundJobs:DataRetention:NodeOutboxRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.PacsSendAuditDays,        "HubBackgroundJobs:DataRetention:PacsSendAuditRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.StudyStatusAuditDays,     "HubBackgroundJobs:DataRetention:StudyStatusAuditRetentionDays");
         Map(db, cfg, HubSettingKeys.DataRetention.BatchSize,                "HubBackgroundJobs:DataRetention:BatchSize");
+    }
+
+    // ── SMTP (Email channel) ─────────────────────────────────────────────────
+
+    private static void MapSmtp(
+        Dictionary<string, string> db,
+        Dictionary<string, string?> cfg)
+    {
+        Map(db, cfg, HubSettingKeys.Smtp.Enabled,  "Smtp:Enabled");
+        Map(db, cfg, HubSettingKeys.Smtp.Host,     "Smtp:Host");
+        Map(db, cfg, HubSettingKeys.Smtp.Port,     "Smtp:Port");
+        Map(db, cfg, HubSettingKeys.Smtp.User,     "Smtp:User");
+        Map(db, cfg, HubSettingKeys.Smtp.Password, "Smtp:Password");
+        Map(db, cfg, HubSettingKeys.Smtp.From,     "Smtp:From");
+        Map(db, cfg, HubSettingKeys.Smtp.FromName, "Smtp:FromName");
+        Map(db, cfg, HubSettingKeys.Smtp.UseTls,   "Smtp:UseTls");
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

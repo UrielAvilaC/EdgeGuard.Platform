@@ -12,45 +12,43 @@ namespace Dicom.Edge.Hub.Infrastructure.HostedServices;
 /// </summary>
 public sealed class DataRetentionHostedService(
     IServiceScopeFactory scopeFactory,
-    IOptions<HubBackgroundJobsOptions> options,
+    IOptionsMonitor<HubBackgroundJobsOptions> options,
     ILogger<DataRetentionHostedService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!options.Value.EnableDataRetention)
-        {
-            logger.LogInformation("Data retention service is disabled via configuration");
-            return;
-        }
-
-        logger.LogInformation(
-            "Data retention service started — interval={Interval}s",
-            options.Value.DataRetentionIntervalSeconds);
+        logger.LogInformation("Data retention service started");
 
         // Delay first cycle to let startup I/O settle
         await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                using var scope = scopeFactory.CreateScope();
-                var retentionService = scope.ServiceProvider
-                    .GetRequiredService<IHubDataRetentionService>();
+            // Re-read each cycle so enable/disable and interval changes apply without a restart.
+            var opts = options.CurrentValue;
 
-                await retentionService.ExecuteRetentionAsync(stoppingToken);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            if (opts.EnableDataRetention)
             {
-                // Expected on shutdown
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Unhandled error in data retention cycle — retrying next interval");
+                try
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var retentionService = scope.ServiceProvider
+                        .GetRequiredService<IHubDataRetentionService>();
+
+                    await retentionService.ExecuteRetentionAsync(stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // Expected on shutdown
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Unhandled error in data retention cycle — retrying next interval");
+                }
             }
 
             await Task.Delay(
-                TimeSpan.FromSeconds(options.Value.DataRetentionIntervalSeconds),
+                TimeSpan.FromSeconds(opts.DataRetentionIntervalSeconds),
                 stoppingToken);
         }
     }

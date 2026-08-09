@@ -29,9 +29,15 @@ public class Hl7TcpListener : IHl7Listener
 {
     private readonly ILogger<Hl7TcpListener> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly Hl7ListenerOptions _options;
-    private readonly Channel<Hl7Message> _messageChannel;
-    private readonly SemaphoreSlim _connectionSemaphore;
+    private readonly IOptionsMonitor<Hl7ListenerOptions> _optionsMonitor;
+
+    // Re-bindable per (re)start: the snapshot, channel, semaphore and internal run token
+    // are refreshed in StartAsync so a configuration restart picks up new values.
+    private Hl7ListenerOptions _options;
+    private Channel<Hl7Message> _messageChannel;
+    private SemaphoreSlim _connectionSemaphore;
+    private CancellationTokenSource? _runCts;
+    private volatile bool _restartRequested;
 
     private TcpListener? _listener;
     private int _activeConnections;
@@ -40,27 +46,45 @@ public class Hl7TcpListener : IHl7Listener
     public bool IsRunning => _isRunning;
     public int Port => _options.Port;
     public int ActiveConnections => _activeConnections;
+    public bool RestartRequested => _restartRequested;
 
     public Hl7TcpListener(
         ILogger<Hl7TcpListener> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<Hl7ListenerOptions> options)
+        IOptionsMonitor<Hl7ListenerOptions> optionsMonitor)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
-        _options = options.Value;
+        _optionsMonitor = optionsMonitor;
+        _options = optionsMonitor.CurrentValue;
+        _messageChannel = CreateChannel();
+        _connectionSemaphore = new SemaphoreSlim(_options.MaxConcurrentConnections);
+    }
 
-        _messageChannel = Channel.CreateBounded<Hl7Message>(
+    private Channel<Hl7Message> CreateChannel() =>
+        Channel.CreateBounded<Hl7Message>(
             new BoundedChannelOptions(_options.MaxQueuedMessages)
             {
                 FullMode = BoundedChannelFullMode.Wait
             });
 
-        _connectionSemaphore = new SemaphoreSlim(_options.MaxConcurrentConnections);
+    /// <summary>
+    /// Signals the supervised hosted service to stop the current run and rebind, picking up
+    /// the latest <see cref="Hl7ListenerOptions"/> (e.g. a changed TCP port). Does not stop the host.
+    /// </summary>
+    public void RequestRestart()
+    {
+        _logger.LogInformation("HL7 Listener restart requested");
+        _restartRequested = true;
+        _runCts?.Cancel();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        // Refresh the snapshot each (re)start so config changes (port, enabled, sizes) apply.
+        _restartRequested = false;
+        _options = _optionsMonitor.CurrentValue;
+
         if (!_options.Enabled)
         {
             _logger.LogInformation("HL7 Listener is disabled in configuration");
@@ -73,12 +97,19 @@ public class Hl7TcpListener : IHl7Listener
             return;
         }
 
+        // Fresh channel, semaphore and internal run token for this run (supports restart
+        // without tearing down the host).
+        _messageChannel = CreateChannel();
+        _connectionSemaphore = new SemaphoreSlim(_options.MaxConcurrentConnections);
+        _runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var runToken = _runCts.Token;
+
         _logger.LogInformation(
             "Starting HL7 Listener on port {Port} with {Workers} workers (MLLP framing)",
             _options.Port, _options.ProcessingWorkers);
 
         var processingTasks = Enumerable.Range(0, _options.ProcessingWorkers)
-            .Select(i => ProcessMessagesAsync(i, cancellationToken))
+            .Select(i => ProcessMessagesAsync(i, runToken))
             .ToArray();
 
         _listener = new TcpListener(IPAddress.Any, _options.Port);
@@ -89,21 +120,20 @@ public class Hl7TcpListener : IHl7Listener
 
         try
         {
-            while (!cancellationToken.IsCancellationRequested)
+            while (!runToken.IsCancellationRequested)
             {
-                var client = await _listener.AcceptTcpClientAsync(cancellationToken);
-                _ = HandleClientAsync(client, cancellationToken);
+                var client = await _listener.AcceptTcpClientAsync(runToken);
+                _ = HandleClientAsync(client, runToken);
             }
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("HL7 Listener stopping…");
+            _logger.LogInformation("HL7 Listener run stopping…");
         }
         catch (SocketException se) when (
-            se.SocketErrorCode == SocketError.OperationAborted ||
-            cancellationToken.IsCancellationRequested)
+            se.SocketErrorCode == SocketError.OperationAborted || runToken.IsCancellationRequested)
         {
-            _logger.LogInformation("HL7 Listener stopped (socket aborted by host shutdown)");
+            _logger.LogInformation("HL7 Listener stopped (socket aborted)");
         }
         catch (Exception ex)
         {
@@ -113,6 +143,8 @@ public class Hl7TcpListener : IHl7Listener
         finally
         {
             await StopAsync(cancellationToken);
+            _runCts?.Dispose();
+            _runCts = null;
         }
     }
 

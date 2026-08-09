@@ -40,11 +40,18 @@ public class Hl7Message
     public string? ProcedureDescription { get; private set; }
     public string? ProcedureId { get; private set; }
 
+    /// <summary>
+    /// Human-readable referring/ordering physician, parsed on demand from the raw message:
+    /// first populated of OBR-16 (Ordering Provider), ORC-12 (Ordering Provider) or
+    /// PV1-8 (Referring Doctor). Not persisted — derived from <see cref="Content"/>.
+    /// </summary>
+    public string? ReferringPhysician => ExtractReferringPhysician(Content);
+
     // ── MRG segment — patient/study merge ────────────────────────────────────
     /// <summary>MRG.1 — Prior patient ID to be merged into <see cref="PatientId"/>.</summary>
     public string? MrgPriorPatientId { get; private set; }
 
-    /// <summary>MRG.7 — Prior patient name (family^given).</summary>
+    /// <summary>MRG.7 — Prior patient name (family^given), with trailing empty components trimmed.</summary>
     public string? MrgPriorPatientName { get; private set; }
 
     /// <summary>MRG.3 — Prior accession number used in ORM order-merge scenarios.</summary>
@@ -112,9 +119,9 @@ public class Hl7Message
         var patientId   = isAdtA40
             ? ExtractSurvivingPatientField(cleanContent, 3, componentIndex: 0)
             : ExtractSubField(cleanContent, "PID", 3, componentIndex: 0);
-        var patientName = isAdtA40
+        var patientName = TrimTrailingEmptyComponents(isAdtA40
             ? ExtractSurvivingPatientField(cleanContent, 5)
-            : ExtractField(cleanContent, "PID", 5);
+            : ExtractField(cleanContent, "PID", 5));
 
         return new Hl7Message
         {
@@ -139,7 +146,7 @@ public class Hl7Message
             PatientBirthDate = ExtractField(cleanContent, "PID", 7),
             // MRG segment
             MrgPriorPatientId = ExtractSubField(cleanContent, "MRG", 1, componentIndex: 0),
-            MrgPriorPatientName = ExtractSubField(cleanContent, "MRG", 7, componentIndex: 0),
+            MrgPriorPatientName = TrimTrailingEmptyComponents(ExtractField(cleanContent, "MRG", 7)),
             MrgPriorAccessionNumber = ExtractSubField(cleanContent, "MRG", 3, componentIndex: 0),
             // OBX image links
             ImageLinksJson = imageLinks.Count > 0
@@ -253,6 +260,34 @@ public class Hl7Message
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Extracts a human-readable physician name from the first populated of
+    /// OBR-16, ORC-12 or PV1-8. XCN format is <c>ID^Family^Given^...</c>; returns
+    /// "Given Family" when name components exist, otherwise the raw (first repetition) value.
+    /// </summary>
+    private static string? ExtractReferringPhysician(string content)
+    {
+        var raw = ExtractField(content, "OBR", 16)
+               ?? ExtractField(content, "ORC", 12)
+               ?? ExtractField(content, "PV1", 8);
+
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        // Use the first repetition only (XCN repetitions separated by ~).
+        var xcn = raw.Split('~')[0];
+        var components = xcn.Split('^');
+
+        var family = components.Length > 1 ? components[1].Trim() : string.Empty;
+        var given  = components.Length > 2 ? components[2].Trim() : string.Empty;
+
+        var name = string.Join(' ',
+            new[] { given, family }.Where(p => !string.IsNullOrEmpty(p)));
+
+        return string.IsNullOrWhiteSpace(name)
+            ? TrimTrailingEmptyComponents(xcn)
+            : name;
     }
 
     private static string? ExtractTriggerEvent(string content)
@@ -535,6 +570,25 @@ public class Hl7Message
 
     private static string? NullIfEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>
+    /// Truncates trailing empty components (^) from an HL7 XPN name field. Many senders pad
+    /// PID-5 with empty components (e.g. <c>Doe^John^^^</c>), which would otherwise be stored
+    /// and surfaced verbatim. Interior empty components are preserved (<c>Doe^^M</c> stays as-is)
+    /// so component positions are not shifted. Returns null when the field is empty or all-empty.
+    /// </summary>
+    private static string? TrimTrailingEmptyComponents(string? field)
+    {
+        if (string.IsNullOrWhiteSpace(field)) return null;
+
+        var components = field.Split('^');
+        var lastNonEmpty = Array.FindLastIndex(
+            components, c => !string.IsNullOrWhiteSpace(c));
+
+        if (lastNonEmpty < 0) return null;
+
+        return NullIfEmpty(string.Join('^', components, 0, lastNonEmpty + 1));
+    }
 }
 
 public enum Hl7MessageStatus

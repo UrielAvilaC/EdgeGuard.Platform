@@ -2,7 +2,7 @@ using Dicom.Edge.Contracts.WhatsApp;
 
 namespace Dicom.Edge.Hub.Application.WhatsApp;
 
-public interface IWhatsAppAutoSendRuleService
+public interface INotificationAutoSendRuleService
 {
     Task<IReadOnlyList<WhatsAppAutoSendRuleDto>> GetAllAsync(CancellationToken ct = default);
     Task<WhatsAppAutoSendRuleDto> CreateAsync(CreateWhatsAppAutoSendRuleRequest request, CancellationToken ct = default);

@@ -67,9 +67,23 @@ public sealed class Hl7StudySyncService(
         var existing = await studyRepository.GetByAccessionNumberAsync(message.AccessionNumber, ct);
         if (existing is not null)
         {
-            logger.LogDebug(
-                "ORM {MessageId}: study {StudyId} (AccessionNumber={AccessionNumber}) already exists — skipped",
-                message.Id, existing.Id, message.AccessionNumber);
+            // DICOM-first ordering: the study may already exist without a referring
+            // physician (the node notification carries no provider). Backfill it from the ORM.
+            if (string.IsNullOrWhiteSpace(existing.ReferringPhysician)
+                && !string.IsNullOrWhiteSpace(message.ReferringPhysician))
+            {
+                existing.UpdateMetadata(referringPhysician: message.ReferringPhysician);
+                await studyRepository.UpdateAsync(existing, ct);
+                logger.LogInformation(
+                    "ORM {MessageId}: backfilled referring physician on existing study {StudyId}",
+                    message.Id, existing.Id);
+            }
+            else
+            {
+                logger.LogDebug(
+                    "ORM {MessageId}: study {StudyId} (AccessionNumber={AccessionNumber}) already exists — skipped",
+                    message.Id, existing.Id, message.AccessionNumber);
+            }
             return;
         }
 
@@ -82,7 +96,7 @@ public sealed class Hl7StudySyncService(
             sendingFacility:    message.SendingFacility,
             studyDate:          studyDate,
             studyDescription:   message.ProcedureDescription,
-            referringPhysician: null);
+            referringPhysician: message.ReferringPhysician);
 
         await studyRepository.AddAsync(study, ct);
 
@@ -133,7 +147,8 @@ public sealed class Hl7StudySyncService(
             patientName:      message.PatientName,
             sendingFacility:  message.SendingFacility,
             studyDate:        ParseStudyDate(message.StudyDate),
-            studyDescription: message.ProcedureDescription);
+            studyDescription: message.ProcedureDescription,
+            referringPhysician: message.ReferringPhysician);
 
         await studyRepository.AddAsync(study, ct);
 
@@ -177,7 +192,8 @@ public sealed class Hl7StudySyncService(
             patientName:      message.PatientName,
             sendingFacility:  message.SendingFacility,
             studyDate:        ParseStudyDate(message.StudyDate),
-            studyDescription: message.ProcedureDescription);
+            studyDescription: message.ProcedureDescription,
+            referringPhysician: message.ReferringPhysician);
 
         if (hasLinks)
             study.AttachImageLinks(message.ImageLinks);

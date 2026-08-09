@@ -83,6 +83,51 @@ public sealed class StudyHubNotifier(
         }
     }
 
+    public async Task<bool> NotifyPacsSendStatusAsync(
+        string nodeId,
+        string studyInstanceUid,
+        string status,
+        string? targetPacsAeTitle = null,
+        string? error = null,
+        CancellationToken ct = default)
+    {
+        var resolvedNodeId = string.IsNullOrEmpty(nodeId) ? hubClient.RegisteredNodeId : nodeId;
+        if (string.IsNullOrEmpty(resolvedNodeId))
+        {
+            logger.LogDebug("Skipping Hub PACS status notification — node not yet registered");
+            return false;
+        }
+
+        try
+        {
+            var request = new StudyPacsStatusNotifyRequest
+            {
+                NodeId            = resolvedNodeId,
+                StudyInstanceUid  = studyInstanceUid,
+                Status            = status,
+                TargetPacsAeTitle = targetPacsAeTitle,
+                Error             = error,
+            };
+
+            var success = await hubClient.NotifyStudyPacsStatusAsync(request, ct);
+
+            if (success)
+                logger.LogInformation(
+                    "Hub notified of PACS status {Status} for study {StudyUid}", status, studyInstanceUid);
+            else
+                logger.LogWarning(
+                    "Hub PACS status notification failed for study {StudyUid} ({Status})", studyInstanceUid, status);
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Hub PACS status notification error for study {StudyUid} ({Status})", studyInstanceUid, status);
+            return false;
+        }
+    }
+
     public async Task<bool> NotifyStudyProgressAsync(
         string nodeId,
         string studyInstanceUid,

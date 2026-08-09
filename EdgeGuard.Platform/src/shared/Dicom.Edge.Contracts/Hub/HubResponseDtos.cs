@@ -142,6 +142,35 @@ public sealed record StudyDto
     public IReadOnlyList<string> ImageLinks { get; init; } = [];
 }
 
+/// <summary>
+/// Infrastructure view for a study's detail page: origin node identity + connectivity,
+/// target PACS identity + reachability, and PACS-send tracking. Resolved on demand
+/// (not part of the study list) so lists avoid per-row node/PACS lookups.
+/// </summary>
+public sealed record StudyInfrastructureDto
+{
+    // ── Origin node ──
+    public string? SourceNodeId { get; init; }
+    public string? SourceNodeName { get; init; }
+    public string? SourceAeTitle { get; init; }
+    /// <summary>Node status enum name (Online/Offline/Degraded/…), or null when unknown.</summary>
+    public string? NodeStatus { get; init; }
+    public DateTime? NodeLastHeartbeatAt { get; init; }
+
+    // ── Target PACS ──
+    public string? TargetPacsId { get; init; }
+    public string? TargetPacsName { get; init; }
+    public string? TargetPacsAeTitle { get; init; }
+    /// <summary>Last known C-ECHO reachability of the PACS from this node; null when never checked.</summary>
+    public bool? PacsReachable { get; init; }
+    public DateTime? PacsLastEchoAt { get; init; }
+
+    // ── PACS-send tracking ──
+    public DateTime? SentToPacsAt { get; init; }
+    public int PacsSendAttempts { get; init; }
+    public string? PacsSendLastError { get; init; }
+}
+
 /// <summary>Diagnostic report view for a study (sanitized content + links + PDF flag).</summary>
 public sealed record ReportDto
 {

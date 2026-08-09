@@ -47,11 +47,11 @@ public static class HubApplicationServiceCollectionExtensions
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<INodeConfigurationService, NodeConfigurationService>();
 
-        // P1-1: in-memory queue that decouples node config pushes from the HTTP
-        // request path. Consumed by NodePushDispatchHostedService (in the API layer).
+        // P1-1: durable node-sync outbox that decouples node config pushes from the HTTP
+        // request path. Drained by NodeOutboxHostedService (in the API layer).
         services.Configure<NodePushOptions>(
             configuration.GetSection(NodePushOptions.SectionName));
-        services.AddSingleton<INodePushQueue, NodePushQueue>();
+        services.AddScoped<INodeOutbox, NodeOutbox>();
 
         // P1: unified notification dispatcher (results delivery → durable outbox).
         services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
@@ -80,6 +80,8 @@ public static class HubApplicationServiceCollectionExtensions
         services.Configure<Equipment.EquipmentPresenceOptions>(
             configuration.GetSection(Equipment.EquipmentPresenceOptions.SectionName));
         services.AddScoped<IStudyService, StudyService>();
+        services.AddScoped<IStudyResendService, StudyResendService>();
+        services.AddScoped<IStudyInfrastructureService, StudyInfrastructureService>();
 
         // Edge node-facing orchestration service
         services.AddScoped<IEdgeNodeService, EdgeNodeService>();

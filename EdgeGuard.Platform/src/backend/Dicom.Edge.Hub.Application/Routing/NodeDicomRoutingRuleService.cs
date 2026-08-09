@@ -10,7 +10,7 @@ namespace Dicom.Edge.Hub.Application.Routing;
 public sealed class NodeDicomRoutingRuleService(
     INodeDicomRoutingRuleRepository ruleRepository,
     INodeDicomRoutingRulePushService pushService,
-    INodePushQueue pushQueue,
+    INodeOutbox nodeOutbox,
     IOptions<NodePushOptions> pushOptions,
     IUnitOfWork unitOfWork,
     ILogger<NodeDicomRoutingRuleService> logger) : INodeDicomRoutingRuleService
@@ -23,7 +23,7 @@ public sealed class NodeDicomRoutingRuleService(
     private async Task DispatchRulesAsync(string nodeId, CancellationToken ct)
     {
         if (pushOptions.Value.Async)
-            pushQueue.Enqueue(new NodePushRequest(nodeId, NodePushKind.Rules));
+            await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Rules, ct);
         else
             await pushService.PushAsync(nodeId, ct);
     }

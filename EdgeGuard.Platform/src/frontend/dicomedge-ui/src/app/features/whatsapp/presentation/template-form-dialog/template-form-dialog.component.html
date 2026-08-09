@@ -45,18 +45,66 @@
           />
         </div>
 
-        <!-- Tags section -->
+        <!-- Variables section -->
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
           <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Variables del template</h3>
-          <p class="text-xs text-gray-500 dark:text-gray-400 -mt-2">Selecciona los tags que se reemplazarán en el mensaje.</p>
-          <ui-dropdown
-            label="Tags"
-            [options]="tagOptions"
-            [(ngModel)]="form.tags"
-            name="tags"
-            [multiple]="true"
-            placeholder="Seleccionar tags..."
-          />
+          <p class="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+            El orden define las variables <span class="font-mono">&#123;&#123;1&#125;&#125;</span>,
+            <span class="font-mono">&#123;&#123;2&#125;&#125;</span>… enviadas a Twilio. Debe coincidir con el orden del
+            template aprobado. Arrastra para reordenar.
+          </p>
+
+          <!-- Add row: single-select + Agregar -->
+          <div class="flex items-end gap-2">
+            <div class="flex-1">
+              <ui-dropdown
+                label="Variable"
+                [options]="tagOptions"
+                [(ngModel)]="selectedTag"
+                name="selectedTag"
+                placeholder="Seleccionar variable..."
+              />
+            </div>
+            <ui-button variant="secondary" type="button" (clicked)="addVariable()" [disabled]="!selectedTag">
+              <fa-icon [icon]="faPlus" class="mr-1.5" />
+              Agregar
+            </ui-button>
+          </div>
+
+          <!-- Ordered, draggable list -->
+          @if (form.tags.length > 0) {
+            <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="space-y-2">
+              @for (tag of form.tags; track $index) {
+                <div
+                  cdkDrag
+                  class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2"
+                >
+                  <fa-icon
+                    cdkDragHandle
+                    [icon]="faGripVertical"
+                    class="text-gray-400 dark:text-gray-500 cursor-move"
+                    aria-label="Arrastrar para reordenar"
+                  />
+                  <span
+                    class="flex items-center justify-center w-6 h-6 shrink-0 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold"
+                  >
+                    {{ $index + 1 }}
+                  </span>
+                  <span class="flex-1 text-sm text-gray-800 dark:text-gray-200 truncate">{{ tagLabel(tag) }}</span>
+                  <ui-icon-button
+                    [icon]="faTrash"
+                    tooltip="Quitar variable"
+                    ariaLabel="Quitar variable"
+                    (clicked)="removeVariable($index)"
+                  />
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-xs text-gray-400 dark:text-gray-500 italic text-center py-3">
+              Sin variables. La plantilla se enviará sin parámetros.
+            </p>
+          }
         </div>
 
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

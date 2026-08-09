@@ -17,7 +17,7 @@ namespace Dicom.Edge.Hub.Application.Nodes;
 public sealed class NodeService(
     INodeRepository nodeRepository,
     IPacsServerRepository pacsRepository,
-    INodePushQueue pushQueue,
+    INodeOutbox nodeOutbox,
     IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,
     IUnitOfWork unitOfWork,
@@ -111,8 +111,8 @@ public sealed class NodeService(
         {
             if (pushOptions.Value.Async)
             {
-                pushQueue.Enqueue(new NodePushRequest(nodeId, NodePushKind.Config));
-                pushQueue.Enqueue(new NodePushRequest(nodeId, NodePushKind.Pacs));
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Config, ct);
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Pacs, ct);
             }
             else
             {
@@ -147,8 +147,8 @@ public sealed class NodeService(
         {
             if (pushOptions.Value.Async)
             {
-                pushQueue.Enqueue(new NodePushRequest(nodeId, NodePushKind.Config));
-                pushQueue.Enqueue(new NodePushRequest(nodeId, NodePushKind.Pacs));
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Config, ct);
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Pacs, ct);
             }
             else
             {

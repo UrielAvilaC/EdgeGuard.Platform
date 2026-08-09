@@ -64,4 +64,19 @@ public sealed class RuleBasedStudyRouter(
 
         return Task.FromResult<IReadOnlyList<PacsDestination>>(matched);
     }
+
+    public Task<IReadOnlyList<PacsDestination>> ResolveExplicitDestinationsAsync(
+        IReadOnlyList<string> pacsIds,
+        CancellationToken ct = default)
+    {
+        var matched = _defaultDestinations
+            .Where(d => pacsIds.Contains(d.Id))
+            .ToList();
+
+        logger.LogInformation(
+            "Explicit destination resolution: {Requested} requested, {Matched} matched: [{Aes}]",
+            pacsIds.Count, matched.Count, string.Join(", ", matched.Select(d => d.AeTitle)));
+
+        return Task.FromResult<IReadOnlyList<PacsDestination>>(matched);
+    }
 }

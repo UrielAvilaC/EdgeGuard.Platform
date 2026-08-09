@@ -12,6 +12,8 @@ public sealed record DeliveryTarget
     public string? ContentSid { get; init; }
     public string? TemplateId { get; init; }
     public string? NormalizedPhone { get; init; }
+    /// <summary>Resolved positional Content template variables (position → value).</summary>
+    public IReadOnlyDictionary<int, string>? Variables { get; init; }
 
     // Email
     public string? Subject { get; init; }

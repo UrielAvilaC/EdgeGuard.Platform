@@ -159,6 +159,7 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         };
 
         study.RecordStatusChange(null, StudyStatus.Scheduled, sendingFacility, "Scheduled from HL7 worklist");
+        study.AddDomainEvent(new StudyScheduledEvent(study.Id, study.AccessionNumber));
 
         return study;
     }
@@ -207,6 +208,7 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         CurrentStatusSince = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
         RecordStatusChange(old, Status, null, "Re-scheduled");
+        AddDomainEvent(new StudyScheduledEvent(Id, AccessionNumber));
     }
 
     /// <summary>
@@ -286,6 +288,24 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
 
         RecordStatusChange(old, Status, null, "Sent to PACS successfully");
         AddDomainEvent(new StudySentToPacsEvent(Id, StudyInstanceUid.Value, TargetPacsId));
+    }
+
+    /// <summary>
+    /// Manual resend requested from the Hub UI: transitions a <see cref="StudyStatus.Failed"/>
+    /// study back into the send pipeline, targeting only the PACS the operator chose.
+    /// </summary>
+    public void MarkRequeuedManually(IReadOnlyList<string> targetPacsIds)
+    {
+        var old = Status;
+        TargetPacsId = string.Join(",", targetPacsIds);
+        Status = StudyStatus.QueuedForSend;
+        PacsSendLastError = null;
+        CurrentStatusSince = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        var reason = $"Manual resend requested to PACS: {string.Join(", ", targetPacsIds)}";
+        RecordStatusChange(old, Status, null, reason);
+        AddDomainEvent(new StudyStatusChangedEvent(Id, old, Status, reason));
     }
 
     public void MarkFailed(string error)

@@ -1,57 +1,51 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { DomSanitizer, SafeHtml, SafeUrl } from '@angular/platform-browser';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faFilePdf, faImage, faQrcode, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faQrcode, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 
-import { input } from '@angular/core';
-import { StudiesApiService, DeliveryHistory } from '../../infrastructure/studies-api.service';
+import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
+import { StudiesApiService } from '../../infrastructure/studies-api.service';
 import { StudyReport } from '../../models/study.models';
-import { ToastService } from '../../../../core/services/toast.service';
+import { NotificationChannelsService } from '../../../../core/services/notification-channels.service';
+import { StudyDeliverDialog, StudyDeliverDialogData } from '../study-deliver-dialog/study-deliver-dialog.component';
 
 /**
  * Read-only panel showing the diagnostic report (sanitized HTML/text), the QR code of
  * the image link, the image links, and a button to open the report PDF. PDF/QR are
  * fetched as authenticated blobs (object URLs) since &lt;img&gt;/&lt;iframe&gt; can't carry the bearer token.
+ * Results delivery is handled in a separate modal ({@link StudyDeliverDialog}), shown only
+ * when at least one delivery channel (email / WhatsApp) is active.
  */
 @Component({
   selector: 'app-study-report-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FontAwesomeModule, FormsModule],
+  imports: [MatCardModule, FontAwesomeModule, UiButton],
   template: `
     @if (report(); as r) {
       @if (r.content || r.hasPdf || r.imageLinks.length > 0) {
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 space-y-4">
-          <div class="flex items-center justify-between">
-            <h3 class="font-semibold text-gray-900 dark:text-white">Resultados (reporte e imágenes)</h3>
-            @if (r.hasPdf) {
-              <button type="button" (click)="openPdf()"
-                class="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700">
-                <fa-icon [icon]="faFilePdf" /> Ver PDF
-              </button>
-            }
+        <mat-card class="!p-6 space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Resultados (reporte e imágenes)</h3>
+            <div class="flex items-center gap-2">
+              @if (r.hasPdf) {
+                <ui-button variant="ghost" size="sm" [icon]="faFilePdf" (clicked)="openPdf()">Ver PDF</ui-button>
+              }
+              @if (channels.anyEnabled()) {
+                <ui-button size="sm" [icon]="faPaperPlane" (clicked)="openDeliverDialog()">Entregar resultados</ui-button>
+              }
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-2 space-y-3">
               @if (safeHtml(); as html) {
-                <div class="prose prose-sm dark:prose-invert max-w-none" [innerHTML]="html"></div>
+                <div class="prose prose-sm dark:prose-invert max-w-none text-justify" [innerHTML]="html"></div>
               } @else if (r.reportFormat === 'PlainText' && r.content) {
-                <pre class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans">{{ r.content }}</pre>
+                <pre class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans text-justify">{{ r.content }}</pre>
               } @else if (!r.content) {
                 <p class="text-sm text-gray-400 italic">Sin reporte textual.</p>
-              }
-
-              @if (r.imageLinks.length > 0) {
-                <div class="space-y-1">
-                  <div class="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-                    <fa-icon [icon]="faImage" /> Ligas de imágenes
-                  </div>
-                  @for (link of r.imageLinks; track link) {
-                    <a [href]="link" target="_blank" rel="noopener"
-                      class="block text-sm text-blue-600 dark:text-blue-400 hover:underline truncate">{{ link }}</a>
-                  }
-                </div>
               }
             </div>
 
@@ -64,50 +58,7 @@ import { ToastService } from '../../../../core/services/toast.service';
               </div>
             }
           </div>
-
-          <!-- Entregar resultados -->
-          <div class="border-t border-gray-100 dark:border-gray-700 pt-3 space-y-3">
-            <button type="button" (click)="toggleDeliver()"
-              class="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/40">
-              <fa-icon [icon]="faPaperPlane" /> Entregar resultados
-            </button>
-
-            @if (showDeliver()) {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <label class="md:col-span-2">Plantilla de email
-                  <select class="mt-1 w-full border rounded-lg px-3 py-2 dark:bg-gray-700 dark:border-gray-600" [(ngModel)]="emailTemplateId">
-                    <option [ngValue]="null">— seleccionar —</option>
-                    @for (t of emailTemplates(); track t.id) { <option [ngValue]="t.id">{{ t.name }}</option> }
-                  </select>
-                </label>
-                <label class="md:col-span-2">Destinatarios email (separados por coma)
-                  <input class="mt-1 w-full border rounded-lg px-3 py-2 dark:bg-gray-700 dark:border-gray-600" [(ngModel)]="emails" placeholder="paciente@correo.com" />
-                </label>
-                <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="includeQr" /> Incluir QR</label>
-                @if (r.hasPdf) {
-                  <label class="flex items-center gap-2"><input type="checkbox" [(ngModel)]="attachPdf" /> Adjuntar PDF</label>
-                }
-                <div class="md:col-span-2">
-                  <button type="button" (click)="send()" [disabled]="sending()"
-                    class="px-3 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">Enviar</button>
-                </div>
-              </div>
-
-              @if (deliveries().length > 0) {
-                <div class="space-y-1">
-                  <div class="text-xs font-medium text-gray-500">Historial de entregas</div>
-                  @for (d of deliveries(); track d.id) {
-                    <div class="text-xs flex items-center gap-2">
-                      <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700">{{ d.channel }}</span>
-                      <span class="text-gray-600 dark:text-gray-300 truncate">{{ d.to }}</span>
-                      <span [class.text-emerald-600]="d.status === 'Sent'" [class.text-red-500]="d.status === 'Failed'">{{ d.status }}</span>
-                    </div>
-                  }
-                </div>
-              }
-            }
-          </div>
-        </div>
+        </mat-card>
       }
     }
   `,
@@ -115,12 +66,12 @@ import { ToastService } from '../../../../core/services/toast.service';
 export class StudyReportPanel {
   private readonly api = inject(StudiesApiService);
   private readonly sanitizer = inject(DomSanitizer);
-  private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
+  protected readonly channels = inject(NotificationChannelsService);
 
   readonly studyId = input.required<string>();
 
   protected readonly faFilePdf = faFilePdf;
-  protected readonly faImage = faImage;
   protected readonly faQrcode = faQrcode;
   protected readonly faPaperPlane = faPaperPlane;
 
@@ -128,48 +79,18 @@ export class StudyReportPanel {
   protected readonly safeHtml = signal<SafeHtml | null>(null);
   protected readonly qrUrl = signal<SafeUrl | null>(null);
 
-  // Delivery
-  protected readonly showDeliver = signal(false);
-  protected readonly emailTemplates = signal<{ id: string; name: string }[]>([]);
-  protected readonly deliveries = signal<DeliveryHistory[]>([]);
-  protected readonly sending = signal(false);
-  protected emailTemplateId: string | null = null;
-  protected emails = '';
-  protected includeQr = true;
-  protected attachPdf = false;
-
-  protected toggleDeliver(): void {
-    const open = !this.showDeliver();
-    this.showDeliver.set(open);
-    if (open) {
-      this.api.getEmailTemplates().subscribe((t) => this.emailTemplates.set(t));
-      this.loadDeliveries();
-    }
-  }
-
-  private loadDeliveries(): void {
-    this.api.getDeliveries(this.studyId()).subscribe((d) => this.deliveries.set(d));
-  }
-
-  protected send(): void {
-    const emails = this.emails.split(',').map((e) => e.trim()).filter(Boolean);
-    if (!this.emailTemplateId || emails.length === 0) {
-      this.toast.error('Selecciona una plantilla y al menos un destinatario');
-      return;
-    }
-    this.sending.set(true);
-    this.api.deliver(this.studyId(), {
-      emails, phones: [], attachPdf: this.attachPdf, includeQr: this.includeQr, emailTemplateId: this.emailTemplateId,
-    }).subscribe({
-      next: (r) => { this.toast.success('Entrega encolada (' + r.enqueued + ')'); this.sending.set(false); this.loadDeliveries(); },
-      error: () => { this.toast.error('No se pudo entregar'); this.sending.set(false); },
-    });
-  }
-
   constructor() {
+    this.channels.refresh().subscribe();
     effect(() => {
       const id = this.studyId();
       if (id) this.load(id);
+    });
+  }
+
+  protected openDeliverDialog(): void {
+    this.dialog.open(StudyDeliverDialog, {
+      data: { studyId: this.studyId(), hasPdf: this.report()?.hasPdf ?? false } satisfies StudyDeliverDialogData,
+      autoFocus: false,
     });
   }
 

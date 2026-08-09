@@ -18,7 +18,41 @@
         <ui-alert type="error" [title]="error" />
       }
 
+      @if (notFound()) {
+        <ui-empty-state
+          [icon]="faUserSlash"
+          title="Paciente no encontrado"
+          description="El paciente que buscas no existe o fue eliminado."
+        />
+      }
+
       @if (facade.selectedPatient(); as p) {
+        @if (!p.isActive) {
+          <ui-alert type="warning" title="Este paciente está marcado como inactivo." />
+        }
+
+        <!-- Summary stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <ui-stat-card
+            [icon]="faFolderOpen"
+            label="Estudios"
+            [value]="studyCount()"
+            iconBgClass="bg-blue-600"
+          />
+          <ui-stat-card
+            [icon]="faDatabase"
+            label="Tamaño total"
+            [value]="totalStudiesSize() | fileSize"
+            iconBgClass="bg-violet-600"
+          />
+          <ui-stat-card
+            [icon]="faClock"
+            label="Último estudio"
+            [value]="lastStudyAt() ? (lastStudyAt() | relativeTime) : '—'"
+            iconBgClass="bg-emerald-600"
+          />
+        </div>
+
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <!-- Main Info -->
           <div class="xl:col-span-2 space-y-6">
@@ -28,43 +62,49 @@
                 Datos Demográficos
               </h3>
               <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">Nombre completo</dt>
-                  <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                    {{ p.patientName }}
+                <ui-detail-item label="Nombre completo">
+                  <span class="font-medium flex items-center gap-2">
+                    {{ p.patientName | personName }}
                     @if (!p.isActive) {
                       <ui-chip color="default">Inactivo</ui-chip>
                     }
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">
-                    <fa-icon [icon]="faIdCard" class="mr-1" /> DICOM ID
-                  </dt>
-                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ p.patientDicomId }}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">
-                    <fa-icon [icon]="faCakeCandles" class="mr-1" /> Fecha de Nacimiento
-                  </dt>
-                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.birthDate ?? '—' }}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">
-                    <fa-icon [icon]="faVenusMars" class="mr-1" /> Sexo
-                  </dt>
-                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                    {{ p.sex === 'M' ? 'Masculino' : p.sex === 'F' ? 'Femenino' : p.sex ?? '—' }}
-                  </dd>
-                </div>
+                  </span>
+                </ui-detail-item>
+
+                <ui-detail-item label="DICOM ID" [icon]="faIdCard" [mono]="true">
+                  {{ p.patientDicomId }}
+                </ui-detail-item>
+
+                <ui-detail-item label="Fecha de Nacimiento" [icon]="faCakeCandles">
+                  @if (p.birthDate) {
+                    {{ p.birthDate | date: 'dd/MM/yyyy' }}
+                    @let age = p.birthDate | age;
+                    @if (age !== null) {
+                      <span class="text-gray-500 dark:text-gray-400">· {{ age }} años</span>
+                    }
+                  } @else {
+                    —
+                  }
+                </ui-detail-item>
+
+                <ui-detail-item label="Sexo" [icon]="faVenusMars">
+                  {{ sexLabel(p.sex) }}
+                </ui-detail-item>
               </dl>
             </mat-card>
 
             <!-- Associated Studies -->
             <mat-card class="!p-6">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Estudios Asociados
-              </h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  Estudios Asociados
+                </h3>
+                @if (hasMoreStudies()) {
+                  <ui-button variant="ghost" size="sm" [icon]="faArrowRight" (clicked)="viewAllStudies()">
+                    Ver todos ({{ studyCount() }})
+                  </ui-button>
+                }
+              </div>
               @if (studiesLoading()) {
                 <ui-loading-spinner [diameter]="32" />
               } @else if (patientStudies().length === 0) {
@@ -72,7 +112,7 @@
               } @else {
                 <ui-data-table
                   [columns]="studyColumns"
-                  [data]="patientStudies()"
+                  [data]="recentStudies()"
                   emptyMessage="Sin estudios."
                   (rowClick)="goToStudy($event)"
                 >
@@ -100,18 +140,27 @@
                 Contacto
               </h3>
               <dl class="space-y-3">
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">
-                    <fa-icon [icon]="faPhone" class="mr-1" /> Teléfono
-                  </dt>
-                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.phoneNumber ?? '—' }}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">
-                    <fa-icon [icon]="faEnvelope" class="mr-1" /> Email
-                  </dt>
-                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.email ?? '—' }}</dd>
-                </div>
+                <ui-detail-item label="Teléfono" [icon]="faPhone">
+                  @if (p.phoneNumber) {
+                    <a
+                      [href]="'tel:' + p.phoneNumber"
+                      class="text-azure-600 dark:text-azure-400 hover:underline"
+                    >{{ p.phoneNumber }}</a>
+                  } @else {
+                    —
+                  }
+                </ui-detail-item>
+
+                <ui-detail-item label="Email" [icon]="faEnvelope">
+                  @if (p.email) {
+                    <a
+                      [href]="'mailto:' + p.email"
+                      class="text-azure-600 dark:text-azure-400 hover:underline break-all"
+                    >{{ p.email }}</a>
+                  } @else {
+                    —
+                  }
+                </ui-detail-item>
               </dl>
             </mat-card>
 
@@ -121,22 +170,17 @@
                 Origen
               </h3>
               <dl class="space-y-3">
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">
-                    <fa-icon [icon]="faHospital" class="mr-1" /> Facility
-                  </dt>
-                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.facilitySource ?? '—' }}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">
-                    <fa-icon [icon]="faServer" class="mr-1" /> Nodo creador
-                  </dt>
-                  <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ p.createdByNodeId ?? '—' }}</dd>
-                </div>
-                <div>
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">Issuer of Patient ID</dt>
-                  <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ p.issuerOfPatientId ?? '—' }}</dd>
-                </div>
+                <ui-detail-item label="Facility" [icon]="faHospital">
+                  {{ p.facilitySource ?? '—' }}
+                </ui-detail-item>
+
+                <ui-detail-item label="Nodo creador" [icon]="faServer">
+                  {{ nodeName() ?? p.createdByNodeId ?? '—' }}
+                </ui-detail-item>
+
+                <ui-detail-item label="Issuer of Patient ID" [mono]="true">
+                  {{ p.issuerOfPatientId ?? '—' }}
+                </ui-detail-item>
               </dl>
             </mat-card>
 
@@ -146,14 +190,12 @@
                 Timestamps
               </h3>
               <dl class="space-y-3">
-                <div class="flex justify-between">
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">Creado</dt>
-                  <dd class="text-sm text-gray-900 dark:text-white">{{ p.createdAt | relativeTime }}</dd>
-                </div>
-                <div class="flex justify-between">
-                  <dt class="text-sm text-gray-500 dark:text-gray-400">Actualizado</dt>
-                  <dd class="text-sm text-gray-900 dark:text-white">{{ p.updatedAt ? (p.updatedAt | relativeTime) : '—' }}</dd>
-                </div>
+                <ui-detail-item label="Creado" [inline]="true">
+                  {{ p.createdAt | relativeTime }}
+                </ui-detail-item>
+                <ui-detail-item label="Actualizado" [inline]="true">
+                  {{ p.updatedAt ? (p.updatedAt | relativeTime) : '—' }}
+                </ui-detail-item>
               </dl>
             </mat-card>
           </div>

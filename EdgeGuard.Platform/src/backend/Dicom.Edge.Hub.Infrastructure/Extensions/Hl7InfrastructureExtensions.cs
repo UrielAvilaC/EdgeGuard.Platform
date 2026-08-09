@@ -1,3 +1,4 @@
+using Dicom.Edge.Hub.Application.Configuration;
 using Dicom.Edge.Hub.Application.Dispatch;
 using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
@@ -29,6 +30,9 @@ public static class Hl7InfrastructureExtensions
         // TCP listener
         services.AddSingleton<IHl7Listener, Hl7TcpListener>();
         services.AddHostedService<Hl7ListenerHostedService>();
+
+        // Runtime configuration reload (system_settings → IOptionsMonitor without restart).
+        services.AddSingleton<IRuntimeConfigReloader, RuntimeConfigReloader>();
 
         // P0-1: Per-node auth handler that signs outbound Hub→Node requests with HMAC.
         // Cache for the per-node signing key.

@@ -11,21 +11,51 @@
     // ── Branding Panel ──
     .login-branding {
       display: none;
+      position: relative;
       flex-direction: column;
       justify-content: space-between;
       width: 44%;
       min-width: 400px;
       padding: 48px;
-      background: linear-gradient(135deg, #0078d4 0%, #005a9e 50%, #003d6b 100%);
+      overflow: hidden;
+      background:
+        radial-gradient(120% 90% at 15% 12%, rgba(56 160 255 / 0.35) 0%, transparent 55%),
+        linear-gradient(135deg, #0a84e0 0%, #005a9e 48%, #002f54 100%);
       color: #fff;
 
       @media (min-width: 1024px) {
         display: flex;
       }
+
+      // Retícula tenue tipo "red de nodos" sobre el gradiente
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255 255 255 / 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255 255 255 / 0.05) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: radial-gradient(120% 100% at 80% 0%, #000 30%, transparent 78%);
+        -webkit-mask-image: radial-gradient(120% 100% at 80% 0%, #000 30%, transparent 78%);
+        pointer-events: none;
+      }
+    }
+
+    :host-context(.dark) .login-branding {
+      background:
+        radial-gradient(120% 90% at 15% 12%, rgba(56 160 255 / 0.22) 0%, transparent 55%),
+        linear-gradient(135deg, #06375f 0%, #062744 48%, #010f1f 100%);
     }
 
     .branding-content {
+      position: relative;
       margin-top: 32px;
+    }
+
+    .branding-footer,
+    .branding-logo {
+      position: relative;
     }
 
     .branding-logo {
@@ -72,26 +102,37 @@
     .branding-features {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .feature-item {
       display: flex;
       align-items: center;
       gap: 14px;
+      padding: 12px 14px;
       font-size: 0.875rem;
-      color: rgba(255 255 255 / 0.9);
+      color: rgba(255 255 255 / 0.92);
+      background: rgba(255 255 255 / 0.08);
+      border: 1px solid rgba(255 255 255 / 0.14);
+      border-radius: 12px;
+      backdrop-filter: blur(2px);
+      animation: eg-fade-in var(--eg-transition-normal) both;
+
+      @for $i from 1 through 3 {
+        &:nth-child(#{$i}) { animation-delay: #{120 + $i * 90}ms; }
+      }
     }
 
     .feature-icon {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
-      background: rgba(255 255 255 / 0.12);
-      font-size: 0.8125rem;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(255 255 255 / 0.16);
+      font-size: 0.9375rem;
+      flex-shrink: 0;
     }
 
     .branding-footer {
@@ -151,4 +192,60 @@
       display: flex;
       flex-direction: column;
       gap: 20px;
+    }
+
+    // ── Fila de ayuda (¿olvidó su contraseña?) ──
+    .form-help-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -6px;
+    }
+
+    .link-button {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #0a84e0;
+      transition: color var(--eg-transition-normal);
+
+      &:hover {
+        color: #005a9e;
+        text-decoration: underline;
+      }
+    }
+
+    :host-context(.dark) .link-button {
+      color: #4aa9f0;
+
+      &:hover { color: #7cc2f5; }
+    }
+
+    // ── Pie del formulario (conexión segura + copyright) ──
+    .form-footer {
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid var(--eg-border-subtle, rgba(148 163 184 / 0.2));
+      text-align: center;
+    }
+
+    .secure-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.75rem;
+      color: var(--eg-text-secondary);
+    }
+
+    .secure-badge fa-icon {
+      color: #10b981;
+    }
+
+    .form-copyright {
+      margin-top: 8px;
+      font-size: 0.6875rem;
+      color: var(--eg-text-secondary);
+      opacity: 0.7;
     }

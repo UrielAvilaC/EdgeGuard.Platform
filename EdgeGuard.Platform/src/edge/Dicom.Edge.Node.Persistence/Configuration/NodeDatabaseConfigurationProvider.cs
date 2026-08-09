@@ -104,7 +104,8 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             db.TryGetValue(NodeSettingKeys.Hub.Hostname, out var hostname) &&
             !string.IsNullOrWhiteSpace(hostname))
         {
-            var port = db.TryGetValue(NodeSettingKeys.Hub.Port, out var portStr)
+            var port = db.TryGetValue(NodeSettingKeys.Hub.Port, out var portStr) &&
+                       !string.IsNullOrWhiteSpace(portStr)
                 ? portStr : ConfigDefaults.HubPort;
 
             cfg[ConfigPaths.HubBaseUrl] = $"{protocol}://{hostname}:{port}";

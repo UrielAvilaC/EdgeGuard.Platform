@@ -31,7 +31,7 @@ public sealed class WorklistCFindHandler(
         var patientName = queryKeys.GetSingleValueOrDefault(DicomTag.PatientName, string.Empty);
         var accessionNumber = queryKeys.GetSingleValueOrDefault(DicomTag.AccessionNumber, string.Empty);
 
-        string modality = string.Empty;
+        string modality = queryKeys.GetSingleValueOrDefault(DicomTag.Modality, string.Empty);
         string scheduledDate = string.Empty;
         string scheduledStationAe = string.Empty;
 
@@ -42,6 +42,10 @@ public sealed class WorklistCFindHandler(
             {
                 var spsItem = spsSeq.Items[0];
                 modality = spsItem.GetSingleValueOrDefault(DicomTag.Modality, string.Empty);
+                if (!string.IsNullOrEmpty(modality))
+                {
+                    modality = modality.Trim('*');
+                }
                 scheduledDate = spsItem.GetSingleValueOrDefault(
                     DicomTag.ScheduledProcedureStepStartDate, string.Empty);
                 scheduledStationAe = spsItem.GetSingleValueOrDefault(
@@ -67,7 +71,7 @@ public sealed class WorklistCFindHandler(
 
         // null  => no per-equipment constraint (empty catalog → legacy behaviour)
         // empty => equipment exists but has no modalities assigned → sees nothing
-        var allowedModalities  = equipment?.ModalityCodes;
+        var allowedModalities = equipment?.ModalityCodes;
         var equipmentStationAe = equipment?.StationAeTitle;
 
         if (allowedModalities is { Count: 0 })
@@ -192,9 +196,9 @@ public sealed class WorklistCFindHandler(
     {
         // Query values are trimmed because DICOM CS / SH / AE VRs pad with trailing
         // spaces; some SCUs do not strip them before sending the C-FIND request.
-        patientId         = patientId?.Trim()         ?? string.Empty;
-        patientName       = patientName?.Trim()       ?? string.Empty;
-        accessionNumber   = accessionNumber?.Trim()   ?? string.Empty;
+        patientId = patientId?.Trim() ?? string.Empty;
+        patientName = patientName?.Trim() ?? string.Empty;
+        accessionNumber = accessionNumber?.Trim() ?? string.Empty;
         scheduledStationAe = scheduledStationAe?.Trim() ?? string.Empty;
 
         if (!string.IsNullOrEmpty(patientId) &&
@@ -306,7 +310,7 @@ public sealed class WorklistCFindHandler(
         {
             var parts = dicomDate.Split('-', 2);
             var from = ParseSingleDicomDate(parts[0]);
-            var to   = EndOfDay(ParseSingleDicomDate(parts[1]));
+            var to = EndOfDay(ParseSingleDicomDate(parts[1]));
             return (from, to);
         }
 
