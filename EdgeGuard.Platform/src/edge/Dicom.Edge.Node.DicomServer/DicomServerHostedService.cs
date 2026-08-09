@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using Dicom.Edge.Abstractions.Equipment;
 using Dicom.Edge.Abstractions.Events;
+using Dicom.Edge.Diagnostics.Logging;
 using FellowOakDicom.Network;
 using FellowOakDicom.Network.Tls;
 using Microsoft.Extensions.Hosting;
@@ -30,6 +31,7 @@ public sealed class DicomServerHostedService(
     IDicomAssociationTracker associationTracker,
     IEquipmentCatalog equipmentCatalog,
     IEquipmentActivityTracker equipmentActivityTracker,
+    IAssociationLogWriter associationLog,
     IOptionsMonitor<DicomServerOptions> optionsMonitor,
     IDicomServerFactory dicomServerFactory,
     ILogger<DicomServerHostedService> logger) : IHostedService, IDisposable
@@ -104,6 +106,7 @@ public sealed class DicomServerHostedService(
                 associationTracker,
                 equipmentCatalog,
                 equipmentActivityTracker,
+                associationLog,
                 optionsMonitor,
                 logger),
             // P1-2: cap concurrent SCP associations so a flood of connections cannot
@@ -153,6 +156,7 @@ public sealed record DicomScpDependencies(
     IDicomAssociationTracker AssociationTracker,
     IEquipmentCatalog EquipmentCatalog,
     IEquipmentActivityTracker EquipmentActivityTracker,
+    IAssociationLogWriter AssociationLog,
     IOptionsMonitor<DicomServerOptions> OptionsMonitor,
     ILogger<DicomServerHostedService> Logger)
 {

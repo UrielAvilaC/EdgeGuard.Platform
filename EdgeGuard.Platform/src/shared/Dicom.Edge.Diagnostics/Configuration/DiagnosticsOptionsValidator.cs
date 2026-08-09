@@ -25,6 +25,29 @@ public sealed class DiagnosticsOptionsValidator : IValidateOptions<DiagnosticsOp
         if (options.File.RetainDays <= 0)
             failures.Add($"{nameof(options.File)}.{nameof(options.File.RetainDays)} must be greater than 0.");
 
+        var perAssociation = options.File.PerAssociation;
+        if (perAssociation.Enabled)
+        {
+            if (string.IsNullOrWhiteSpace(perAssociation.Path))
+                failures.Add("File.PerAssociation is enabled but Path is empty.");
+
+            if (perAssociation.RetainDays < 0)
+                failures.Add("File.PerAssociation.RetainDays cannot be negative.");
+
+            if (perAssociation.MaxFileSizeMb <= 0)
+                failures.Add("File.PerAssociation.MaxFileSizeMb must be greater than 0.");
+
+            if (perAssociation.MaxOpen <= 0)
+                failures.Add("File.PerAssociation.MaxOpen must be greater than 0.");
+
+            if (perAssociation.MaxFilesPerDay <= 0)
+                failures.Add("File.PerAssociation.MaxFilesPerDay must be greater than 0.");
+
+            if (!Enum.TryParse<Serilog.Events.LogEventLevel>(perAssociation.MinimumLevel, true, out _))
+                failures.Add(
+                    $"File.PerAssociation.MinimumLevel '{perAssociation.MinimumLevel}' is not a valid Serilog level.");
+        }
+
         if (options.Seq.Enabled && string.IsNullOrWhiteSpace(options.Seq.Url))
             failures.Add("Seq is enabled but Url is not configured.");
 

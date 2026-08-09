@@ -75,6 +75,47 @@ public sealed class FileLoggingOptions
 
     /// <summary>Whether to use compact JSON formatting.</summary>
     public bool UseCompactJson { get; set; } = true;
+
+    /// <summary>Per-DICOM-association log file configuration.</summary>
+    public PerAssociationLoggingOptions PerAssociation { get; set; } = new();
+}
+
+/// <summary>
+/// Configuration for the per-DICOM-association log files. One file is written per association,
+/// from the A-ASSOCIATE-RQ until release/abort/close, in addition to (never instead of) the
+/// global log.
+/// </summary>
+public sealed class PerAssociationLoggingOptions
+{
+    /// <summary>Master switch. When false the node behaves exactly as before.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>Base directory for association logs. One sub-directory per day is created.</summary>
+    public string Path { get; set; } = "logs/associations";
+
+    /// <summary>Minimum level written to the association file (independent of the global log).</summary>
+    public string MinimumLevel { get; set; } = "Debug";
+
+    /// <summary>Write compact JSON instead of human-readable text.</summary>
+    public bool UseCompactJson { get; set; }
+
+    /// <summary>Days to keep association logs before the cleanup service removes them.</summary>
+    public int RetainDays { get; set; } = 14;
+
+    /// <summary>Safety cap on files created per day (protects against association floods).</summary>
+    public int MaxFilesPerDay { get; set; } = 5000;
+
+    /// <summary>Maximum size of a single association file in megabytes.</summary>
+    public int MaxFileSizeMb { get; set; } = 10;
+
+    /// <summary>Maximum total size of the association log directory in megabytes.</summary>
+    public int MaxTotalSizeMb { get; set; } = 2048;
+
+    /// <summary>Maximum number of association files kept open simultaneously.</summary>
+    public int MaxOpen { get; set; } = 20;
+
+    /// <summary>Include fo-dicom's own PDU/DIMSE events in the association file.</summary>
+    public bool IncludeFoDicomInternals { get; set; } = true;
 }
 
 /// <summary>Seq centralized logging sink configuration.</summary>

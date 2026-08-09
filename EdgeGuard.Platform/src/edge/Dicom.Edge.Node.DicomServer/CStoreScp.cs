@@ -1,3 +1,5 @@
+using Dicom.Edge.Diagnostics.Correlation;
+using Dicom.Edge.Diagnostics.Logging;
 using FellowOakDicom;
 using FellowOakDicom.Network;
 using Microsoft.Extensions.Logging;
@@ -16,11 +18,24 @@ namespace Dicom.Edge.Node.DicomServer;
 /// Dependencies are passed via <see cref="DicomService.UserState"/> (<see cref="DicomScpDependencies"/>)
 /// because fo-dicom creates a new service instance per association.
 /// </summary>
+/// <remarks>
+/// <b>Per-association logging.</b> One instance exists per association, so the association id
+/// created in the constructor identifies it exactly. Two mechanisms tag the log events:
+/// the decorated <see cref="DicomService.Logger"/> (covers fo-dicom's own events, emitted from
+/// the connection read loop) and <see cref="DicomAssociationContext"/>, re-entered at the start
+/// of every callback (covers everything running underneath: instance handler, C-FIND handlers,
+/// storage, EF Core). The association file is opened before AE validation — so rejections are
+/// captured too — and closed on release, abort or connection close.
+/// </remarks>
 public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStoreProvider, IDicomCFindProvider, IDicomCEchoProvider
 {
-    
+
     private DicomScpDependencies? _deps;
     private IAssociationSession? _session;
+
+    private readonly AssociationLogContext _logCtx = AssociationLogContext.New();
+    private readonly AssociationSummary _summary = new();
+    private int _logClosed;
 
     /// <summary>Lazily resolves the dependencies record set as UserState by the server.</summary>
     private DicomScpDependencies Deps => _deps ??= (DicomScpDependencies)UserState;
@@ -32,7 +47,9 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
         DicomServiceDependencies dependencies)
         : base(stream, fallbackEncoding, logger, dependencies)
     {
-        
+        // Every event this service logs — including fo-dicom's internal PDU/DIMSE traffic —
+        // is attributed to this association.
+        Logger = new AssociationScopedLogger(logger, _logCtx);
     }
 
 
@@ -40,6 +57,8 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
 
     public async Task OnReceiveAssociationRequestAsync(DicomAssociation association)
     {
+        using var logScope = DicomAssociationContext.Enter(_logCtx);
+
         var options = Deps.Options;
 
         // DICOM AE titles can have trailing spaces — always trim before comparing.
@@ -47,13 +66,24 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
         var callingAe = association.CallingAE.Trim();
         var localAe   = options.AeTitle.Trim();
 
-        Deps.Logger.LogInformation(
-            "Association request — CallingAE={CallingAe} CalledAE={CalledAe} LocalAE={LocalAe} Host={Host}",
-            callingAe, calledAe, localAe, association.RemoteHost);
+        _logCtx.CallingAe  = callingAe;
+        _logCtx.CalledAe   = calledAe;
+        _logCtx.RemoteHost = association.RemoteHost ?? AssociationLogContext.Unknown;
+        _logCtx.RemotePort = association.RemotePort;
+
+        // Opened before validation so rejected associations get their own file too — that is
+        // precisely the case support needs during modality homologation.
+        Deps.AssociationLog.Open(_logCtx);
+
+        Logger.LogInformation(
+            "Association request — CallingAE={CallingAe} CalledAE={CalledAe} LocalAE={LocalAe} Host={Host} AssociationId={AssociationId}",
+            callingAe, calledAe, localAe, association.RemoteHost, _logCtx.AssociationId);
 
         if (!options.IsAcceptedCalledAe(calledAe))
         {
-            Deps.Logger.LogWarning(
+            var reason = $"CalledAE '{calledAe}' not recognized (local='{localAe}')";
+
+            Logger.LogWarning(
                 "Association REJECTED — CalledAE '{CalledAe}' does not match local AE '{LocalAe}' or any alias ({Aliases}). " +
                 "Update DicomServer:AeTitleAliases to accept this title, set ValidateCalledAe=false for permissive mode, " +
                 "or correct the AE title on the remote SCU.",
@@ -63,11 +93,12 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 callingAe, calledAe,
                 association.RemoteHost ?? string.Empty,
                 association.RemotePort,
-                $"CalledAE '{calledAe}' not recognized (local='{localAe}')");
+                reason);
             await SendAssociationRejectAsync(
                 DicomRejectResult.Permanent,
                 DicomRejectSource.ServiceUser,
                 DicomRejectReason.CalledAENotRecognized);
+            CloseAssociationLog(AssociationOutcome.Rejected, reason);
             return;
         }
 
@@ -86,7 +117,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                     ? $"CallingAE '{callingAe}' is not registered in the equipment catalog"
                     : $"CallingAE '{callingAe}' is registered but disabled";
 
-                Deps.Logger.LogWarning(
+                Logger.LogWarning(
                     "Association REJECTED — {Reason}. Register/enable the equipment on the Hub " +
                     "(node {CalledAe}) to allow this modality.",
                     reason, calledAe);
@@ -99,6 +130,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                     DicomRejectResult.Permanent,
                     DicomRejectSource.ServiceUser,
                     DicomRejectReason.CallingAENotRecognized);
+                CloseAssociationLog(AssociationOutcome.Rejected, reason);
                 return;
             }
 
@@ -113,7 +145,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                     var reason =
                         $"CallingAE '{callingAe}' source IP mismatch (expected '{equipment.IpAddress}', got '{remoteHost}')";
 
-                    Deps.Logger.LogWarning(
+                    Logger.LogWarning(
                         "Association REJECTED — {Reason}. Update the equipment IP on the Hub or correct the modality network configuration.",
                         reason);
                     await Deps.AssociationTracker.RecordRejectionAsync(
@@ -125,6 +157,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                         DicomRejectResult.Permanent,
                         DicomRejectSource.ServiceUser,
                         DicomRejectReason.CallingAENotRecognized);
+                    CloseAssociationLog(AssociationOutcome.Rejected, reason);
                     return;
                 }
             }
@@ -137,7 +170,9 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                  options.AllowedCallingAeTitles.Length > 0 &&
                  !options.AllowedCallingAeTitles.Contains(callingAe, StringComparer.OrdinalIgnoreCase))
         {
-            Deps.Logger.LogWarning(
+            var reason = $"CallingAE '{callingAe}' not in allowed list";
+
+            Logger.LogWarning(
                 "Association REJECTED — CallingAE '{CallingAe}' is not in the allowed list ({Allowed})",
                 callingAe,
                 string.Join(", ", options.AllowedCallingAeTitles));
@@ -145,11 +180,12 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 callingAe, calledAe,
                 association.RemoteHost ?? string.Empty,
                 association.RemotePort,
-                $"CallingAE '{callingAe}' not in allowed list");
+                reason);
             await SendAssociationRejectAsync(
                 DicomRejectResult.Permanent,
                 DicomRejectSource.ServiceUser,
                 DicomRejectReason.CallingAENotRecognized);
+            CloseAssociationLog(AssociationOutcome.Rejected, reason);
             return;
         }
 
@@ -171,7 +207,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                     accepted++;
                     if (acceptedUids.Length > 0) acceptedUids.Append(", ");
                     acceptedUids.Append(uid.UID);
-                    Deps.Logger.LogInformation(
+                    Logger.LogInformation(
                         "Presentation context ACCEPTED — C-ECHO (Verification) ID={Id} CallingAE={CallingAe}",
                         ctx.ID, callingAe);
                 }
@@ -179,7 +215,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 {
                     ctx.SetResult(DicomPresentationContextResult.RejectAbstractSyntaxNotSupported);
                     rejected++;
-                    Deps.Logger.LogWarning(
+                    Logger.LogWarning(
                         "Presentation context REJECTED — C-ECHO disabled (CEchoEnabled=false). " +
                         "Enable it via Hub setting dicom.cecho_enabled=true.");
                 }
@@ -195,13 +231,13 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                         accepted++;
                         if (acceptedUids.Length > 0) acceptedUids.Append(", ");
                         acceptedUids.Append(uid.UID);
-                        Deps.Logger.LogDebug("Presentation context ACCEPTED — MWL C-FIND ID={Id}", ctx.ID);
+                        Logger.LogDebug("Presentation context ACCEPTED — MWL C-FIND ID={Id}", ctx.ID);
                 }
                 else
                 {
                     ctx.SetResult(DicomPresentationContextResult.RejectAbstractSyntaxNotSupported);
                     rejected++;
-                    Deps.Logger.LogDebug("Presentation context REJECTED — MWL disabled (MwlEnabled=false)");
+                    Logger.LogDebug("Presentation context REJECTED — MWL disabled (MwlEnabled=false)");
                 }
                 continue;
             }
@@ -215,13 +251,13 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                     accepted++;
                     if (acceptedUids.Length > 0) acceptedUids.Append(", ");
                     acceptedUids.Append(uid.UID);
-                    Deps.Logger.LogDebug("Presentation context ACCEPTED — Study Root C-FIND ID={Id}", ctx.ID);
+                    Logger.LogDebug("Presentation context ACCEPTED — Study Root C-FIND ID={Id}", ctx.ID);
                 }
                 else
                 {
                     ctx.SetResult(DicomPresentationContextResult.RejectAbstractSyntaxNotSupported);
                     rejected++;
-                    Deps.Logger.LogDebug(
+                    Logger.LogDebug(
                         "Presentation context REJECTED — Query/Retrieve disabled (QrEnabled=false). " +
                         "Enable it via node settings key EnableDicomQr or dicom.qr_enabled.");
                 }
@@ -235,41 +271,79 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
             acceptedUids.Append(uid.UID);
         }
 
-        Deps.Logger.LogInformation(
+        Logger.LogInformation(
             "Association negotiation complete — CallingAE={CallingAe} Accepted={Accepted} Rejected={Rejected}",
             callingAe, accepted, rejected);
+
+        _summary.Outcome = AssociationOutcome.Accepted;
+        _summary.AcceptedContexts = acceptedUids.Length > 0 ? acceptedUids.ToString() : null;
 
         _session = await Deps.AssociationTracker.BeginAsync(
             callingAe, calledAe,
             association.RemoteHost ?? string.Empty,
             association.RemotePort,
-            acceptedUids.Length > 0 ? acceptedUids.ToString() : null);
+            _summary.AcceptedContexts);
 
         await SendAssociationAcceptAsync(association);
     }
 
     public async Task OnReceiveAssociationReleaseRequestAsync()
     {
-        Deps.Logger.LogDebug("Association released — requesting immediate completion check");
+        using var logScope = DicomAssociationContext.Enter(_logCtx);
+
+        Logger.LogDebug("Association released — requesting immediate completion check");
         Deps.CompletionTrigger.RequestImmediateCheck();
         if (_session is not null) await _session.CompleteAsync();
         await SendAssociationReleaseResponseAsync();
+
+        CloseAssociationLog(AssociationOutcome.Completed, null);
     }
 
     public void OnReceiveAbort(DicomAbortSource source, DicomAbortReason reason)
     {
-        Deps.Logger.LogWarning("Association aborted: source={Source}, reason={Reason}", source, reason);
+        Logger.LogWarning("Association aborted: source={Source}, reason={Reason}", source, reason);
         if (_session is not null)
             _ = _session.AbortAsync($"Aborted — source={source}, reason={reason}");
+
+        CloseAssociationLog(AssociationOutcome.Aborted, $"source={source}, reason={reason}");
     }
 
     public void OnConnectionClosed(Exception? exception)
     {
         if (exception is not null)
         {
-            Deps.Logger.LogWarning(exception, "DICOM connection closed with error");
+            Logger.LogWarning(exception, "DICOM connection closed with error");
+            _summary.RecordError();
             if (_session is not null)
                 _ = _session.AbortAsync(exception.Message);
+        }
+
+        // No-op when the association was already released, aborted or rejected.
+        CloseAssociationLog(
+            exception is null ? AssociationOutcome.Closed : AssociationOutcome.Aborted,
+            exception?.Message);
+    }
+
+    /// <summary>
+    /// Writes the summary footer and releases the per-association file. Idempotent: the first
+    /// caller wins, so the abort/close pair that fo-dicom raises for a broken connection does
+    /// not produce two footers.
+    /// </summary>
+    private void CloseAssociationLog(AssociationOutcome outcome, string? reason)
+    {
+        if (Interlocked.Exchange(ref _logClosed, 1) != 0) return;
+
+        _summary.Outcome = outcome;
+        _summary.Reason  = reason;
+
+        // A logging failure must never break an association.
+        try
+        {
+            _deps?.AssociationLog.Close(_logCtx, _summary);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to close per-association log {AssociationId}", _logCtx.AssociationId);
         }
     }
 
@@ -277,6 +351,8 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
 
     public async Task<DicomCStoreResponse> OnCStoreRequestAsync(DicomCStoreRequest request)
     {
+        using var logScope = DicomAssociationContext.Enter(_logCtx);
+
         try
         {
             await Deps.InstanceHandler.HandleInstanceAsync(
@@ -285,19 +361,25 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 CancellationToken.None);
 
             _session?.RecordImage();
+            _summary.RecordCStore(success: true);
             return new DicomCStoreResponse(request, DicomStatus.Success);
         }
         catch (Exception ex)
         {
-            Deps.Logger.LogError(ex, "C-STORE processing error for SOP {SopInstanceUid}",
+            Logger.LogError(ex, "C-STORE processing error for SOP {SopInstanceUid}",
                 request.SOPInstanceUID?.UID);
+            _summary.RecordCStore(success: false);
+            _summary.RecordError();
             return new DicomCStoreResponse(request, DicomStatus.ProcessingFailure);
         }
     }
 
     public Task OnCStoreRequestExceptionAsync(string tempFileName, Exception e)
     {
-        Deps.Logger.LogError(e, "C-STORE exception for temp file {TempFile}", tempFileName);
+        using var logScope = DicomAssociationContext.Enter(_logCtx);
+
+        Logger.LogError(e, "C-STORE exception for temp file {TempFile}", tempFileName);
+        _summary.RecordError();
         return Task.CompletedTask;
     }
 
@@ -306,10 +388,12 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
     public async IAsyncEnumerable<DicomCFindResponse> OnCFindRequestAsync(
         DicomCFindRequest request)
     {
+        using var logScope = DicomAssociationContext.Enter(_logCtx);
+
         // MWL (Modality Worklist) queries
         if (request.SOPClassUID == DicomUID.ModalityWorklistInformationModelFind)
         {
-            Deps.Logger.LogInformation("MWL C-FIND request from {CallingAe}", Association.CallingAE);
+            Logger.LogInformation("MWL C-FIND request from {CallingAe}", Association.CallingAE);
 
             int resultCount = 0;
 
@@ -325,9 +409,10 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 yield return response;
             }
 
-            Deps.Logger.LogInformation(
+            Logger.LogInformation(
                 "MWL C-FIND completed — {Count} results for {CallingAe}",
                 resultCount, Association.CallingAE);
+            _summary.RecordMwlQuery(resultCount);
 
             yield return new DicomCFindResponse(request, DicomStatus.Success);
             yield break;
@@ -338,7 +423,7 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
         {
             if (!Deps.Options.QrEnabled)
             {
-                Deps.Logger.LogWarning("Study Root C-FIND requested while Q/R is disabled");
+                Logger.LogWarning("Study Root C-FIND requested while Q/R is disabled");
                 yield return new DicomCFindResponse(request, DicomStatus.SOPClassNotSupported);
                 yield break;
             }
@@ -348,14 +433,14 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
 
             if (!string.Equals(level, "STUDY", StringComparison.OrdinalIgnoreCase))
             {
-                Deps.Logger.LogWarning(
+                Logger.LogWarning(
                     "Unsupported Q/R level for Study Root C-FIND: {Level}",
                     level);
                 yield return new DicomCFindResponse(request, DicomStatus.QueryRetrieveUnableToProcess);
                 yield break;
             }
 
-            Deps.Logger.LogInformation("Study Root C-FIND request from {CallingAe}", Association.CallingAE);
+            Logger.LogInformation("Study Root C-FIND request from {CallingAe}", Association.CallingAE);
             var resultCount = 0;
 
             await foreach (var dataset in Deps.StudyRootHandler.QueryStudiesAsync(queryKeys))
@@ -368,15 +453,16 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
                 yield return response;
             }
 
-            Deps.Logger.LogInformation(
+            Logger.LogInformation(
                 "Study Root C-FIND completed — {Count} results for {CallingAe}",
                 resultCount, Association.CallingAE);
+            _summary.RecordQrQuery(resultCount);
 
             yield return new DicomCFindResponse(request, DicomStatus.Success);
             yield break;
         }
 
-        Deps.Logger.LogWarning("Unsupported C-FIND SOP class: {SopClassUid}", request.SOPClassUID);
+        Logger.LogWarning("Unsupported C-FIND SOP class: {SopClassUid}", request.SOPClassUID);
         yield return new DicomCFindResponse(request, DicomStatus.SOPClassNotSupported);
     }
 
@@ -388,9 +474,12 @@ public sealed class CStoreScp : DicomService, IDicomServiceProvider, IDicomCStor
     /// </summary>
     public Task<DicomCEchoResponse> OnCEchoRequestAsync(DicomCEchoRequest request)
     {
-        Deps.Logger.LogInformation(
+        using var logScope = DicomAssociationContext.Enter(_logCtx);
+
+        Logger.LogInformation(
             "C-ECHO received from {CallingAe} — responding with Success",
             Association.CallingAE);
+        _summary.RecordCEcho();
 
         return Task.FromResult(new DicomCEchoResponse(request, DicomStatus.Success));
     }

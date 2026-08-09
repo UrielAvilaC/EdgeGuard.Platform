@@ -48,6 +48,15 @@ public static class DiagnosticsConstants
     /// <summary>DICOM modality type (CT, MR, CR, US, etc.).</summary>
     public const string Modality = "Modality";
 
+    /// <summary>Identifier of the DICOM association the event belongs to.</summary>
+    public const string AssociationId = "AssociationId";
+
+    /// <summary>Remote host/IP of the association peer.</summary>
+    public const string RemoteHost = "RemoteHost";
+
+    /// <summary>Remote TCP port of the association peer.</summary>
+    public const string RemotePort = "RemotePort";
+
     // ==================== Operations ====================
 
     /// <summary>Operation name being performed.</summary>
