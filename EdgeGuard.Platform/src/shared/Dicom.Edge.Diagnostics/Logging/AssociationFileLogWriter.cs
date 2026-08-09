@@ -127,13 +127,13 @@ public sealed class AssociationFileLogWriter(IOptionsMonitor<DiagnosticsOptions>
     }
 
     /// <inheritdoc />
-    public void Close(AssociationLogContext context, AssociationSummary summary)
+    public string? Close(AssociationLogContext context, AssociationSummary summary)
         => Close(context.AssociationId, summary);
 
-    private void Close(string associationId, AssociationSummary summary)
+    private string? Close(string associationId, AssociationSummary summary)
     {
         if (!_entries.TryRemove(associationId, out var entry))
-            return;
+            return null;
 
         var useJson = Options.UseCompactJson;
 
@@ -151,7 +151,7 @@ public sealed class AssociationFileLogWriter(IOptionsMonitor<DiagnosticsOptions>
         // afterwards so it cannot race with the sink's own writes.
         entry.Logger.Dispose();
 
-        if (useJson) return;
+        if (useJson) return entry.FilePath;
 
         try
         {
@@ -161,6 +161,8 @@ public sealed class AssociationFileLogWriter(IOptionsMonitor<DiagnosticsOptions>
         {
             SelfLog.WriteLine("Failed to append association footer for {0}: {1}", associationId, ex);
         }
+
+        return entry.FilePath;
     }
 
     /// <inheritdoc />
@@ -175,7 +177,7 @@ public sealed class AssociationFileLogWriter(IOptionsMonitor<DiagnosticsOptions>
         {
             if (entry.Context.ConnectedAt > cutoff) continue;
 
-            Close(associationId, new AssociationSummary
+            _ = Close(associationId, new AssociationSummary
             {
                 Outcome = AssociationOutcome.Orphaned,
                 Reason  = $"No close callback within {ttl.TotalMinutes:N0} min",
@@ -336,7 +338,7 @@ public sealed class AssociationFileLogWriter(IOptionsMonitor<DiagnosticsOptions>
 
         foreach (var (associationId, _) in _entries)
         {
-            Close(associationId, new AssociationSummary
+            _ = Close(associationId, new AssociationSummary
             {
                 Outcome = AssociationOutcome.Orphaned,
                 Reason  = "Node shutting down",

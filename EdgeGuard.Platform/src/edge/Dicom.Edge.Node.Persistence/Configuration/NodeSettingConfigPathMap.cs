@@ -55,6 +55,11 @@ internal static class NodeSettingConfigPathMap
             [NodeSettingKeys.Dicom.ValidateCallingAe]         = ConfigPaths.DicomValidateCallingAe,
             [NodeSettingKeys.Dicom.ValidateCalledAe]          = ConfigPaths.DicomValidateCalledAe,
 
+            // ── Diagnostics (per-association logging) ────────────────────────
+            [NodeSettingKeys.Diagnostics.AssocLogEnabled]     = ConfigPaths.AssocLogEnabled,
+            [NodeSettingKeys.Diagnostics.AssocLogLevel]       = ConfigPaths.AssocLogLevel,
+            [NodeSettingKeys.Diagnostics.AssocLogRetainDays]  = ConfigPaths.AssocLogRetainDays,
+
             // ── PACS Sender ──────────────────────────────────────────────────
             [NodeSettingKeys.PacsSender.Enabled]                   = ConfigPaths.PacsSenderEnabled,
             [NodeSettingKeys.PacsSender.LocalAeTitle]              = ConfigPaths.PacsSenderLocalAeTitle,

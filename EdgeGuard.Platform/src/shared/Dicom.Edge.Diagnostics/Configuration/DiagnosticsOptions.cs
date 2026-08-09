@@ -116,6 +116,15 @@ public sealed class PerAssociationLoggingOptions
 
     /// <summary>Include fo-dicom's own PDU/DIMSE events in the association file.</summary>
     public bool IncludeFoDicomInternals { get; set; } = true;
+
+    /// <summary>
+    /// Minutes after which an association whose close callback never arrived is closed by the
+    /// sweeper. Should exceed the DICOM DIMSE timeout so slow-but-alive transfers survive.
+    /// </summary>
+    public int StaleTimeoutMinutes { get; set; } = 20;
+
+    /// <summary>Minutes between retention/cleanup cycles.</summary>
+    public int CleanupIntervalMinutes { get; set; } = 60;
 }
 
 /// <summary>Seq centralized logging sink configuration.</summary>

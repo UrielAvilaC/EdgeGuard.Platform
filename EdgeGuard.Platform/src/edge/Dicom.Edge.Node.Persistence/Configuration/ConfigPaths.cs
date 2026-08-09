@@ -37,6 +37,14 @@ internal static class ConfigPaths
     public const string HubFacilityName = $"{ConfigSectionNames.HubConnection}:FacilityName";
     public const string HubVersion      = $"{ConfigSectionNames.HubConnection}:Version";
 
+    // ── Diagnostics (per-association logging) ────────────────────────────────
+
+    private const string PerAssociation = "Diagnostics:File:PerAssociation";
+
+    public const string AssocLogEnabled    = $"{PerAssociation}:Enabled";
+    public const string AssocLogLevel      = $"{PerAssociation}:MinimumLevel";
+    public const string AssocLogRetainDays = $"{PerAssociation}:RetainDays";
+
     // ── DicomServer ──────────────────────────────────────────────────────────
 
     public const string DicomEnabled              = $"{ConfigSectionNames.DicomServer}:Enabled";

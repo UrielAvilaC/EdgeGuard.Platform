@@ -337,8 +337,8 @@ Cada fase deja el repositorio compilando y desplegable. Recordatorio de
 [Directory.Build.props](../../Directory.Build.props): CS9113 (parámetro de constructor
 primario sin usar) y CS1998 (async sin await) son **errores** de compilación.
 
-> **Estado:** F1, F2 y F3 implementadas y verificadas en la rama
-> `feat/per-association-logging` (ver §6.1). Pendientes: F4, F5, F6.
+> **Estado:** F1–F6 implementadas y verificadas en la rama
+> `feat/per-association-logging` (ver §6.1).
 
 ### F1 — Cimientos de diagnóstico (N1–N4, M1–M4) · ~1.5 JID · ✅ hecha
 - Contexto, enricher, decorador de logger, opciones y validación.
@@ -360,18 +360,18 @@ primario sin usar) y CS1998 (async sin await) son **errores** de compilación.
 - **Verificación crítica:** contexto vivo dentro del iterador de `OnCFindRequestAsync` y en
   los logs internos de fo-dicom.
 
-### F4 — Detalle DIMSE y resumen (M5, M7) · ~1.5 JID
+### F4 — Detalle DIMSE y resumen (M5, M7) · ~1.5 JID · ✅ hecha
 - Logs por C-STORE (SOP/estatus/bytes/ms/ruta), por C-FIND (llaves, resultados, ms) y C-ECHO;
   contadores y pie de resumen.
 - **Aceptación:** un estudio de N imágenes produce N pares begin/end y el resumen cuadra
   (`ok+failed = N`, bytes ≈ tamaño en disco).
 
-### F5 — Retención, configuración y PHI (N8, M9, M10) · ~1.5 JID
+### F5 — Retención, configuración y PHI (N8, M9, M10) · ~1.5 JID · ✅ hecha
 - Servicio de limpieza, llaves de Hub, revisión de redacción en el nuevo canal.
 - **Aceptación:** con `RetainDays=0` en una carpeta sembrada, el ciclo la elimina; un
   `PatientName` en un log de prueba sale `[REDACTED]` **también** en la bitácora.
 
-### F6 — QA de campo y documentación (M11) · ~2.0 JID
+### F6 — QA de campo y documentación (M11) · ~2.0 JID · ✅ documentación y arnés; QA con modalidad real pendiente
 - Matriz de la §6, ajustes finos de formato y documentación operativa.
 
 ---
@@ -380,10 +380,11 @@ primario sin usar) y CS1998 (async sin await) son **errores** de compilación.
 
 ### 6.1 Arnés de verificación de F1–F3 (ejecutado)
 
-Como la solución no tiene proyecto de pruebas, F1–F3 se verificaron con un arnés que levanta
+Como la solución no tiene proyecto de pruebas, F1–F6 se verificaron con un arnés que levanta
 el **`CStoreScp` real** en un puerto local con dependencias falsas y lo ataca con SCU reales de
 fo-dicom (3 asociaciones concurrentes de 5 C-STORE cada una, MWL, C-ECHO, rechazo por CalledAE
-y abort forzado a media transferencia). **30/30 comprobaciones en verde**, entre ellas:
+y abort forzado a media transferencia), más un segundo host con la bitácora apagada.
+**41/41 comprobaciones en verde**, entre ellas:
 
 | Comprobación | Por qué importa |
 |---|---|
@@ -396,6 +397,12 @@ y abort forzado a media transferencia). **30/30 comprobaciones en verde**, entre
 | Todos los archivos terminan en pie `SUMMARY` y quedan sin bloqueo de handle | Sin fugas |
 | El log global sigue en Information (sin `[DBG]`) mientras el archivo de asociación sí trae Debug | El log global no se degrada |
 | `AssociationId=` aparece en el log global | Correlación entre ambos canales |
+| Pares `C-STORE #N begin/end` con SOP, transfer syntax, bytes y ms; bytes cuadran en el pie | F4 |
+| Llaves de C-FIND, traza por resultado y duración | F4 |
+| Línea de cierre en el log global con la ruta del archivo (`Log=…`) | F4 |
+| `PatientName` sale `[REDACTED]` en la bitácora | F5 (PHI) |
+| La retención borra días vencidos y conserva el día actual | F5 |
+| Con `Enabled=false` no se crea ningún archivo y el log global sigue intacto | F5 (rollback) |
 
 El arnés vive fuera del repositorio (directorio de scratchpad de la sesión); si se quiere
 conservar como regresión, corresponde al opcional §6-E de la cotización.

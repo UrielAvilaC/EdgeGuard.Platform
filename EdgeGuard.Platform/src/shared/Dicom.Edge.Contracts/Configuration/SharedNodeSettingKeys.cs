@@ -62,6 +62,19 @@ public static class SharedNodeSettingKeys
         public const string QrEnabled                 = "dicom.qr_enabled";
     }
 
+    // ── Diagnostics ───────────────────────────────────────────────────────────────
+    public static class Diagnostics
+    {
+        /// <summary>Enables the per-DICOM-association log files.</summary>
+        public const string AssocLogEnabled    = "diagnostics.assoc_log_enabled";
+
+        /// <summary>Serilog level written to each association file (Debug by default).</summary>
+        public const string AssocLogLevel      = "diagnostics.assoc_log_level";
+
+        /// <summary>Days the association files are kept before cleanup removes them.</summary>
+        public const string AssocLogRetainDays = "diagnostics.assoc_log_retain_days";
+    }
+
     // ── Cleanup ───────────────────────────────────────────────────────────────────
     public static class Cleanup
     {

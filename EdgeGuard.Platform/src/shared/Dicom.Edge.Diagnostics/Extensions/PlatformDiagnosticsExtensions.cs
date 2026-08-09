@@ -51,6 +51,9 @@ public static class PlatformDiagnosticsExtensions
         services.AddSingleton<IAssociationLogWriter>(sp =>
             sp.GetRequiredService<AssociationFileLogWriter>());
 
+        if (diagnosticsSection.Get<DiagnosticsOptions>()?.File.PerAssociation.Enabled ?? true)
+            services.AddHostedService<AssociationLogCleanupService>();
+
         // Audit logging (HIPAA/GDPR compliance)
         services.AddSingleton<IAuditLogger, StructuredAuditLogger>();
 

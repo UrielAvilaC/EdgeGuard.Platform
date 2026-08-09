@@ -43,6 +43,15 @@ public sealed class DiagnosticsOptionsValidator : IValidateOptions<DiagnosticsOp
             if (perAssociation.MaxFilesPerDay <= 0)
                 failures.Add("File.PerAssociation.MaxFilesPerDay must be greater than 0.");
 
+            if (perAssociation.MaxTotalSizeMb <= 0)
+                failures.Add("File.PerAssociation.MaxTotalSizeMb must be greater than 0.");
+
+            if (perAssociation.StaleTimeoutMinutes <= 0)
+                failures.Add("File.PerAssociation.StaleTimeoutMinutes must be greater than 0.");
+
+            if (perAssociation.CleanupIntervalMinutes <= 0)
+                failures.Add("File.PerAssociation.CleanupIntervalMinutes must be greater than 0.");
+
             if (!Enum.TryParse<Serilog.Events.LogEventLevel>(perAssociation.MinimumLevel, true, out _))
                 failures.Add(
                     $"File.PerAssociation.MinimumLevel '{perAssociation.MinimumLevel}' is not a valid Serilog level.");

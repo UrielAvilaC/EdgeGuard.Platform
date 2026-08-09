@@ -64,6 +64,14 @@ public static class NodeSettingKeys
         public const string QrEnabled                 = SharedNodeSettingKeys.Dicom.QrEnabled;
     }
 
+    // ── Diagnostics
+    public static class Diagnostics
+    {
+        public const string AssocLogEnabled    = SharedNodeSettingKeys.Diagnostics.AssocLogEnabled;
+        public const string AssocLogLevel      = SharedNodeSettingKeys.Diagnostics.AssocLogLevel;
+        public const string AssocLogRetainDays = SharedNodeSettingKeys.Diagnostics.AssocLogRetainDays;
+    }
+
     // ── Cleanup
     public static class Cleanup
     {

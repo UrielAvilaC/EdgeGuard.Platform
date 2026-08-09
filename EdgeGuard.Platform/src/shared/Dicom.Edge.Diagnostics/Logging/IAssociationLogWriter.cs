@@ -24,7 +24,11 @@ public interface IAssociationLogWriter
     /// <summary>
     /// Writes the summary footer, flushes and releases the file handle. Idempotent.
     /// </summary>
-    void Close(AssociationLogContext context, AssociationSummary summary);
+    /// <returns>
+    /// Full path of the closed file, or <c>null</c> when no file was open for the
+    /// association (disabled, cap reached, or already closed).
+    /// </returns>
+    string? Close(AssociationLogContext context, AssociationSummary summary);
 
     /// <summary>
     /// Closes association files older than <paramref name="ttl"/> whose close callback never

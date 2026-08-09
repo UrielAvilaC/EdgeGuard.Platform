@@ -55,6 +55,7 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             MapHubConnection(dbSettings, data);
             MapHubConnectionIdentity(dbSettings, data);
             MapDicomServer(dbSettings, data);
+            MapDiagnostics(dbSettings, data);
             MapPacsSender(dbSettings, data);
             MapPacsCEcho(dbSettings, data);
 
@@ -186,6 +187,21 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             }
             catch { /* malformed JSON — skip */ }
         }
+    }
+
+    // ── Diagnostics (per-association logging) ────────────────────────────────
+
+    /// <summary>
+    /// Maps the per-association logging switches so support can turn the association files
+    /// on/off and change their level or retention from the Hub, without a node restart.
+    /// </summary>
+    private static void MapDiagnostics(
+        Dictionary<string, string> db,
+        Dictionary<string, string?> cfg)
+    {
+        Map(db, cfg, NodeSettingKeys.Diagnostics.AssocLogEnabled,    ConfigPaths.AssocLogEnabled);
+        Map(db, cfg, NodeSettingKeys.Diagnostics.AssocLogLevel,      ConfigPaths.AssocLogLevel);
+        Map(db, cfg, NodeSettingKeys.Diagnostics.AssocLogRetainDays, ConfigPaths.AssocLogRetainDays);
     }
 
     // ── PacsSender ───────────────────────────────────────────────────────────
