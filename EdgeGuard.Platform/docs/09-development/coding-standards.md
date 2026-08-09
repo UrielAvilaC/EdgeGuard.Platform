@@ -348,3 +348,28 @@ catch (Exception ex) when (ex is not OperationCanceledException)
   - `Warning` — unexpected conditions that are recoverable
   - `Error` — failures requiring attention (PACS send failed, DB connection lost)
   - `Fatal/Critical` — unrecoverable errors causing shutdown
+
+### NuGet packages — Central Package Management
+
+Package versions are managed centrally in [Directory.Packages.props](../../Directory.Packages.props).
+
+- A `.csproj` declares **only** the package: `<PackageReference Include="Serilog.Sinks.File" />`.
+  A `Version` attribute in a `.csproj` is a build error under CPM — put the version in
+  `Directory.Packages.props` instead.
+- Adding a package = one `<PackageReference>` in the project + one `<PackageVersion>` in the
+  central file (grouped by the existing sections).
+- Upgrading = a single edit in the central file; every project moves together, so versions
+  cannot drift between projects.
+- Transitive pinning is **enabled**. A `<PackageVersion>` for a package nobody references
+  directly forces that version on the restore graph — this is how vulnerable transitive
+  dependencies get patched (see the last ItemGroup in the file). Do not add a fake
+  `<PackageReference>` for that purpose.
+- Before releasing, check the graph:
+
+```bash
+dotnet list EdgeGuard.Platform.slnx package --outdated
+```
+
+```bash
+dotnet list EdgeGuard.Platform.slnx package --vulnerable --include-transitive
+```
