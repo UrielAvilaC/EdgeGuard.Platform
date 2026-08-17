@@ -130,6 +130,15 @@ public static class SharedNodeSettingKeys
         public const string Destinations    = "cecho.destinations";
     }
 
+    // ── PACS Backfill (historical resend when a new PACS is assigned) ────────────
+    public static class PacsBackfill
+    {
+        public const string Enabled      = "backfill.enabled";
+        public const string LookbackDays = "backfill.lookback_days";
+        public const string MaxStudies   = "backfill.max_studies";
+        public const string Priority     = "backfill.priority";
+    }
+
     // ── Node API ─────────────────────────────────────────────────────────────────
     public static class NodeApi
     {

@@ -35,7 +35,13 @@ public class PatientConfiguration : IEntityTypeConfiguration<Patient>
               .IsRequired()
               .HasMaxLength(64);
 
-            vo.HasIndex(v => v.Value);
+            // Unique per live record: the DICOM ingestion path does a check-then-insert,
+            // so concurrent study notifications for the same patient must collide here
+            // instead of silently duplicating the catalogue entry.
+            vo.HasIndex(v => v.Value)
+              .IsUnique()
+              .HasFilter("is_deleted = false")
+              .HasDatabaseName("ux_patients_patient_dicom_id");
         });
 
         builder.HasIndex(p => p.PatientName);

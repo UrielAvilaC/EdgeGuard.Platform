@@ -21,6 +21,8 @@ public interface IStudyHubNotifier
         DateTime? studyDate = null,
         string? studyDescription = null,
         int seriesCount = 0,
+        DateTime? patientBirthDate = null,
+        string? patientSex = null,
         CancellationToken ct = default);
 
     /// <summary>
@@ -38,6 +40,8 @@ public interface IStudyHubNotifier
         DateTime? studyDate = null,
         string? studyDescription = null,
         int seriesCount = 0,
+        DateTime? patientBirthDate = null,
+        string? patientSex = null,
         CancellationToken ct = default);
 
     /// <summary>

@@ -141,6 +141,12 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.PacsCEcho.IntervalSeconds,  "120",  Cat.PacsCEcho, "C-ECHO Interval (sec)",        VT.Int),
         Row(NodeSettingKeys.PacsCEcho.Destinations,     "[]",   Cat.PacsCEcho, "C-ECHO Destinations (JSON)",   VT.Json),
 
+        // ── PACS Backfill ────────────────────────────────────────────────────
+        Row(NodeSettingKeys.PacsBackfill.Enabled,      "true", Cat.PacsBackfill, "Backfill On New PACS",            VT.Bool),
+        Row(NodeSettingKeys.PacsBackfill.LookbackDays, "30",   Cat.PacsBackfill, "Backfill Lookback (days)",        VT.Int),
+        Row(NodeSettingKeys.PacsBackfill.MaxStudies,   "1000", Cat.PacsBackfill, "Backfill Max Studies Per Run",    VT.Int),
+        Row(NodeSettingKeys.PacsBackfill.Priority,     "9",    Cat.PacsBackfill, "Backfill Queue Priority (9=low)", VT.Int),
+
         // ── Node API ─────────────────────────────────────────────────────────
         Row(NodeSettingKeys.NodeApi.Port, "5120", Cat.NodeApi, "Node API Port", VT.Int),
 
@@ -180,6 +186,7 @@ internal static class NodeSettingsSeed
         public const string Storage    = NodeSettingCategories.Storage;
         public const string PacsSender = NodeSettingCategories.PacsSender;
         public const string PacsCEcho       = NodeSettingCategories.PacsCEcho;
+        public const string PacsBackfill    = NodeSettingCategories.PacsBackfill;
         public const string NodeApi         = NodeSettingCategories.NodeApi;
     }
 

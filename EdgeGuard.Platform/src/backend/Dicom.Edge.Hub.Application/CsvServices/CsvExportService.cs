@@ -51,7 +51,7 @@ public sealed class CsvExportService(
                 Escape(study.StudyDescription),
                 Escape(study.SourceNodeId),
                 study.InstanceCount,
-                study.Series.Count,
+                study.SeriesCount,
                 study.TotalSizeBytes,
                 study.IsUrgent,
                 study.CreatedAt.ToString("O")));

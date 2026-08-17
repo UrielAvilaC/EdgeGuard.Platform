@@ -17,7 +17,7 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -993,6 +993,11 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.Property<int>("Port")
                         .HasColumnType("integer")
                         .HasColumnName("port");
+
+                    b.Property<string>("SigningSecret")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("signing_secret");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2204,6 +2209,12 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(1024)")
                         .HasColumnName("pacs_send_last_error");
 
+                    b.Property<string>("PacsStatus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("pacs_status");
+
                     b.Property<string>("PatientId")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
@@ -2213,6 +2224,11 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("patient_name");
+
+                    b.Property<string>("PatientRecordId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("patient_record_id");
 
                     b.Property<int>("Priority")
                         .HasColumnType("integer")
@@ -2310,8 +2326,14 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_studies");
 
+                    b.HasIndex("PacsStatus")
+                        .HasDatabaseName("ix_studies_pacs_status");
+
                     b.HasIndex("PatientId")
                         .HasDatabaseName("ix_studies_patient_id");
+
+                    b.HasIndex("PatientRecordId")
+                        .HasDatabaseName("ix_studies_patient_record_id");
 
                     b.HasIndex("SourceNodeId")
                         .HasDatabaseName("ix_studies_source_node_id");
@@ -2843,7 +2865,9 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                             b1.HasKey("PatientId");
 
                             b1.HasIndex("Value")
-                                .HasDatabaseName("ix_patients_patient_dicom_id");
+                                .IsUnique()
+                                .HasDatabaseName("ux_patients_patient_dicom_id")
+                                .HasFilter("is_deleted = false");
 
                             b1.ToTable("patients");
 
@@ -2858,6 +2882,12 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
             modelBuilder.Entity("Dicom.Edge.Hub.Domain.Aggregates.Studies.Study", b =>
                 {
+                    b.HasOne("Dicom.Edge.Hub.Domain.Aggregates.Patients.Patient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientRecordId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_studies_patients_patient_record_id");
+
                     b.OwnsOne("Dicom.Edge.Hub.Domain.ValueObjects.DicomUid", "StudyInstanceUid", b1 =>
                         {
                             b1.Property<string>("StudyId")

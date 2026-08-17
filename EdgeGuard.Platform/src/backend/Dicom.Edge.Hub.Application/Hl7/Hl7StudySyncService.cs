@@ -1,6 +1,7 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Application.Constants;
 using Dicom.Edge.Hub.Application.Reports;
+using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -24,10 +25,20 @@ namespace Dicom.Edge.Hub.Application.Hl7;
 /// </summary>
 public sealed class Hl7StudySyncService(
     IStudyRepository studyRepository,
+    IPatientRepository patientRepository,
     IReportStorage reportStorage,
     IOptions<HubWorkspaceOptions> workspaceOptions,
     ILogger<Hl7StudySyncService> logger) : IHl7StudySyncService
 {
+    /// <summary>
+    /// Resolves the patient FK for the MRN carried by the message. The patient sync runs
+    /// before this service in <c>Hl7MessageProcessor</c>, so the record already exists.
+    /// </summary>
+    private async Task<string?> ResolvePatientRecordIdAsync(string? patientDicomId, CancellationToken ct) =>
+        string.IsNullOrWhiteSpace(patientDicomId)
+            ? null
+            : (await patientRepository.GetByPatientDicomIdAsync(patientDicomId, ct))?.Id;
+
     public async Task SyncFromHl7Async(Hl7Message message, CancellationToken ct = default)
     {
         var baseType = message.MessageType.Split('^').FirstOrDefault() ?? message.MessageType;
@@ -96,7 +107,8 @@ public sealed class Hl7StudySyncService(
             sendingFacility:    message.SendingFacility,
             studyDate:          studyDate,
             studyDescription:   message.ProcedureDescription,
-            referringPhysician: message.ReferringPhysician);
+            referringPhysician: message.ReferringPhysician,
+            patientRecordId:    await ResolvePatientRecordIdAsync(message.PatientId, ct));
 
         await studyRepository.AddAsync(study, ct);
 
@@ -120,7 +132,10 @@ public sealed class Hl7StudySyncService(
             priorStudy.UpdateMetadata(accessionNumber: currentAccession);
 
             if (!string.IsNullOrWhiteSpace(message.PatientId))
-                priorStudy.ReassignToPatient(message.PatientId, message.PatientName);
+                priorStudy.ReassignToPatient(
+                    message.PatientId,
+                    message.PatientName,
+                    await ResolvePatientRecordIdAsync(message.PatientId, ct));
 
             await studyRepository.UpdateAsync(priorStudy, ct);
 
@@ -148,7 +163,8 @@ public sealed class Hl7StudySyncService(
             sendingFacility:  message.SendingFacility,
             studyDate:        ParseStudyDate(message.StudyDate),
             studyDescription: message.ProcedureDescription,
-            referringPhysician: message.ReferringPhysician);
+            referringPhysician: message.ReferringPhysician,
+            patientRecordId:  await ResolvePatientRecordIdAsync(message.PatientId, ct));
 
         await studyRepository.AddAsync(study, ct);
 
@@ -193,7 +209,14 @@ public sealed class Hl7StudySyncService(
             sendingFacility:  message.SendingFacility,
             studyDate:        ParseStudyDate(message.StudyDate),
             studyDescription: message.ProcedureDescription,
-            referringPhysician: message.ReferringPhysician);
+            referringPhysician: message.ReferringPhysician,
+            patientRecordId:  await ResolvePatientRecordIdAsync(message.PatientId, ct));
+
+        // Captured before the attach calls: a repeat ORU over an already-finalized study
+        // recomputes to the same status, raises no domain event, and therefore fires no
+        // auto-send rule. Logging only the final status made that case indistinguishable
+        // from a real transition.
+        var statusBefore = study.Status;
 
         if (hasLinks)
             study.AttachImageLinks(message.ImageLinks);
@@ -209,14 +232,26 @@ public sealed class Hl7StudySyncService(
         if (hasReport || pdfPath is not null)
             study.AttachReport(message.ReportFormat, message.ReportText, pdfPath);
 
+        // A re-sent ORU over a study that already holds both artifacts recomputes to the same
+        // status, so RecomputeCompletion raises nothing and the results — possibly a corrected
+        // report or a new viewer URL — would land without notifying anyone. Signal them
+        // explicitly so the auto-send rules run again.
+        var statusChanged = study.Status != statusBefore;
+        var broughtResults = hasLinks || hasReport || pdfPath is not null;
+
+        if (!statusChanged && broughtResults)
+            study.MarkResultsUpdated();
+
         if (existing is null)
             await studyRepository.AddAsync(study, ct);
         else
             await studyRepository.UpdateAsync(study, ct);
 
         logger.LogInformation(
-            "ORU {MessageId}: study {StudyId} (Accession={Accession}) links={Links} report={Report} pdf={Pdf} → {Status}",
-            message.Id, study.Id, message.AccessionNumber, hasLinks, hasReport, pdfPath is not null, study.Status);
+            "ORU {MessageId}: study {StudyId} (Accession={Accession}) links={Links} report={Report} " +
+            "pdf={Pdf} → {Status} (was {StatusBefore}, changed={StatusChanged})",
+            message.Id, study.Id, message.AccessionNumber, hasLinks, hasReport, pdfPath is not null,
+            study.Status, statusBefore, statusChanged);
     }
 
     /// <summary>Decodes the base64 report PDF, enforcing the configured size limit.</summary>

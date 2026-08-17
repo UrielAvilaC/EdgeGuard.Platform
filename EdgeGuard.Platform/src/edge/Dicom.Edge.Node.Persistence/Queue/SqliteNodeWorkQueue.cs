@@ -33,7 +33,12 @@ public sealed class SqliteNodeWorkQueue(
                 SourceAeTitle = item.SourceAeTitle,
                 PatientId = item.PatientId,
                 PatientName = item.PatientName,
+                PatientBirthDate = item.PatientBirthDate,
+                PatientSex = item.PatientSex,
                 AccessionNumber = item.AccessionNumber,
+                StudyDate = item.StudyDate,
+                StudyDescription = item.StudyDescription,
+                SeriesCount = item.SeriesCount,
                 ExplicitPacsIds = item.ExplicitPacsIds
             })
         };
@@ -77,9 +82,14 @@ public sealed class SqliteNodeWorkQueue(
             LastError = queueItem.ErrorMessage,
             PatientId = metadata?.PatientId,
             PatientName = metadata?.PatientName,
+            PatientBirthDate = metadata?.PatientBirthDate,
+            PatientSex = metadata?.PatientSex,
             AccessionNumber = metadata?.AccessionNumber,
             TotalSizeBytes = queueItem.SizeBytes,
             InstanceCount = queueItem.InstanceCount,
+            StudyDate = metadata?.StudyDate,
+            StudyDescription = metadata?.StudyDescription,
+            SeriesCount = metadata?.SeriesCount ?? 0,
             ExplicitPacsIds = metadata?.ExplicitPacsIds
         };
 
@@ -286,6 +296,8 @@ public sealed class SqliteNodeWorkQueue(
 /// <summary>
 /// Metadata serialized into <see cref="EdgeQueueItem.Metadata"/> for round-tripping
 /// domain-specific fields that <see cref="EdgeQueueItem"/> does not natively carry.
+/// Every <see cref="NodeWorkItem"/> field that is not already a column on
+/// <see cref="EdgeQueueItem"/> must live here, or it is silently lost on dequeue.
 /// </summary>
 internal sealed class NodeWorkItemMetadata
 {
@@ -293,6 +305,11 @@ internal sealed class NodeWorkItemMetadata
     public string? SourceAeTitle { get; set; }
     public string? PatientId { get; set; }
     public string? PatientName { get; set; }
+    public DateTime? PatientBirthDate { get; set; }
+    public string? PatientSex { get; set; }
     public string? AccessionNumber { get; set; }
+    public DateTime? StudyDate { get; set; }
+    public string? StudyDescription { get; set; }
+    public int SeriesCount { get; set; }
     public IReadOnlyList<string>? ExplicitPacsIds { get; set; }
 }

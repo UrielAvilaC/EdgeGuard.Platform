@@ -2,6 +2,7 @@ using System.Text.Json;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Hub.Application.Notifications;
 using Dicom.Edge.Hub.Application.Outbox;
+using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +39,24 @@ public sealed class NotificationOutboxHostedService(
 
         var due = await repo.GetDuePendingAsync(BatchSize, ct);
         if (due.Count == 0) return;
+
+        // whatsapp.enabled is the channel kill switch. Held, not discarded: the records stay
+        // Pending and drain once the channel is re-enabled, and no retry budget is consumed.
+        var settingRepo = scope.ServiceProvider.GetRequiredService<ISystemSettingRepository>();
+        var whatsAppSetting = await settingRepo.GetByKeyAsync(HubSettingKeys.WhatsApp.Enabled, ct);
+        var whatsAppEnabled = bool.TryParse(whatsAppSetting?.Value, out var on) && on;
+
+        if (!whatsAppEnabled)
+        {
+            var held = due.Count(n => n.Channel == NotificationChannel.WhatsApp);
+            if (held > 0)
+            {
+                logger.LogInformation(
+                    "{Count} WhatsApp notification(s) held — {Key} is off", held, HubSettingKeys.WhatsApp.Enabled);
+                due = [.. due.Where(n => n.Channel != NotificationChannel.WhatsApp)];
+            }
+            if (due.Count == 0) return;
+        }
 
         // Per-channel lanes: isolate failures/latency between channels.
         var lanes = due

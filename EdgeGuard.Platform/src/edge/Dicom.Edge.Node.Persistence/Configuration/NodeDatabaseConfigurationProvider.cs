@@ -99,18 +99,17 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Map(db, cfg, NodeSettingKeys.Hub.MaxReconnectAttempts,  ConfigPaths.HubMaxReconnectAttempts);
         Map(db, cfg, NodeSettingKeys.Hub.ReconnectDelaySeconds, ConfigPaths.HubReconnectDelaySeconds);
 
-        // Compose HubBaseUrl from individual DB keys only when Hostname is configured.
-        // If Hostname is empty the appsettings value is preserved (higher precedence wins).
-        if (db.TryGetValue(NodeSettingKeys.Hub.Protocol, out var protocol) &&
-            db.TryGetValue(NodeSettingKeys.Hub.Hostname, out var hostname) &&
-            !string.IsNullOrWhiteSpace(hostname))
-        {
-            var port = db.TryGetValue(NodeSettingKeys.Hub.Port, out var portStr) &&
-                       !string.IsNullOrWhiteSpace(portStr)
-                ? portStr : ConfigDefaults.HubPort;
+        // Compose HubBaseUrl only when protocol, hostname AND port are all present in the
+        // DB. There is no fallback port on purpose: appsettings (HubConnection:HubBaseUrl)
+        // is the source of truth for the Hub address, and the DB may only override it with
+        // a complete, explicit address. A partial row set used to compose an invented
+        // "{protocol}://{host}:443" and point the node at a closed port.
+        var protocol = Value(db, NodeSettingKeys.Hub.Protocol);
+        var hostname = Value(db, NodeSettingKeys.Hub.Hostname);
+        var port     = Value(db, NodeSettingKeys.Hub.Port);
 
+        if (protocol is not null && hostname is not null && port is not null)
             cfg[ConfigPaths.HubBaseUrl] = $"{protocol}://{hostname}:{port}";
-        }
 
         // Map config pull interval (stored as minutes in DB, seconds in Options)
         if (db.TryGetValue(NodeSettingKeys.Hub.PullConfigIntervalMin, out var pullMin) &&
@@ -294,4 +293,10 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         if (db.TryGetValue(dbKey, out var value) && !string.IsNullOrEmpty(value))
             cfg[configPath] = value;
     }
+
+    /// <summary>Returns the DB value for <paramref name="dbKey"/>, or null when absent or blank.</summary>
+    private static string? Value(Dictionary<string, string> db, string dbKey) =>
+        db.TryGetValue(dbKey, out var value) && !string.IsNullOrWhiteSpace(value)
+            ? value
+            : null;
 }

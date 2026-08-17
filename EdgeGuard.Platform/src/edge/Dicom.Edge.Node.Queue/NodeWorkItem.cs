@@ -25,6 +25,8 @@ public sealed class NodeWorkItem
     // ── Study metadata for Hub notification (populated at enqueue time) ────────
     public string? PatientId { get; init; }
     public string? PatientName { get; init; }
+    public DateTime? PatientBirthDate { get; init; }
+    public string? PatientSex { get; init; }
     public string? AccessionNumber { get; init; }
     public long TotalSizeBytes { get; init; }
     public int InstanceCount { get; init; }

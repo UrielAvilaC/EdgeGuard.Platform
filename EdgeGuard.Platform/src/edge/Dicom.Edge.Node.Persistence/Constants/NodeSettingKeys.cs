@@ -127,6 +127,15 @@ public static class NodeSettingKeys
         public const string Destinations    = SharedNodeSettingKeys.PacsCEcho.Destinations;
     }
 
+    // ── PACS Backfill ────────────────────────────────────────────────────────────
+    public static class PacsBackfill
+    {
+        public const string Enabled      = SharedNodeSettingKeys.PacsBackfill.Enabled;
+        public const string LookbackDays = SharedNodeSettingKeys.PacsBackfill.LookbackDays;
+        public const string MaxStudies   = SharedNodeSettingKeys.PacsBackfill.MaxStudies;
+        public const string Priority     = SharedNodeSettingKeys.PacsBackfill.Priority;
+    }
+
     // ── Node API ─────────────────────────────────────────────────────────────────
     public static class NodeApi
     {

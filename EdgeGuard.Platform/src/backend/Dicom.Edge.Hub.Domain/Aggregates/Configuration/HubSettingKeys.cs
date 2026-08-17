@@ -43,7 +43,15 @@ public static class HubSettingKeys
     public static class WhatsApp
     {
         public const string Enabled = "whatsapp.enabled";
+
+        /// <summary>
+        /// Master switch for automatic results delivery on study status change — the single
+        /// source of truth, read by <c>StudyAutoDeliveryHandler</c> for every channel.
+        /// Editable from System Settings → WhatsApp, and from Notifications → Modo automático,
+        /// which is a second view over this same key (see <c>NotificationSettingsService</c>).
+        /// </summary>
         public const string EnableAutomaticDelivery = "whatsapp.enable_automatic_delivery";
+
         public const string Provider = "whatsapp.provider";
 
         /// <summary>
@@ -63,12 +71,6 @@ public static class HubSettingKeys
         public const string DefaultCountryPrefix = "whatsapp.default_country_prefix";
         public const string RetryMaxAttempts = "whatsapp.retry_max_attempts";
         public const string RetryDelaySeconds = "whatsapp.retry_delay_seconds";
-    }
-
-    public static class Notifications
-    {
-        /// <summary>Master switch for automatic results delivery on study finalization.</summary>
-        public const string AutoMode = "notifications.auto_mode";
     }
 
     /// <summary>

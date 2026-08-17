@@ -141,7 +141,17 @@ public static class PersistenceExtensions
         services.AddHostedService(sp =>
             sp.GetRequiredService<StudyCompletionWatcherService>());
         services.AddHostedService<StudyCleanupService>();
-        services.AddHostedService<RoutingRuleLoaderService>();
+
+        // Singleton so PacsBackfillService can force an immediate rule reload before it
+        // resolves destinations; the same instance also runs as the periodic hosted service.
+        services.AddSingleton<RoutingRuleLoaderService>();
+        services.AddHostedService(sp => sp.GetRequiredService<RoutingRuleLoaderService>());
+
+        // Historical replay when the Hub assigns a new PACS to this node.
+        services.AddSingleton<PacsBackfillService>();
+        services.AddSingleton<IPacsBackfillTrigger>(sp =>
+            sp.GetRequiredService<PacsBackfillService>());
+        services.AddHostedService(sp => sp.GetRequiredService<PacsBackfillService>());
 
         // Equipment loader: singleton so the sync endpoint can force an immediate reload
         // via LoadNowAsync, plus the same instance runs as the periodic hosted service.
@@ -205,12 +215,14 @@ internal sealed class PersistenceInitializerService(
         await Seed.ModalityCatalogSeed.SeedAsync(ctx, cancellationToken);
         logger.LogDebug("Seed check complete");
 
-        // ── Phase 2b: Hydrate empty hub.* rows from appsettings ──────────────
+        // ── Phase 2b: Hydrate hub.* rows from appsettings ────────────────────
         // Hub settings are seeded empty (their values live in appsettings), so they
         // must be filled here — immediately after the migration and before any
         // IOptions<HubConnectionOptions> binding — otherwise the DB configuration
         // provider (higher precedence) would blank out the deployed configuration.
-        // Rows that already hold a value are never overwritten.
+        // A node that never registered (no hub.api_key) is re-hydrated from appsettings
+        // on every start; once registered, only empty rows are filled. Throws when the
+        // Hub is enabled and appsettings carries no Hub address — there is no default.
         var hydrated = await NodeSettingsHubHydrator.HydrateFromConfigurationAsync(
             ctx, configuration, logger, cancellationToken);
 

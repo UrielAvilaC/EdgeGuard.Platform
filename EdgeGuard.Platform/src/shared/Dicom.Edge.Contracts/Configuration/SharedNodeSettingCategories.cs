@@ -15,5 +15,6 @@ public static class SharedNodeSettingCategories
     public const string Storage    = "Storage";
     public const string PacsSender = "PacsSender";
     public const string PacsCEcho       = "PacsCEcho";
+    public const string PacsBackfill    = "PacsBackfill";
     public const string NodeApi         = "NodeApi";
 }

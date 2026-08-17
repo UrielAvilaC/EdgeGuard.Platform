@@ -4,6 +4,7 @@ using Dicom.Edge.Hub.Application.Routing;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Routing;
 using Dicom.Edge.Hub.Infrastructure.Constants;
+using Dicom.Edge.Hub.Infrastructure.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Infrastructure.Services;
@@ -58,7 +59,7 @@ public sealed class NodeDicomRoutingRulePushService(
         try
         {
             var client   = httpClientFactory.CreateClient(DispatchConstants.HttpClientName);
-            var response = await client.PostAsJsonAsync(url, payload, ct);
+            var response = await client.PostAsJsonToNodeAsync(nodeId, url, payload, ct);
 
             if (!response.IsSuccessStatusCode)
             {

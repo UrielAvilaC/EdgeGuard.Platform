@@ -10,6 +10,7 @@ using Dicom.Edge.Hub.Application.Nodes;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Application.Notifications;
 using Dicom.Edge.Hub.Application.PacsServers;
+using Dicom.Edge.Hub.Application.Patients;
 using Dicom.Edge.Hub.Application.Queue;
 using Dicom.Edge.Hub.Application.Routing;
 using Dicom.Edge.Hub.Application.Studies;
@@ -34,6 +35,10 @@ public static class HubApplicationServiceCollectionExtensions
         // Queue options
         services.Configure<MessageQueueOptions>(
             configuration.GetSection(MessageQueueOptions.SectionName));
+
+        // Patient catalogue registration — shared by the HL7 sync and the Edge (DICOM)
+        // ingestion path so walk-in studies also create their patient.
+        services.AddScoped<IPatientRegistrationService, PatientRegistrationService>();
 
         // HL7 pipeline services
         services.AddScoped<IHl7MessageProcessor, Hl7MessageProcessor>();

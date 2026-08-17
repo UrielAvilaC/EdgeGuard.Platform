@@ -55,13 +55,14 @@ export interface DashboardStudy {
   updatedAt: string | null;
 }
 
+/** Clinical axis only — the PACS transport is reported separately in `pacsStatus`. */
 export type StudyStatus =
+  | 'Scheduled'
   | 'Receiving'
   | 'Completed'
-  | 'QueuedForSend'
-  | 'Sending'
-  | 'SentToPacs'
-  | 'Failed';
+  | 'WaitingForImageLinks'
+  | 'WaitingForReport'
+  | 'Finalized';
 
 export interface DashboardNode {
   id: string;

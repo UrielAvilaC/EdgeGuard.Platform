@@ -137,6 +137,8 @@ internal sealed class StudyCompletionEnqueueHandler(
             CreatedAt = DateTime.UtcNow,
             PatientId = @event.Study.PatientId,
             PatientName = @event.Study.PatientName,
+            PatientBirthDate = @event.Study.PatientBirthDate,
+            PatientSex = @event.Study.PatientSex,
             AccessionNumber = @event.Study.AccessionNumber,
             TotalSizeBytes = @event.Study.TotalSizeBytes,
             InstanceCount = @event.Study.InstanceCount,

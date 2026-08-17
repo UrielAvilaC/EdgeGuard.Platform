@@ -254,6 +254,10 @@ internal sealed class DicomInstanceHandler(
                 studyDate:       study.StudyDate,
                 studyDescription: study.StudyDescription,
                 seriesCount:     seriesCount,
+                // Demographics from the Patient module so the Hub can register a
+                // walk-in patient that never arrived through a worklist order.
+                patientBirthDate: patient.BirthDate,
+                patientSex:       patient.Sex,
                 ct:              ct);
         }
 

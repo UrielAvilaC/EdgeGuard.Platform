@@ -8,7 +8,15 @@ public sealed class HubConnectionOptions
     public const string SectionName = "HubConnection";
 
     public bool Enabled { get; set; } = false;
-    public string HubBaseUrl { get; set; } = "http://localhost:5000";
+
+    /// <summary>
+    /// Absolute http/https base URL of the Hub. No default on purpose: the deployed
+    /// configuration (appsettings / environment variables) is the source of truth, and a
+    /// built-in fallback would let a misconfigured node start and dial an endpoint nobody
+    /// chose. Validated by <see cref="HubConnectionOptionsValidator"/> when
+    /// <see cref="Enabled"/> is true.
+    /// </summary>
+    public string HubBaseUrl { get; set; } = string.Empty;
     public string ApiKey { get; set; } = string.Empty;
     public string NodeId { get; set; } = string.Empty;
     public string BootstrapToken { get; set; } = string.Empty;

@@ -7,6 +7,8 @@ using Dicom.Edge.Hub.Application.CsvServices;
 using Dicom.Edge.Hub.Application.Notifications;
 using Dicom.Edge.Hub.Application.Reports;
 using Dicom.Edge.Hub.Application.Studies;
+using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Security.Authorization;
@@ -24,6 +26,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 public class StudiesController : ControllerBase
 {
     private readonly IStudyRepository _studyRepository;
+    private readonly IPatientRepository _patientRepository;
     private readonly IStudyService _studyService;
     private readonly ICsvExportService _csvExportService;
     private readonly IReportStorage _reportStorage;
@@ -33,6 +36,7 @@ public class StudiesController : ControllerBase
 
     public StudiesController(
         IStudyRepository studyRepository,
+        IPatientRepository patientRepository,
         IStudyService studyService,
         ICsvExportService csvExportService,
         IReportStorage reportStorage,
@@ -41,6 +45,7 @@ public class StudiesController : ControllerBase
         ILogger<StudiesController> logger)
     {
         _studyRepository = studyRepository;
+        _patientRepository = patientRepository;
         _studyService = studyService;
         _csvExportService = csvExportService;
         _reportStorage = reportStorage;
@@ -118,7 +123,9 @@ public class StudiesController : ControllerBase
         string id, [FromBody] DeliverResultsRequest request,
         [FromServices] IDeliveryService deliveryService, CancellationToken ct)
     {
-        var result = await deliveryService.DeliverAsync(id, request, ct);
+        // Operator-initiated from the study detail screen.
+        var result = await deliveryService.DeliverAsync(
+            id, request, NotificationTriggerSource.Manual, ct);
         return result is null ? NotFound() : Ok(result);
     }
 
@@ -132,12 +139,19 @@ public class StudiesController : ControllerBase
     public async Task<IActionResult> GetPaged([FromQuery] StudyFilter filter, CancellationToken ct = default)
     {
         var pagination = new PaginationRequest { Page = filter.Page, PageSize = filter.PageSize };
+
+        // The SPA filters by patient record id; older callers pass an MRN. Resolve both.
+        var (patientRecordId, patientDicomId) = string.IsNullOrWhiteSpace(filter.PatientId)
+            ? (null, null)
+            : await ResolvePatientKeysAsync(filter.PatientId, ct);
+
         var criteria = new StudyFilterCriteria
         {
             Search = filter.Search,
             Status = filter.Status,
             SourceNodeId = filter.SourceNodeId,
-            PatientId = filter.PatientId,
+            PatientId = patientDicomId,
+            PatientRecordId = patientRecordId,
             DateFrom = filter.DateFrom,
             DateTo = filter.DateTo,
             IsUrgent = filter.IsUrgent,
@@ -171,11 +185,38 @@ public class StudiesController : ControllerBase
         return study is null ? NotFound() : Ok(study.ToDto());
     }
 
+    /// <summary>
+    /// GET /api/studies/by-patient/{patientId} — studies of a patient. Accepts either the
+    /// patient record id (<c>patients.id</c>, what the SPA holds) or the DICOM Patient ID
+    /// (MRN), so existing callers keep working.
+    /// </summary>
     [HttpGet("by-patient/{patientId}")]
     public async Task<IActionResult> GetByPatient(string patientId, CancellationToken ct)
     {
-        var studies = await _studyRepository.GetByPatientIdAsync(patientId, ct);
+        var (recordId, dicomId) = await ResolvePatientKeysAsync(patientId, ct);
+
+        var studies = recordId is null
+            ? await _studyRepository.GetByPatientIdAsync(dicomId!, ct)
+            : await _studyRepository.GetByPatientAsync(recordId, dicomId, ct);
+
         return Ok(studies.Select(s => s.ToDto()));
+    }
+
+    /// <summary>
+    /// Maps whatever identifier the caller supplied to the (record id, MRN) pair used by
+    /// the study queries. A value that matches no patient record is treated as an MRN.
+    /// </summary>
+    private async Task<(string? RecordId, string? DicomId)> ResolvePatientKeysAsync(
+        string patientId, CancellationToken ct)
+    {
+        var byRecordId = await _patientRepository.GetByIdAsync(patientId, ct);
+        if (byRecordId is not null)
+            return (byRecordId.Id, byRecordId.PatientDicomId.Value);
+
+        var byDicomId = await _patientRepository.GetByPatientDicomIdAsync(patientId, ct);
+        return byDicomId is not null
+            ? (byDicomId.Id, byDicomId.PatientDicomId.Value)
+            : (null, patientId);
     }
 
     [HttpGet("by-node/{nodeId}")]

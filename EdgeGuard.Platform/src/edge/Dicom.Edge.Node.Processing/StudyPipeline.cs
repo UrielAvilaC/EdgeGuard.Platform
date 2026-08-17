@@ -74,6 +74,8 @@ public sealed class StudyPipeline(
             studyDate:        workItem.StudyDate,
             studyDescription: workItem.StudyDescription,
             seriesCount:      workItem.SeriesCount,
+            patientBirthDate: workItem.PatientBirthDate,
+            patientSex:       workItem.PatientSex,
             ct:               ct);
 
         // Await the completion notification first so the study exists on the Hub
@@ -128,6 +130,20 @@ public sealed class StudyPipeline(
                 status:            sent > 0 ? "SentToPacs" : "Failed",
                 targetPacsAeTitle: primaryAeTitle,
                 error:             sent > 0 ? null : string.Join("; ", errors),
+                ct:                ct);
+        }
+        else
+        {
+            // Nothing resolved. The Hub put this study in QueuedForSend when it requested the
+            // resend and only ever leaves that state on a PACS-status report — returning here
+            // without one strands it there forever. Report the terminal status so the operator
+            // sees a failure with a reason instead of a study stuck "queued".
+            await hubNotifier.NotifyPacsSendStatusAsync(
+                nodeId:            string.Empty,
+                studyInstanceUid:  studyInstanceUid,
+                status:            "Failed",
+                targetPacsAeTitle: null,
+                error:             string.Join("; ", errors),
                 ct:                ct);
         }
 

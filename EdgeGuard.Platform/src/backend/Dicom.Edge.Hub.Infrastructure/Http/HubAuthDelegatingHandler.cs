@@ -23,6 +23,13 @@ namespace Dicom.Edge.Hub.Infrastructure.Http;
 /// </summary>
 public sealed class HubAuthDelegatingHandler : DelegatingHandler
 {
+    /// <summary>
+    /// Header that carries the target node id. Set by the caller (push service) — see
+    /// <see cref="NodeHttpClientExtensions"/> — and consumed here to resolve the signing key.
+    /// It is not forwarded as an auth credential; the node authenticates on Bearer + signature.
+    /// </summary>
+    public const string NodeIdHeader = "X-Node-Id";
+
     private readonly INodeAuthKeyProvider _keyProvider;
     private readonly ILogger<HubAuthDelegatingHandler> _logger;
 
@@ -37,15 +44,15 @@ public sealed class HubAuthDelegatingHandler : DelegatingHandler
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, CancellationToken ct)
     {
-        var nodeId = request.Headers.TryGetValues("X-Node-Id", out var values)
+        var nodeId = request.Headers.TryGetValues(NodeIdHeader, out var values)
             ? values.FirstOrDefault()
             : null;
 
         if (string.IsNullOrEmpty(nodeId))
         {
             _logger.LogWarning(
-                "Outbound request to {Url} has no X-Node-Id header — sending unsigned (legacy)",
-                request.RequestUri);
+                "Outbound request to {Url} has no {Header} header — sending unsigned (legacy)",
+                request.RequestUri, NodeIdHeader);
             return await base.SendAsync(request, ct);
         }
 

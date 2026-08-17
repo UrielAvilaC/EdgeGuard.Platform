@@ -1,3 +1,4 @@
+using Dicom.Edge.Hub.Application.Patients;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Dicom.Edge.Abstractions.Persistence;
@@ -27,8 +28,7 @@ public sealed class WhatsAppNotificationService(
     ISystemSettingRepository settingRepository,
     IHubAuditLogRepository auditRepository,
     IMessagingProvider messagingProvider,
-    IUnitOfWork unitOfWork,
-    ILogger<WhatsAppNotificationService> logger) : IWhatsAppNotificationService
+    IUnitOfWork unitOfWork) : IWhatsAppNotificationService
 {
     public async Task<SendWhatsAppManualResponse> SendManualAsync(SendWhatsAppManualRequest request, CancellationToken ct = default)
     {
@@ -47,9 +47,7 @@ public sealed class WhatsAppNotificationService(
         var template = await templateRepository.GetByIdWithVariablesAsync(request.TemplateId, ct)
             ?? throw new KeyNotFoundException($"Template '{request.TemplateId}' not found.");
 
-        var patient = study.PatientId is not null
-            ? await patientRepository.GetByIdAsync(study.PatientId, ct)
-            : null;
+        var patient = await StudyPatientResolver.ResolveAsync(patientRepository, study, ct);
 
         var prefix = await GetSettingValueAsync(HubSettingKeys.WhatsApp.DefaultCountryPrefix, "+521", ct);
         var facilityName = await ResolveFacilityNameAsync(study, ct);
@@ -154,53 +152,6 @@ public sealed class WhatsAppNotificationService(
             new() { Tag = WhatsAppTemplateTags.ImagesUrlPath, Description = "Images URL path only (no domain) — for URL buttons with a fixed domain", Example = "Integrator.aspx?AccNo=123" },
         ];
         return Task.FromResult(tags);
-    }
-
-    public async Task ProcessPendingAsync(int batchSize = 50, CancellationToken ct = default)
-    {
-        if (!await IsEnabledAsync(ct)) return;
-
-        var pending = await notificationRepository.GetPendingAsync(batchSize, ct);
-        var maxAttempts = int.Parse(await GetSettingValueAsync(HubSettingKeys.WhatsApp.RetryMaxAttempts, "3", ct));
-
-        foreach (var notification in pending)
-        {
-            if (notification.Attempts >= maxAttempts)
-            {
-                notification.MarkSkipped("Max retry attempts exceeded");
-                await notificationRepository.UpdateAsync(notification, ct);
-                continue;
-            }
-
-            if (notification.ContentSid is null || notification.NormalizedPhone is null)
-            {
-                notification.MarkSkipped("Missing ContentSid or NormalizedPhone");
-                await notificationRepository.UpdateAsync(notification, ct);
-                continue;
-            }
-
-            try
-            {
-                var result = await messagingProvider.SendContentMessageAsync(
-                    notification.NormalizedPhone, notification.ContentSid,
-                    DeserializeContentVariables(notification.ContentVariables), ct);
-
-                if (result.Success)
-                    notification.MarkSent(messagingProvider.ProviderName, result.ProviderMessageId);
-                else
-                    notification.MarkFailed(result.Error ?? "Unknown error");
-
-                await notificationRepository.UpdateAsync(notification, ct);
-            }
-            catch (Exception ex)
-            {
-                notification.MarkFailed(ex.Message);
-                await notificationRepository.UpdateAsync(notification, ct);
-                logger.LogWarning(ex, "Failed to process pending notification {Id}", notification.Id);
-            }
-        }
-
-        await unitOfWork.SaveChangesAsync(ct);
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
