@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, TemplateRef, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faFileExport,
@@ -16,10 +16,12 @@ import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.compone
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { FileSizePipe } from '../../../../shared/pipes/file-size.pipe';
 import { TruncatePipe } from '../../../../shared/pipes/truncate.pipe';
+import { PersonNamePipe } from '../../../../shared/pipes/person-name.pipe';
 import { TableColumn } from '../../../../shared/models/table.model';
 import { Study } from '../../models/study.models';
 import { StudiesStore } from '../../services/studies.store';
 import { StudiesFacade } from '../../services/studies.facade';
+import { StudyStatusLabelPipe } from '../../pipes/study-status-label.pipe';
 import { StudyFilters } from '../study-filters/study-filters.component';
 
 @Component({
@@ -38,6 +40,8 @@ import { StudyFilters } from '../study-filters/study-filters.component';
     RelativeTimePipe,
     FileSizePipe,
     TruncatePipe,
+    PersonNamePipe,
+    StudyStatusLabelPipe,
     StudyFilters,
   ],
   templateUrl: './studies-page.component.html',
@@ -46,6 +50,7 @@ import { StudyFilters } from '../study-filters/study-filters.component';
 export default class StudiesPage {
   protected readonly facade = inject(StudiesFacade);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly faFileExport = faFileExport;
   protected readonly faExclamationTriangle = faExclamationTriangle;
@@ -63,7 +68,14 @@ export default class StudiesPage {
   ];
 
   constructor() {
-    this.facade.loadStudies();
+    // Support deep-linking a pre-filtered list, e.g. from the patient detail page.
+    const patientId = this.route.snapshot.queryParamMap.get('patientId');
+    if (patientId) {
+      this.facade.updateFilter({ patientId });
+    } else {
+      this.facade.loadStudies();
+    }
+    this.facade.startRealtimeRefresh();
   }
 
   protected onRowClick(study: Study): void {

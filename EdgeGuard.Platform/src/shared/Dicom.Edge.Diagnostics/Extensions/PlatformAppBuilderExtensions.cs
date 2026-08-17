@@ -47,17 +47,19 @@ public static class PlatformAppBuilderExtensions
     /// </summary>
     public static WebApplication MapDiagnosticsEndpoints(this WebApplication app)
     {
+        // Health probes must never be throttled — Kubernetes/load-balancer liveness
+        // and readiness checks poll frequently and must bypass any rate limiter.
         app.MapHealthChecks(HealthCheckConstants.LivenessEndpoint, new HealthCheckOptions
         {
             Predicate = _ => false,
             ResponseWriter = WriteResponse
-        });
+        }).DisableRateLimiting();
 
         app.MapHealthChecks(HealthCheckConstants.ReadinessEndpoint, new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains(HealthCheckConstants.ReadyTag),
             ResponseWriter = WriteResponse
-        });
+        }).DisableRateLimiting();
 
         return app;
     }

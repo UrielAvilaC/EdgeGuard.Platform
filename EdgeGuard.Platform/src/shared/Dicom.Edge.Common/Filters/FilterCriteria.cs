@@ -18,7 +18,13 @@ public sealed record StudyFilterCriteria : FilterBase
     public string? Search { get; init; }
     public string? Status { get; init; }
     public string? SourceNodeId { get; init; }
+
+    /// <summary>DICOM Patient ID (MRN) as carried by the study.</summary>
     public string? PatientId { get; init; }
+
+    /// <summary>Patient aggregate id (<c>patients.id</c>). Matches the FK, and legacy rows by MRN.</summary>
+    public string? PatientRecordId { get; init; }
+
     public DateTime? DateFrom { get; init; }
     public DateTime? DateTo { get; init; }
     public bool? IsUrgent { get; init; }

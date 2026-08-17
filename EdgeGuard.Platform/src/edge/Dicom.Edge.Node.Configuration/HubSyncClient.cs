@@ -261,6 +261,29 @@ public sealed class HubSyncClient(
         }
     }
 
+    public async Task<bool> NotifyStudyPacsStatusAsync(StudyPacsStatusNotifyRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping PACS status notify -- node not yet registered"); return false; }
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.StudyPacsStatus}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("PACS status notify failed -- StatusCode={StatusCode} StudyUid={StudyUid} Status={Status}",
+                    (int)response.StatusCode, request.StudyInstanceUid, request.Status);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "PACS status notify error -- StudyUid={StudyUid} Status={Status} Url={Url}",
+                request.StudyInstanceUid, request.Status, url);
+            return false;
+        }
+    }
+
     public async Task<bool> ReportPacsEchoAsync(NodePacsEchoReportRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrEmpty(RegisteredNodeId)) { logger.LogDebug("Skipping PACS echo report -- node not yet registered"); return false; }
@@ -279,6 +302,28 @@ public sealed class HubSyncClient(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "PACS echo report error -- NodeId={NodeId} Url={Url}", _registeredNodeId, url);
+            return false;
+        }
+    }
+
+    public async Task<bool> ReportEquipmentStatusAsync(NodeEquipmentStatusReportRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(RegisteredNodeId)) { logger.LogDebug("Skipping equipment status report -- node not yet registered"); return false; }
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.EquipmentStatusReport}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("Equipment status report failed -- StatusCode={StatusCode} NodeId={NodeId}",
+                    (int)response.StatusCode, _registeredNodeId);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Equipment status report error -- NodeId={NodeId} Url={Url}", _registeredNodeId, url);
             return false;
         }
     }

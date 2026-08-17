@@ -5,6 +5,7 @@ using Dicom.Edge.Diagnostics.Configuration;
 using Dicom.Edge.Diagnostics.Constants;
 using Dicom.Edge.Diagnostics.Enrichers;
 using Dicom.Edge.Diagnostics.HealthChecks;
+using Dicom.Edge.Diagnostics.Logging;
 using Dicom.Edge.Diagnostics.Observability;
 using Dicom.Edge.Diagnostics.Redaction;
 using Microsoft.Extensions.Configuration;
@@ -43,6 +44,15 @@ public static class PlatformDiagnosticsExtensions
 
         // PHI redaction
         services.AddSingleton<IPhiProtector, RegexPhiProtector>();
+
+        // Per-DICOM-association log files (sink + lifecycle owner, always registered so the
+        // DICOM server can depend on it; the Enabled flag is honoured inside the writer).
+        services.AddSingleton<AssociationFileLogWriter>();
+        services.AddSingleton<IAssociationLogWriter>(sp =>
+            sp.GetRequiredService<AssociationFileLogWriter>());
+
+        if (diagnosticsSection.Get<DiagnosticsOptions>()?.File.PerAssociation.Enabled ?? true)
+            services.AddHostedService<AssociationLogCleanupService>();
 
         // Audit logging (HIPAA/GDPR compliance)
         services.AddSingleton<IAuditLogger, StructuredAuditLogger>();
@@ -83,7 +93,7 @@ public static class PlatformDiagnosticsExtensions
         {
             ConfigureBaseLogging(loggerConfig, options);
             ConfigureEnrichers(loggerConfig, services, options);
-            ConfigureSinks(loggerConfig, options);
+            ConfigureSinks(loggerConfig, services, options);
 
             loggerConfig.ReadFrom.Configuration(configuration);
         });
@@ -106,7 +116,7 @@ public static class PlatformDiagnosticsExtensions
         {
             ConfigureBaseLogging(loggerConfig, options);
             ConfigureEnrichers(loggerConfig, services, options);
-            ConfigureSinks(loggerConfig, options);
+            ConfigureSinks(loggerConfig, services, options);
 
             loggerConfig.ReadFrom.Configuration(context.Configuration);
         });
@@ -114,13 +124,36 @@ public static class PlatformDiagnosticsExtensions
         return hostBuilder;
     }
 
+    /// <summary>
+    /// Minimum level of the global log (file/console/Seq/HTTP). Unchanged behaviour:
+    /// Debug in Development, Information elsewhere.
+    /// </summary>
+    private static LogEventLevel GlobalMinimumLevel(DiagnosticsOptions options) =>
+        options.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
+            ? LogEventLevel.Debug
+            : LogEventLevel.Information;
+
+    /// <summary>Minimum level requested by the per-association files, when enabled.</summary>
+    private static LogEventLevel AssociationMinimumLevel(DiagnosticsOptions options) =>
+        Enum.TryParse<LogEventLevel>(options.File.PerAssociation.MinimumLevel, true, out var level)
+            ? level
+            : LogEventLevel.Debug;
+
     private static void ConfigureBaseLogging(
         LoggerConfiguration loggerConfig,
         DiagnosticsOptions options)
     {
-        var minimumLevel = options.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase)
-            ? LogEventLevel.Debug
-            : LogEventLevel.Information;
+        var minimumLevel = GlobalMinimumLevel(options);
+
+        // The association files may ask for more detail than the global log (typically Debug in
+        // Production). The pipeline must therefore run at the lowest requested level; every
+        // global sink is restricted back to its own level so the global log is unaffected.
+        if (options.File.PerAssociation.Enabled)
+        {
+            var associationLevel = AssociationMinimumLevel(options);
+            if (associationLevel < minimumLevel)
+                minimumLevel = associationLevel;
+        }
 
         loggerConfig
             .MinimumLevel.Is(minimumLevel)
@@ -142,7 +175,8 @@ public static class PlatformDiagnosticsExtensions
             .Enrich.WithThreadId()
             .Enrich.With(new InstanceEnricher(
                 Microsoft.Extensions.Options.Options.Create(options)))
-            .Enrich.With(new CorrelationIdEnricher());
+            .Enrich.With(new CorrelationIdEnricher())
+            .Enrich.With(new AssociationEnricher());
 
         var protector = services.GetService<IPhiProtector>()
                         ?? new RegexPhiProtector(Microsoft.Extensions.Options.Options.Create(options.Redaction));
@@ -154,9 +188,11 @@ public static class PlatformDiagnosticsExtensions
 
     private static void ConfigureSinks(
         LoggerConfiguration loggerConfig,
+        IServiceProvider services,
         DiagnosticsOptions options)
     {
         var fileOptions = options.File;
+        var globalLevel = GlobalMinimumLevel(options);
 
         var logDirectory = Path.GetFullPath(fileOptions.Path);
         Directory.CreateDirectory(logDirectory);
@@ -171,6 +207,7 @@ public static class PlatformDiagnosticsExtensions
                 a.File(
                     formatter: new CompactJsonFormatter(),
                     path: filePath,
+                    restrictedToMinimumLevel: globalLevel,
                     rollingInterval: rollingInterval,
                     fileSizeLimitBytes: fileOptions.MaxFileSizeMb * 1024L * 1024L,
                     retainedFileCountLimit: fileOptions.RetainedFileCountLimit,
@@ -183,6 +220,7 @@ public static class PlatformDiagnosticsExtensions
             loggerConfig.WriteTo.Async(a =>
                 a.File(
                     path: filePath,
+                    restrictedToMinimumLevel: globalLevel,
                     rollingInterval: rollingInterval,
                     fileSizeLimitBytes: fileOptions.MaxFileSizeMb * 1024L * 1024L,
                     retainedFileCountLimit: fileOptions.RetainedFileCountLimit,
@@ -196,12 +234,26 @@ public static class PlatformDiagnosticsExtensions
                                     "{Message:lj}{NewLine}{Exception}"));
         }
 
+        // Per-association file sink — one file per DICOM association.
+        // Deliberately NOT wrapped in WriteTo.Async: ordering between Emit and the explicit
+        // Close performed by the SCP must be strict, otherwise files are truncated on abort.
+        if (fileOptions.PerAssociation.Enabled &&
+            services.GetService<AssociationFileLogWriter>() is { } associationWriter)
+        {
+            loggerConfig.WriteTo.Sink(
+                associationWriter,
+                restrictedToMinimumLevel: Enum.TryParse<LogEventLevel>(
+                    fileOptions.PerAssociation.MinimumLevel, true, out var associationLevel)
+                    ? associationLevel
+                    : LogEventLevel.Debug);
+        }
+
         // Seq sink — optional
         var seqOptions = options.Seq;
         if (seqOptions.Enabled && !string.IsNullOrWhiteSpace(seqOptions.Url))
         {
             loggerConfig.WriteTo.Async(a =>
-                a.Seq(seqOptions.Url, apiKey: seqOptions.ApiKey));
+                a.Seq(seqOptions.Url, apiKey: seqOptions.ApiKey, restrictedToMinimumLevel: globalLevel));
         }
 
         // HTTP sink — optional
@@ -211,13 +263,15 @@ public static class PlatformDiagnosticsExtensions
             loggerConfig.WriteTo.Async(a =>
                 a.Http(
                     requestUri: httpOptions.Url,
-                    queueLimitBytes: null));
+                    queueLimitBytes: null,
+                    restrictedToMinimumLevel: globalLevel));
         }
 
         // Console sink — development only
         if (options.Environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
         {
             loggerConfig.WriteTo.Console(
+                restrictedToMinimumLevel: globalLevel,
                 outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] " +
                                 "[{InstanceId}] [{Component}] " +
                                 "{Message:lj}{NewLine}{Exception}");

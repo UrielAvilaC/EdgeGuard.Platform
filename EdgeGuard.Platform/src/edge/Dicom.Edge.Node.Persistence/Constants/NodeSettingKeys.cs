@@ -64,6 +64,14 @@ public static class NodeSettingKeys
         public const string QrEnabled                 = SharedNodeSettingKeys.Dicom.QrEnabled;
     }
 
+    // ── Diagnostics
+    public static class Diagnostics
+    {
+        public const string AssocLogEnabled    = SharedNodeSettingKeys.Diagnostics.AssocLogEnabled;
+        public const string AssocLogLevel      = SharedNodeSettingKeys.Diagnostics.AssocLogLevel;
+        public const string AssocLogRetainDays = SharedNodeSettingKeys.Diagnostics.AssocLogRetainDays;
+    }
+
     // ── Cleanup
     public static class Cleanup
     {
@@ -117,6 +125,15 @@ public static class NodeSettingKeys
         public const string Enabled         = SharedNodeSettingKeys.PacsCEcho.Enabled;
         public const string IntervalSeconds = SharedNodeSettingKeys.PacsCEcho.IntervalSeconds;
         public const string Destinations    = SharedNodeSettingKeys.PacsCEcho.Destinations;
+    }
+
+    // ── PACS Backfill ────────────────────────────────────────────────────────────
+    public static class PacsBackfill
+    {
+        public const string Enabled      = SharedNodeSettingKeys.PacsBackfill.Enabled;
+        public const string LookbackDays = SharedNodeSettingKeys.PacsBackfill.LookbackDays;
+        public const string MaxStudies   = SharedNodeSettingKeys.PacsBackfill.MaxStudies;
+        public const string Priority     = SharedNodeSettingKeys.PacsBackfill.Priority;
     }
 
     // ── Node API ─────────────────────────────────────────────────────────────────

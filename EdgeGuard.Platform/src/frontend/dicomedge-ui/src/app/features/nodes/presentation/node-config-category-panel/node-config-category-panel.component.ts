@@ -47,6 +47,20 @@ export class NodeConfigCategoryPanel {
   protected readonly faPlus = faPlus;
   protected readonly faTrash = faTrash;
 
+  /**
+   * Setting keys whose value is DERIVED from the canonical node AE Title
+   * (`dicom.ae_title`, single source of truth). They are shown read-only so they
+   * cannot drift from the SCP AE. Edit `dicom.ae_title` to change them.
+   */
+  private static readonly DERIVED_AE_KEYS = new Set<string>([
+    'sender.local_ae_title',
+    'node.ae_title',
+  ]);
+
+  protected isDerived(settingKey: string): boolean {
+    return NodeConfigCategoryPanel.DERIVED_AE_KEYS.has(settingKey);
+  }
+
   protected isJsonArray(valueType: string): boolean {
     const t = valueType.toLowerCase();
     return t === 'jsonarray' || t === 'json_array';

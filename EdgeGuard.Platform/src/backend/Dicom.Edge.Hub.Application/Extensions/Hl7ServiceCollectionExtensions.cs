@@ -2,12 +2,15 @@ using Dicom.Edge.Hub.Application.Configuration;
 using Dicom.Edge.Hub.Application.CsvServices;
 using Dicom.Edge.Hub.Application.Dashboard;
 using Dicom.Edge.Hub.Application.Edge;
+using Dicom.Edge.Hub.Application.Equipment;
 using Dicom.Edge.Hub.Application.Hl7;
 using Dicom.Edge.Hub.Application.Hl7.Pipeline;
 using Dicom.Edge.Hub.Application.Identity;
 using Dicom.Edge.Hub.Application.Nodes;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Hub.Application.Notifications;
 using Dicom.Edge.Hub.Application.PacsServers;
+using Dicom.Edge.Hub.Application.Patients;
 using Dicom.Edge.Hub.Application.Queue;
 using Dicom.Edge.Hub.Application.Routing;
 using Dicom.Edge.Hub.Application.Studies;
@@ -33,6 +36,10 @@ public static class HubApplicationServiceCollectionExtensions
         services.Configure<MessageQueueOptions>(
             configuration.GetSection(MessageQueueOptions.SectionName));
 
+        // Patient catalogue registration — shared by the HL7 sync and the Edge (DICOM)
+        // ingestion path so walk-in studies also create their patient.
+        services.AddScoped<IPatientRegistrationService, PatientRegistrationService>();
+
         // HL7 pipeline services
         services.AddScoped<IHl7MessageProcessor, Hl7MessageProcessor>();
         services.AddScoped<IHl7MonitoringService, Hl7MonitoringService>();
@@ -45,12 +52,41 @@ public static class HubApplicationServiceCollectionExtensions
         services.AddScoped<ISystemSettingsService, SystemSettingsService>();
         services.AddScoped<INodeConfigurationService, NodeConfigurationService>();
 
+        // P1-1: durable node-sync outbox that decouples node config pushes from the HTTP
+        // request path. Drained by NodeOutboxHostedService (in the API layer).
+        services.Configure<NodePushOptions>(
+            configuration.GetSection(NodePushOptions.SectionName));
+        services.AddScoped<INodeOutbox, NodeOutbox>();
+
+        // P1: unified notification dispatcher (results delivery → durable outbox).
+        services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+        // Email notification templates (enterprise editor) + merge-tag resolver.
+        services.AddSingleton<INotificationVariableResolver, NotificationVariableResolver>();
+        services.AddScoped<INotificationTemplateService, NotificationTemplateService>();
+
+        // Results delivery (manual + auto): resolve templates → enqueue in the outbox.
+        services.AddScoped<IDeliveryService, DeliveryService>();
+
+        // Fase 7: auto-mode master switch.
+        services.Configure<NotificationOptions>(configuration.GetSection(NotificationOptions.SectionName));
+
+        // Fase 8: notification settings (auto-mode toggle + SMTP status/test).
+        services.AddScoped<INotificationSettingsService, NotificationSettingsService>();
+
         // CRUD application services (write operations)
         services.AddScoped<INodeService, NodeService>();
         services.AddScoped<IPacsServerService, PacsServerService>();
         services.AddScoped<IRoutingRuleService, RoutingRuleService>();
         services.AddScoped<INodeDicomRoutingRuleService, NodeDicomRoutingRuleService>();
+        services.AddScoped<INodeEquipmentService, NodeEquipmentService>();
+
+        // Equipment presence: online-window used to derive IsOnline at read time.
+        services.Configure<Equipment.EquipmentPresenceOptions>(
+            configuration.GetSection(Equipment.EquipmentPresenceOptions.SectionName));
         services.AddScoped<IStudyService, StudyService>();
+        services.AddScoped<IStudyResendService, StudyResendService>();
+        services.AddScoped<IStudyInfrastructureService, StudyInfrastructureService>();
 
         // Edge node-facing orchestration service
         services.AddScoped<IEdgeNodeService, EdgeNodeService>();

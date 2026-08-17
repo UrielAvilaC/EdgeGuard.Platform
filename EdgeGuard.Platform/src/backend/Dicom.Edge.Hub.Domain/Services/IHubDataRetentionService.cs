@@ -21,12 +21,13 @@ public sealed class DataRetentionResult
     public int AuditLogsDeleted { get; init; }
     public int Hl7MessagesDeleted { get; init; }
     public int HealthChecksDeleted { get; init; }
-    public int WhatsAppNotificationsDeleted { get; init; }
+    public int NotificationsDeleted { get; init; }
+    public int NodeOutboxDeleted { get; init; }
     public int PacsSendAuditsDeleted { get; init; }
     public int StudyStatusAuditsDeleted { get; init; }
     public TimeSpan Duration { get; init; }
 
     public int TotalDeleted =>
         AuditLogsDeleted + Hl7MessagesDeleted + HealthChecksDeleted +
-        WhatsAppNotificationsDeleted + PacsSendAuditsDeleted + StudyStatusAuditsDeleted;
+        NotificationsDeleted + NodeOutboxDeleted + PacsSendAuditsDeleted + StudyStatusAuditsDeleted;
 }

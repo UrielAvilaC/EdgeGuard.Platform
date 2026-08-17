@@ -1,16 +1,33 @@
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Hub;
+using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Aggregates.Routing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Dicom.Edge.Hub.Application.Routing;
 
 public sealed class NodeDicomRoutingRuleService(
     INodeDicomRoutingRuleRepository ruleRepository,
     INodeDicomRoutingRulePushService pushService,
+    INodeOutbox nodeOutbox,
+    IOptions<NodePushOptions> pushOptions,
     IUnitOfWork unitOfWork,
     ILogger<NodeDicomRoutingRuleService> logger) : INodeDicomRoutingRuleService
 {
+    /// <summary>
+    /// P1-1: dispatches the rules push for a node. When async push is enabled
+    /// (default) the request is enqueued and returns immediately; otherwise it
+    /// runs inline (legacy behaviour).
+    /// </summary>
+    private async Task DispatchRulesAsync(string nodeId, CancellationToken ct)
+    {
+        if (pushOptions.Value.Async)
+            await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Rules, ct);
+        else
+            await pushService.PushAsync(nodeId, ct);
+    }
+
     public Task<IReadOnlyList<NodeDicomRoutingRule>> GetByNodeIdAsync(string nodeId, CancellationToken ct = default) =>
         ruleRepository.GetByNodeIdAsync(nodeId, ct);
 
@@ -39,7 +56,7 @@ public sealed class NodeDicomRoutingRuleService(
             "DICOM routing rule created: {RuleId} '{Name}' → {AeTitle} for node {NodeId}",
             rule.Id, rule.Name, rule.DestinationAeTitle, nodeId);
 
-        await pushService.PushAsync(nodeId, ct);
+        await DispatchRulesAsync(nodeId, ct);
         return rule;
     }
 
@@ -67,7 +84,7 @@ public sealed class NodeDicomRoutingRuleService(
 
         logger.LogInformation("DICOM routing rule updated: {RuleId} for node {NodeId}", id, rule.NodeId);
 
-        await pushService.PushAsync(rule.NodeId, ct);
+        await DispatchRulesAsync(rule.NodeId, ct);
         return rule;
     }
 
@@ -79,7 +96,7 @@ public sealed class NodeDicomRoutingRuleService(
         rule.Enable();
         await ruleRepository.UpdateAsync(rule, ct);
         await unitOfWork.SaveChangesAsync(ct);
-        await pushService.PushAsync(rule.NodeId, ct);
+        await DispatchRulesAsync(rule.NodeId, ct);
         return true;
     }
 
@@ -91,7 +108,7 @@ public sealed class NodeDicomRoutingRuleService(
         rule.Disable();
         await ruleRepository.UpdateAsync(rule, ct);
         await unitOfWork.SaveChangesAsync(ct);
-        await pushService.PushAsync(rule.NodeId, ct);
+        await DispatchRulesAsync(rule.NodeId, ct);
         return true;
     }
 
@@ -103,7 +120,7 @@ public sealed class NodeDicomRoutingRuleService(
         rule.UpdatePriority(priority);
         await ruleRepository.UpdateAsync(rule, ct);
         await unitOfWork.SaveChangesAsync(ct);
-        await pushService.PushAsync(rule.NodeId, ct);
+        await DispatchRulesAsync(rule.NodeId, ct);
         return true;
     }
 
@@ -118,7 +135,7 @@ public sealed class NodeDicomRoutingRuleService(
 
         logger.LogInformation("DICOM routing rule deleted: {RuleId} for node {NodeId}", id, nodeId);
 
-        await pushService.PushAsync(nodeId, ct);
+        await DispatchRulesAsync(nodeId, ct);
         return true;
     }
 }

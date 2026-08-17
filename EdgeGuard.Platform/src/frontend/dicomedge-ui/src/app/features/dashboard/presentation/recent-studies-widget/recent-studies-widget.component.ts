@@ -6,6 +6,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { UiStatusBadge } from '../../../../shared/components/ui-status-badge/ui-status-badge.component';
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { FileSizePipe } from '../../../../shared/pipes/file-size.pipe';
+import { PersonNamePipe } from '../../../../shared/pipes/person-name.pipe';
 import { UiEmptyState } from '../../../../shared/components/ui-empty-state/ui-empty-state.component';
 import { DashboardFacade } from '../../services/dashboard.facade';
 
@@ -19,6 +20,7 @@ import { DashboardFacade } from '../../services/dashboard.facade';
     UiStatusBadge,
     RelativeTimePipe,
     FileSizePipe,
+    PersonNamePipe,
     UiEmptyState,
   ],
   templateUrl: './recent-studies-widget.component.html',

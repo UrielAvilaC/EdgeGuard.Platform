@@ -52,7 +52,8 @@ internal static class NodeSettingsSeed
     [
         // ── General ─────────────────────────────────────────────────────────
         Row(NodeSettingKeys.General.NodeName,     "",   Cat.General,  "Node Name",              VT.String),
-        Row(NodeSettingKeys.General.AeTitle,      "",    Cat.General,  "AE Title",               VT.String),
+        // node.ae_title is DERIVED from dicom.ae_title (single source of truth); seeded for display only.
+        Row(NodeSettingKeys.General.AeTitle,      "EDGE_NODE",    Cat.General,  "AE Title (derived)",     VT.String),
         Row(NodeSettingKeys.General.Description,  "",             Cat.General,  "Description",            VT.String),
         Row(NodeSettingKeys.General.Location,     "",             Cat.General,  "Location",               VT.String),
         Row(NodeSettingKeys.General.FacilityName, "",             Cat.General,  "Facility Name",          VT.String),
@@ -64,21 +65,26 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.General.ApiEndpoint,  "",             Cat.General,  "API Endpoint",           VT.String),
 
         // ── Hub ─────────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Hub.Enabled,               "false",  Cat.Hub, "Hub Integration Enabled",       VT.Bool),
-        Row(NodeSettingKeys.Hub.Protocol,              "https",   Cat.Hub, "Hub Protocol",                  VT.String),
-        Row(NodeSettingKeys.Hub.Hostname,              "",        Cat.Hub, "Hub Hostname",                  VT.String),
-        Row(NodeSettingKeys.Hub.Port,                  "443",     Cat.Hub, "Hub Port",                      VT.Int),
-        Row(NodeSettingKeys.Hub.BasePath,              "/api",    Cat.Hub, "Hub API Base Path",             VT.String),
-        Row(NodeSettingKeys.Hub.ApiKey,                "",        Cat.Hub, "Hub API Key",                   VT.String),
-        Row(NodeSettingKeys.Hub.NodeId,                "",        Cat.Hub, "Hub Node ID",                   VT.String),
-        Row(NodeSettingKeys.Hub.TimeoutSeconds,        "30",      Cat.Hub, "Hub Request Timeout (sec)",     VT.Int),
-        Row(NodeSettingKeys.Hub.HeartbeatIntervalSec,  "60",      Cat.Hub, "Heartbeat Interval (sec)",      VT.Int),
-        Row(NodeSettingKeys.Hub.RegisterOnStartup,     "true",    Cat.Hub, "Register on Startup",           VT.Bool),
-        Row(NodeSettingKeys.Hub.PullConfigOnStartup,   "true",    Cat.Hub, "Pull Config on Startup",        VT.Bool),
-        Row(NodeSettingKeys.Hub.PullConfigIntervalMin, "15",      Cat.Hub, "Config Pull Interval (min)",    VT.Int),
-        Row(NodeSettingKeys.Hub.TlsVerifyCertificate,  "true",    Cat.Hub, "Verify TLS Certificate",        VT.Bool),
-        Row(NodeSettingKeys.Hub.MaxReconnectAttempts,  "5",       Cat.Hub, "Max Reconnect Attempts",        VT.Int),
-        Row(NodeSettingKeys.Hub.ReconnectDelaySeconds, "30",      Cat.Hub, "Reconnect Delay (sec)",         VT.Int),
+        // Hub rows are seeded EMPTY on purpose: their real values live in
+        // appsettings (HubConnection section) and are copied into these rows by
+        // NodeSettingsHubHydrator right after migrations. A non-empty seed would
+        // win over appsettings (the DB configuration provider has higher
+        // precedence) and silently override the deployed configuration.
+        Row(NodeSettingKeys.Hub.Enabled,               "",     Cat.Hub, "Hub Integration Enabled",       VT.Bool),
+        Row(NodeSettingKeys.Hub.Protocol,              "",     Cat.Hub, "Hub Protocol",                  VT.String),
+        Row(NodeSettingKeys.Hub.Hostname,              "",     Cat.Hub, "Hub Hostname",                  VT.String),
+        Row(NodeSettingKeys.Hub.Port,                  "",     Cat.Hub, "Hub Port",                      VT.Int),
+        Row(NodeSettingKeys.Hub.BasePath,              "/api", Cat.Hub, "Hub API Base Path",             VT.String),
+        Row(NodeSettingKeys.Hub.ApiKey,                "",     Cat.Hub, "Hub API Key",                   VT.String),
+        Row(NodeSettingKeys.Hub.NodeId,                "",     Cat.Hub, "Hub Node ID",                   VT.String),
+        Row(NodeSettingKeys.Hub.TimeoutSeconds,        "",     Cat.Hub, "Hub Request Timeout (sec)",     VT.Int),
+        Row(NodeSettingKeys.Hub.HeartbeatIntervalSec,  "",     Cat.Hub, "Heartbeat Interval (sec)",      VT.Int),
+        Row(NodeSettingKeys.Hub.RegisterOnStartup,     "",     Cat.Hub, "Register on Startup",           VT.Bool),
+        Row(NodeSettingKeys.Hub.PullConfigOnStartup,   "true", Cat.Hub, "Pull Config on Startup",        VT.Bool),
+        Row(NodeSettingKeys.Hub.PullConfigIntervalMin, "",     Cat.Hub, "Config Pull Interval (min)",    VT.Int),
+        Row(NodeSettingKeys.Hub.TlsVerifyCertificate,  "true", Cat.Hub, "Verify TLS Certificate",        VT.Bool),
+        Row(NodeSettingKeys.Hub.MaxReconnectAttempts,  "",     Cat.Hub, "Max Reconnect Attempts",        VT.Int),
+        Row(NodeSettingKeys.Hub.ReconnectDelaySeconds, "",     Cat.Hub, "Reconnect Delay (sec)",         VT.Int),
 
         // ── DICOM ────────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Dicom.Enabled,                   "true",      Cat.Dicom, "DICOM Server Enabled",              VT.Bool),
@@ -122,7 +128,8 @@ internal static class NodeSettingsSeed
 
         // ── PACS Sender ──────────────────────────────────────────────────────
         Row(NodeSettingKeys.PacsSender.Enabled,                   "true",      Cat.PacsSender, "PACS Sender Enabled",               VT.Bool),
-        Row(NodeSettingKeys.PacsSender.LocalAeTitle,              "EDGENODE",  Cat.PacsSender, "Local AE Title",                    VT.String),
+        // sender.local_ae_title is DERIVED from dicom.ae_title (single source of truth); seeded for display only.
+        Row(NodeSettingKeys.PacsSender.LocalAeTitle,              "EDGE_NODE", Cat.PacsSender, "Local AE Title (derived)",          VT.String),
         Row(NodeSettingKeys.PacsSender.MaxConcurrentSends,        "4",         Cat.PacsSender, "Max Concurrent Sends",              VT.Int),
         Row(NodeSettingKeys.PacsSender.TimeoutSeconds,            "120",       Cat.PacsSender, "Send Timeout (sec)",                VT.Int),
         Row(NodeSettingKeys.PacsSender.MaxRetries,                "3",         Cat.PacsSender, "Max Retries",                       VT.Int),
@@ -133,6 +140,12 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.PacsCEcho.Enabled,         "true",  Cat.PacsCEcho, "C-ECHO Monitor Enabled",       VT.Bool),
         Row(NodeSettingKeys.PacsCEcho.IntervalSeconds,  "120",  Cat.PacsCEcho, "C-ECHO Interval (sec)",        VT.Int),
         Row(NodeSettingKeys.PacsCEcho.Destinations,     "[]",   Cat.PacsCEcho, "C-ECHO Destinations (JSON)",   VT.Json),
+
+        // ── PACS Backfill ────────────────────────────────────────────────────
+        Row(NodeSettingKeys.PacsBackfill.Enabled,      "true", Cat.PacsBackfill, "Backfill On New PACS",            VT.Bool),
+        Row(NodeSettingKeys.PacsBackfill.LookbackDays, "30",   Cat.PacsBackfill, "Backfill Lookback (days)",        VT.Int),
+        Row(NodeSettingKeys.PacsBackfill.MaxStudies,   "1000", Cat.PacsBackfill, "Backfill Max Studies Per Run",    VT.Int),
+        Row(NodeSettingKeys.PacsBackfill.Priority,     "9",    Cat.PacsBackfill, "Backfill Queue Priority (9=low)", VT.Int),
 
         // ── Node API ─────────────────────────────────────────────────────────
         Row(NodeSettingKeys.NodeApi.Port, "5120", Cat.NodeApi, "Node API Port", VT.Int),
@@ -173,6 +186,7 @@ internal static class NodeSettingsSeed
         public const string Storage    = NodeSettingCategories.Storage;
         public const string PacsSender = NodeSettingCategories.PacsSender;
         public const string PacsCEcho       = NodeSettingCategories.PacsCEcho;
+        public const string PacsBackfill    = NodeSettingCategories.PacsBackfill;
         public const string NodeApi         = NodeSettingCategories.NodeApi;
     }
 

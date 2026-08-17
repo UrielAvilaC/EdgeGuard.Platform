@@ -24,6 +24,7 @@ public static class Policies
     // ── Configuration (20-25) ────────────────────────────────────────────
     public const string ViewConfiguration  = P + "20";
     public const string EditConfiguration  = P + "21";
+    public const string ManageModalities   = P + "22";
     public const string ManageRoutingRules = P + "23";
 
     // ── Monitoring (30-34) ───────────────────────────────────────────────

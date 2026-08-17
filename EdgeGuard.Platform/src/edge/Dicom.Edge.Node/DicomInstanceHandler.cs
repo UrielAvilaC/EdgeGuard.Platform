@@ -29,7 +29,7 @@ internal sealed class DicomInstanceHandler(
     IStudyHubNotifier hubNotifier,
     ILogger<DicomInstanceHandler> logger) : IDicomInstanceHandler
 {
-    public async Task HandleInstanceAsync(
+    public async Task<long> HandleInstanceAsync(
         DicomDataset dataset,
         string callingAeTitle,
         CancellationToken ct = default)
@@ -43,7 +43,7 @@ internal sealed class DicomInstanceHandler(
             logger.LogWarning(
                 "Received DICOM instance with missing UIDs (Study={StudyUid}, SOP={SopUid}) from {CallingAe} — skipping",
                 studyUid, sopUid, callingAeTitle);
-            return;
+            return 0;
         }
 
         logger.LogInformation(
@@ -161,6 +161,22 @@ internal sealed class DicomInstanceHandler(
             study.InstanceCount++;
             study.LastImageReceivedAt = now;
             study.TotalSizeBytes += fileSize;
+
+            // New images arrived for a study the node already closed (Completed/Sent/Failed/etc.).
+            // Reopen it as Receiving so StudyCompletionWatcher re-detects completion and the study
+            // is re-routed to PACS. Without this, re-sent studies stay in their terminal status and
+            // are never completed or delivered again. Also clear the soft-delete flags in case the
+            // cleanup service already purged it — otherwise the completion watcher (which filters
+            // out IsDeleted rows) would never see the reopened study.
+            if (study.Status != StudyStatus.Receiving || study.IsDeleted)
+            {
+                logger.LogInformation(
+                    "Study {StudyUid} received new image(s) while in status {PreviousStatus} (deleted={WasDeleted}) — reopening as Receiving",
+                    studyUid, study.Status, study.IsDeleted);
+                study.Status = StudyStatus.Receiving;
+                study.IsDeleted = false;
+                study.DeletedAt = null;
+            }
         }
 
         // ── Upsert Series ────────────────────────────────────────────────
@@ -238,7 +254,13 @@ internal sealed class DicomInstanceHandler(
                 studyDate:       study.StudyDate,
                 studyDescription: study.StudyDescription,
                 seriesCount:     seriesCount,
+                // Demographics from the Patient module so the Hub can register a
+                // walk-in patient that never arrived through a worklist order.
+                patientBirthDate: patient.BirthDate,
+                patientSex:       patient.Sex,
                 ct:              ct);
         }
+
+        return fileSize;
     }
 }

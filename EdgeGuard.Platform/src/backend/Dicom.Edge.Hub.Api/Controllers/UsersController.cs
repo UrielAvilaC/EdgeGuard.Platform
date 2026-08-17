@@ -5,12 +5,14 @@ using Dicom.Edge.Hub.Application.Identity;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
 [Authorize(Policy = Policies.ViewUsers)]
+[EnableRateLimiting("api")]
 public class UsersController : ControllerBase
 {
     private readonly IUserManagementService _userService;

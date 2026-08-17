@@ -4,6 +4,7 @@ using Dicom.Edge.Node.Persistence.Configuration;
 using Dicom.Edge.Node.Persistence.Constants;
 using Dicom.Edge.Node.Persistence.Entities;
 using Dicom.Edge.Node.Persistence.Repositories;
+using Dicom.Edge.Node.Persistence.Services;
 using Dicom.Edge.Node.Sender;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,8 @@ public sealed class PacsDestinationsController(
     INodeSettingsService settingsService,
     INodeConfigurationReloader configReloader,
     IPacsSender pacsSender,
+    RoutingRuleLoaderService ruleLoader,
+    IPacsBackfillTrigger backfillTrigger,
     ILogger<PacsDestinationsController> logger) : ControllerBase
 {
     /// <summary>POST /api/pacs-destinations/sync</summary>
@@ -46,8 +49,30 @@ public sealed class PacsDestinationsController(
 
             await SyncCEchoDestinationsAsync(after, ct);
 
+            // The router caches its destination list and only refreshes every couple of minutes.
+            // Until it does, a resend aimed at a just-assigned PACS resolves zero destinations —
+            // so reload now, while the sync is still in hand.
+            await ruleLoader.LoadNowAsync(ct);
+
             logger.LogInformation("PACS sync applied: {Upserted} upserted, {Removed} removed. Active: {Active}",
                 upserted, removed, string.Join(", ", after.Select(p => $"{p.AeTitle}@{p.Host}:{p.Port}")));
+
+            // A PACS this node had never seen holds none of the historical studies. Replay the
+            // ones that match the routing rules; the scan runs in the background so this endpoint
+            // still answers the Hub immediately.
+            var knownIds = before.Select(b => b.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var newPacsIds = after
+                .Where(a => a.IsEnabled && !knownIds.Contains(a.Id))
+                .Select(a => a.Id)
+                .ToList();
+
+            if (newPacsIds.Count > 0)
+            {
+                logger.LogInformation(
+                    "PACS sync introduced {Count} new destination(s) — requesting historical backfill: [{PacsIds}]",
+                    newPacsIds.Count, string.Join(", ", newPacsIds));
+                backfillTrigger.RequestBackfill(newPacsIds);
+            }
 
             return Ok(new PacsDestinationsSyncResponse { Accepted = true, UpsertedCount = upserted, RemovedCount = removed, AppliedAtUtc = DateTime.UtcNow });
         }

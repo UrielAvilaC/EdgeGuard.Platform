@@ -10,4 +10,10 @@ public interface IHl7Listener
     bool IsRunning { get; }
     int Port { get; }
     int ActiveConnections { get; }
+
+    /// <summary>Stops the current run and rebinds with the latest options (e.g. a new port), without stopping the host.</summary>
+    void RequestRestart();
+
+    /// <summary>True when the last run ended because <see cref="RequestRestart"/> was called.</summary>
+    bool RestartRequested { get; }
 }

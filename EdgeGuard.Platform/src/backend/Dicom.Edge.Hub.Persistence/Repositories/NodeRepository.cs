@@ -18,9 +18,9 @@ public class NodeRepository : INodeRepository
     public async Task<Node?> GetByIdAsync(string id, CancellationToken ct = default) =>
         await _context.Nodes.FindAsync([id], ct);
 
-    public async Task<Node?> GetByAeTitleAsync(string aeTitle, CancellationToken ct = default) =>
+    public async Task<Node?> GetByNameAndIpAsync(string name, string ipAddress, CancellationToken ct = default) =>
         await _context.Nodes
-            .FirstOrDefaultAsync(n => n.AeTitle.Value == aeTitle, ct);
+            .FirstOrDefaultAsync(n => n.Name == name && n.IpAddress == ipAddress, ct);
 
     public async Task<IReadOnlyList<Node>> GetAllAsync(CancellationToken ct = default) =>
         await _context.Nodes.AsNoTracking().ToListAsync(ct);

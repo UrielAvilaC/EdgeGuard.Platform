@@ -18,7 +18,9 @@ export type SignalREvent =
   | 'NodeHeartbeat'
   | 'Hl7MessageReceived'
   | 'WhatsAppNotificationSent'
-  | 'AuditEvent';
+  | 'AuditEvent'
+  | 'NodePushStatus'
+  | 'OutboxEntryChanged';
 
 @Injectable({ providedIn: 'root' })
 export class SignalRService {
@@ -126,5 +128,13 @@ export class SignalRService {
 
   async leaveNode(nodeId: string): Promise<void> {
     await this.invoke('LeaveNode', nodeId);
+  }
+
+  async joinOutbox(): Promise<void> {
+    await this.invoke('JoinOutbox');
+  }
+
+  async leaveOutbox(): Promise<void> {
+    await this.invoke('LeaveOutbox');
   }
 }

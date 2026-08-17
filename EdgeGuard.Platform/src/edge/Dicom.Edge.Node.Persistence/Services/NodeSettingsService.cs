@@ -21,6 +21,29 @@ public sealed class NodeSettingsService(
     private readonly SemaphoreSlim _reloadLock = new(1, 1);
     private bool _disposed;
 
+    /// <summary>
+    /// Keys a Hub config push may never write. They are node-owned:
+    /// <list type="bullet">
+    ///   <item><c>hub.api_key</c> / <c>hub.node_id</c> — credentials, issued at registration.</item>
+    ///   <item><c>hub.protocol</c> / <c>hub.hostname</c> / <c>hub.port</c> / <c>hub.base_path</c> —
+    ///   the transport address, i.e. HOW this node reaches the Hub. Letting the Hub rewrite it
+    ///   means one wrong value (or a generic default in its profile catalog) points the node at
+    ///   an unreachable endpoint and cuts the channel it would need to fix itself. Same reasoning
+    ///   that keeps <c>hub.enabled</c> out of the DB mapping — see
+    ///   <c>NodeDatabaseConfigurationProvider.MapHubConnection</c>.</item>
+    /// </list>
+    /// Their source of truth is the deployed appsettings, hydrated by <c>NodeSettingsHubHydrator</c>.
+    /// </summary>
+    private static readonly HashSet<string> NodeOwnedKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        NodeSettingKeys.Hub.ApiKey,
+        NodeSettingKeys.Hub.NodeId,
+        NodeSettingKeys.Hub.Protocol,
+        NodeSettingKeys.Hub.Hostname,
+        NodeSettingKeys.Hub.Port,
+        NodeSettingKeys.Hub.BasePath,
+    };
+
     // ── Core access ───────────────────────────────────────────────────────────
 
     public async Task<T> GetAsync<T>(string key, CancellationToken ct = default)
@@ -150,21 +173,34 @@ public sealed class NodeSettingsService(
         await using var ctx = await factory.CreateDbContextAsync(ct);
         var keys = values.Keys.ToList();
 
-        // hub.api_key is node-owned — never let a Hub config push overwrite it.
-        var protectedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            NodeSettingKeys.Hub.ApiKey
-        };
+        var rejected = keys.Where(NodeOwnedKeys.Contains).ToList();
+        if (rejected.Count > 0)
+            logger.LogInformation(
+                "Batch rejected {Count} node-owned key(s) — the Hub cannot rewrite them: [{Keys}]",
+                rejected.Count, string.Join(", ", rejected));
 
         var entities = await ctx.NodeSettings
-            .Where(s => keys.Contains(s.Key) && !s.IsReadOnly && !protectedKeys.Contains(s.Key))
+            .Where(s => keys.Contains(s.Key) && !s.IsReadOnly && !NodeOwnedKeys.Contains(s.Key))
             .ToListAsync(ct);
 
         var updated = 0;
         var skipped = 0;
+        var blanked = 0;
         foreach (var entity in entities)
         {
             if (!values.TryGetValue(entity.Key, out var newValue)) continue;
+
+            // A push must never erase a configured value: an unset default on the Hub
+            // arrives as an empty string, and blanking the row would silently drop the
+            // local configuration (an empty String-typed value passes IsValidForType).
+            if (string.IsNullOrWhiteSpace(newValue) && !string.IsNullOrWhiteSpace(entity.Value))
+            {
+                logger.LogWarning(
+                    "Batch skip: refusing to blank setting {Key} (current='{Current}') with an empty pushed value",
+                    entity.Key, entity.Value);
+                blanked++;
+                continue;
+            }
 
             if (!IsValidForType(newValue, entity.ValueType))
             {
@@ -185,8 +221,9 @@ public sealed class NodeSettingsService(
             await ctx.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Batch applied {Applied}/{Requested} settings from Hub push (skipped={Skipped} validation failures)",
-            updated, values.Count, skipped);
+            "Batch applied {Applied}/{Requested} settings from Hub push " +
+            "(rejected={Rejected} node-owned, skipped={Skipped} validation failures, {Blanked} empty overwrites)",
+            updated, values.Count, rejected.Count, skipped, blanked);
 
         // Hot-reload: notify IOptionsMonitor<T> subscribers immediately
         if (updated > 0)

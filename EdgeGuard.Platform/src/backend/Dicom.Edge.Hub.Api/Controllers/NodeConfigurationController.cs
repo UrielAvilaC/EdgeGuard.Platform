@@ -3,6 +3,7 @@ using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
@@ -12,6 +13,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 [ApiController]
 [Route("api/node-configuration")]
 [Authorize(Policy = Policies.ViewConfiguration)]
+[EnableRateLimiting("api")]
 public class NodeConfigurationController : ControllerBase
 {
     private readonly INodeConfigurationService _configService;

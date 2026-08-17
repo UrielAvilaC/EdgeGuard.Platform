@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { NgOptimizedImage } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
@@ -26,20 +27,34 @@ import { AuthService } from '../../../../core/auth/services/auth.service';
   templateUrl: './login-page.component.html',
   styleUrl: './login-page.component.scss'
 })
-export default class LoginPage {
+export default class LoginPage implements AfterViewInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+
+  protected readonly faLock = faLock;
 
   protected readonly currentYear = signal(new Date().getFullYear());
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly isLocked = signal(false);
+  protected readonly showResetHint = signal(false);
+
+  private readonly usernameField = viewChild<ElementRef<HTMLElement>>('usernameField');
 
   protected readonly form = this.fb.nonNullable.group({
     username: ['', Validators.required],
     password: ['', Validators.required],
   });
+
+  ngAfterViewInit(): void {
+    // Autofocus del campo Usuario al cargar la vista.
+    this.usernameField()?.nativeElement.querySelector('input')?.focus();
+  }
+
+  protected toggleResetHint(): void {
+    this.showResetHint.update((v) => !v);
+  }
 
   onSubmit(): void {
     if (this.form.invalid) return;

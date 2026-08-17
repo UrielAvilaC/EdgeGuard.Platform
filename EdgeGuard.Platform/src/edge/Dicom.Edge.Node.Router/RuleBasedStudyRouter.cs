@@ -1,4 +1,3 @@
-using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Node.Sender;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +9,6 @@ namespace Dicom.Edge.Node.Router;
 /// Falls back to a default destination when no rules match.
 /// </summary>
 public sealed class RuleBasedStudyRouter(
-    INodeSettingsService settingsService,
     ILogger<RuleBasedStudyRouter> logger) : IStudyRouter
 {
     // In-memory rules — loaded from node settings or configuration sync
@@ -63,6 +61,21 @@ public sealed class RuleBasedStudyRouter(
                 "Resolved {Count} destination(s) for study {StudyUid}",
                 matched.Count, context.StudyInstanceUid);
         }
+
+        return Task.FromResult<IReadOnlyList<PacsDestination>>(matched);
+    }
+
+    public Task<IReadOnlyList<PacsDestination>> ResolveExplicitDestinationsAsync(
+        IReadOnlyList<string> pacsIds,
+        CancellationToken ct = default)
+    {
+        var matched = _defaultDestinations
+            .Where(d => pacsIds.Contains(d.Id))
+            .ToList();
+
+        logger.LogInformation(
+            "Explicit destination resolution: {Requested} requested, {Matched} matched: [{Aes}]",
+            pacsIds.Count, matched.Count, string.Join(", ", matched.Select(d => d.AeTitle)));
 
         return Task.FromResult<IReadOnlyList<PacsDestination>>(matched);
     }

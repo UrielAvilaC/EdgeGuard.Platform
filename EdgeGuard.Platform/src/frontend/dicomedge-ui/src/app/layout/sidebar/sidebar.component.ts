@@ -40,7 +40,10 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Estado HL7', route: '/hl7', icon: 'chart-bar', permission: 'ViewQueue' },
       { label: 'Cola de Mensajes', route: '/queue', icon: 'sync', permission: 'ViewQueue' },
+      { label: 'Outbox', route: '/outbox', icon: 'inbox', permission: 'ViewSystemStatus' },
       { label: 'WhatsApp', route: '/whatsapp', icon: 'comments', permission: 'ViewConfiguration' },
+      { label: 'Plantillas Email', route: '/email-templates', icon: 'envelope', permission: 'ViewConfiguration' },
+      { label: 'Notificaciones', route: '/notification-settings', icon: 'bell', permission: 'ViewConfiguration' },
     ],
   },
   {

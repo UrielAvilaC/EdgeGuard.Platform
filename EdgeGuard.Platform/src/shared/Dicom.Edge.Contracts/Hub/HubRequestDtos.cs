@@ -98,6 +98,13 @@ public sealed class StudyNotifyRequest
     [StringLength(256)]
     public string? PatientName { get; init; }
 
+    /// <summary>Patient Birth Date (0010,0030). Lets the Hub register the patient with full demographics.</summary>
+    public DateTime? PatientBirthDate { get; init; }
+
+    /// <summary>Patient Sex (0010,0040).</summary>
+    [StringLength(16)]
+    public string? PatientSex { get; init; }
+
     [StringLength(64)]
     public string? AccessionNumber { get; init; }
 
@@ -137,6 +144,13 @@ public sealed class StudyProgressNotifyRequest
     [StringLength(256)]
     public string? PatientName { get; init; }
 
+    /// <summary>Patient Birth Date (0010,0030). Lets the Hub register the patient with full demographics.</summary>
+    public DateTime? PatientBirthDate { get; init; }
+
+    /// <summary>Patient Sex (0010,0040).</summary>
+    [StringLength(16)]
+    public string? PatientSex { get; init; }
+
     [Range(0, int.MaxValue)]
     public int InstanceCount { get; init; }
 
@@ -150,6 +164,32 @@ public sealed class StudyProgressNotifyRequest
 
     [Range(0, int.MaxValue)]
     public int SeriesCount { get; init; }
+}
+
+/// <summary>
+/// Sent by the Edge Node to report the PACS-send phase of a study so the Hub can
+/// advance its status to <c>Sending</c> (Enviando a PACS) / <c>SentToPacs</c> (Enviado a PACS) / <c>Failed</c>.
+/// These states are surfaced in the study-detail timeline.
+/// </summary>
+public sealed class StudyPacsStatusNotifyRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    [Required, StringLength(64, MinimumLength = 1)]
+    public required string StudyInstanceUid { get; init; }
+
+    /// <summary>One of <c>Sending</c>, <c>SentToPacs</c> or <c>Failed</c>.</summary>
+    [Required, StringLength(32, MinimumLength = 1)]
+    public required string Status { get; init; }
+
+    /// <summary>AE Title of the destination PACS, when known.</summary>
+    [StringLength(16)]
+    public string? TargetPacsAeTitle { get; init; }
+
+    /// <summary>Error message when <see cref="Status"/> is <c>Failed</c>.</summary>
+    [StringLength(500)]
+    public string? Error { get; init; }
 }
 
 public sealed class NodeHealthReportRequest
@@ -426,6 +466,33 @@ public sealed class PacsEchoDestinationResult
     public required DateTime CheckedAtUtc { get; init; }
 }
 
+/// <summary>
+/// Node reports recent equipment activity (passive presence) so the Hub can show
+/// per-equipment last-seen / online status. Only equipment seen since the last report
+/// are included (delta).
+/// </summary>
+public sealed class NodeEquipmentStatusReportRequest
+{
+    [Required, StringLength(36, MinimumLength = 1)]
+    public required string NodeId { get; init; }
+
+    public DateTime ReportedAtUtc { get; init; } = DateTime.UtcNow;
+
+    public required IReadOnlyList<EquipmentStatusEntry> Equipment { get; init; }
+}
+
+/// <summary>
+/// Per-equipment presence entry inside a <see cref="NodeEquipmentStatusReportRequest"/>.
+/// </summary>
+public sealed class EquipmentStatusEntry
+{
+    [Required, StringLength(16, MinimumLength = 1)]
+    public required string AeTitle { get; init; }
+
+    /// <summary>UTC timestamp of the equipment's most recent accepted association.</summary>
+    public required DateTime LastSeenUtc { get; init; }
+}
+
 // ── Update Study Status (manual) ─────────────────────────────────────────────
 
 public sealed class UpdateStudyStatusRequest
@@ -435,6 +502,15 @@ public sealed class UpdateStudyStatusRequest
 
     [StringLength(500)]
     public string? Reason { get; init; }
+}
+
+// ── Manual study resend ───────────────────────────────────────────────────────
+
+/// <summary>POST /api/studies/{id}/requeue — manual resend of a Failed study to chosen PACS.</summary>
+public sealed class RequeueStudyRequest
+{
+    [Required, MinLength(1)]
+    public required IReadOnlyList<string> PacsIds { get; init; }
 }
 
 // ── Node Configuration ───────────────────────────────────────────────────────

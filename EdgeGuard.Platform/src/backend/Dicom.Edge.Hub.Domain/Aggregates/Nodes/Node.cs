@@ -1,6 +1,6 @@
 using Dicom.Edge.Hub.Domain.Common;
-using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes.Events;
+using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Models.Enums;
 
 namespace Dicom.Edge.Hub.Domain.Aggregates.Nodes;
@@ -33,6 +33,17 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
     /// BCrypt hash of the node's API key. Set once during registration.
     /// </summary>
     public string? ApiKeyHash { get; private set; }
+
+    /// <summary>
+    /// The same API key as <see cref="ApiKeyHash"/>, kept in reversible form and encrypted
+    /// at rest (Data Protection ciphertext, <c>ENC:</c> prefix).
+    ///
+    /// <para>A hash only answers "is this the right key?", which is all an INBOUND node→Hub
+    /// call needs. Signing an OUTBOUND Hub→Node request needs the key itself, because the node
+    /// verifies an HMAC computed with it. Both fields therefore always describe the same key
+    /// and must be written together — see <see cref="SetApiKey"/>.</para>
+    /// </summary>
+    public string? SigningSecret { get; private set; }
 
     /// <summary>
     /// Configurable healthcheck interval in seconds.
@@ -84,7 +95,7 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
             HealthCheckIntervalSeconds = healthCheckIntervalSeconds,
         };
 
-        node.AddDomainEvent(new NodeRegisteredEvent(node.Id, name, aeTitle.Value));
+        node.AddDomainEvent(new NodeRegisteredEvent(node.Id, name));
         return node;
     }
 
@@ -211,7 +222,37 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
     }
 
     /// <summary>
+    /// Stores both representations of the node's API key: the BCrypt hash used to verify
+    /// inbound calls, and the encrypted key used to sign outbound pushes. Callers pass the
+    /// ciphertext, never the raw key — the aggregate does not know how to encrypt.
+    /// </summary>
+    public void SetApiKey(string hash, string encryptedSecret)
+    {
+        SetApiKeyHash(hash);
+        SetSigningSecret(encryptedSecret);
+    }
+
+    /// <summary>
+    /// Stores the encrypted API key on its own. Used to backfill nodes that registered before
+    /// <see cref="SigningSecret"/> existed: their raw key cannot be recovered from the hash, so
+    /// it is captured the next time the node presents it on an authenticated call.
+    /// </summary>
+    public void SetSigningSecret(string encryptedSecret)
+    {
+        if (string.IsNullOrWhiteSpace(encryptedSecret))
+            throw new ArgumentException("Signing secret cannot be empty.", nameof(encryptedSecret));
+
+        SigningSecret = encryptedSecret;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// Returns true if the node has an API key assigned.
     /// </summary>
     public bool HasApiKey => !string.IsNullOrEmpty(ApiKeyHash);
+
+    /// <summary>
+    /// Returns true if the Hub can sign outbound requests to this node.
+    /// </summary>
+    public bool HasSigningSecret => !string.IsNullOrEmpty(SigningSecret);
 }

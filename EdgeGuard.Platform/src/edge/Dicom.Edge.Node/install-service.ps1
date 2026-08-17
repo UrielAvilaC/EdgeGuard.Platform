@@ -6,7 +6,7 @@ param(
     [string]$ServiceName   = "EdgeGuardNode",
     [string]$DisplayName   = "EdgeGuard DICOM Node",
     [string]$Description   = "EdgeGuard Platform - DICOM edge node service (C-STORE SCP, routing, worklist)",
-    [string]$ExePath       = "$PSScriptRoot\bin\publish\win-service\Dicom.Edge.Node.exe",
+    [string]$ExePath       = "$PSScriptRoot\Dicom.Edge.Node.exe",
     [string]$StartupType   = "Automatic"
 )
 
@@ -17,6 +17,13 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     Write-Error "This script must be run as Administrator."
     exit 1
 }
+
+# Verify the executable exists before registering the service
+if (-not (Test-Path $ExePath)) {
+    Write-Error "No se encontró el ejecutable en: $ExePath`nExtrae el .zip en esta carpeta o indica la ruta con -ExePath."
+    exit 1
+}
+$ExePath = (Resolve-Path $ExePath).Path
 
 # Create data directory
 $dataDir = "C:\ProgramData\EdgeGuard\Node"

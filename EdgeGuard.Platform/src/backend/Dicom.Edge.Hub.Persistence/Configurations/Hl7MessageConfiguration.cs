@@ -41,8 +41,13 @@ public sealed class Hl7MessageConfiguration : IEntityTypeConfiguration<Hl7Messag
         // ORU OBX image links (JSON array of URLs)
         builder.Property(m => m.ImageLinksJson).HasColumnType("text");
 
+        // ORU OBX diagnostic report (text/HTML). Migration: AddHl7MessageReport.
+        builder.Property(m => m.ReportText).HasColumnType("text");
+        builder.Property(m => m.ReportFormat).HasConversion<string>().HasMaxLength(16);
+
         builder.Ignore(m => m.ImageLinks);
         builder.Ignore(m => m.HasMrgSegment);
+        builder.Ignore(m => m.ReferringPhysician);
 
         builder.Property(m => m.TargetNodeId).HasMaxLength(100);
         builder.Property(m => m.TargetNodeName).HasMaxLength(200);

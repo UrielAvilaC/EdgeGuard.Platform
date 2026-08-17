@@ -6,6 +6,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
@@ -18,6 +19,7 @@ namespace Dicom.Edge.Hub.Api.Controllers;
 [Route("api/edge")]
 [ApiController]
 [Authorize(AuthenticationSchemes = ApiKeyAuthenticationOptions.Scheme)]
+[EnableRateLimiting("edge")]
 public class EdgeController : ControllerBase
 {
     private readonly IEdgeNodeService _edgeService;
@@ -106,6 +108,22 @@ public class EdgeController : ControllerBase
         return Ok(new { acknowledged = result.Acknowledged, studyId = result.StudyId });
     }
 
+    /// <summary>POST /edge/studies/pacs-status — Node reports the PACS-send phase (Sending / SentToPacs / Failed).</summary>
+    [HttpPost("studies/pacs-status")]
+    public async Task<IActionResult> StudyPacsStatus([FromBody] StudyPacsStatusNotifyRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessStudyPacsStatusAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new StudyNotifyAckDto
+        {
+            Acknowledged = result.Acknowledged,
+            StudyId = result.StudyId,
+            ReceivedAtUtc = result.ReceivedAtUtc
+        });
+    }
+
     /// <summary>POST /edge/health — Node reports health metrics.</summary>
     [HttpPost("health")]
     public async Task<IActionResult> HealthReport([FromBody] NodeHealthReportRequest request, CancellationToken ct)
@@ -133,6 +151,17 @@ public class EdgeController : ControllerBase
     public async Task<IActionResult> PacsEchoReport([FromBody] NodePacsEchoReportRequest request, CancellationToken ct)
     {
         var result = await _edgeService.ProcessPacsEchoReportAsync(request, ct);
+        if (result is null)
+            return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
+
+        return Ok(new { acknowledged = result.Acknowledged });
+    }
+
+    /// <summary>POST /edge/equipment-status — Node reports recent equipment activity (passive presence).</summary>
+    [HttpPost("equipment-status")]
+    public async Task<IActionResult> EquipmentStatusReport([FromBody] NodeEquipmentStatusReportRequest request, CancellationToken ct)
+    {
+        var result = await _edgeService.ProcessEquipmentStatusReportAsync(request, ct);
         if (result is null)
             return NotFound(new ErrorDto { Error = string.Format(HubApiConstants.NodeNotRegisteredTemplate, request.NodeId) });
 

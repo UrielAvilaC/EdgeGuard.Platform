@@ -21,7 +21,19 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
     public string? ReferringPhysician { get; private set; }
 
     // Patient reference
+    /// <summary>
+    /// DICOM Patient ID (0010,0020) / HL7 PID-3 — the MRN as it arrived. Kept for
+    /// provenance and because HL7 merges (ADT^A40, ORM+MRG) key on it.
+    /// </summary>
     public string? PatientId { get; private set; }
+
+    /// <summary>
+    /// Foreign key to the <c>Patient</c> aggregate (<c>patients.id</c>). Null when the
+    /// study carries no usable MRN or predates the link. Use this — not
+    /// <see cref="PatientId"/> — to list a patient's studies.
+    /// </summary>
+    public string? PatientRecordId { get; private set; }
+
     public string? PatientName { get; private set; }
 
     // Origin tracking
@@ -45,6 +57,13 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
     public DateTime? WorklistReadAt { get; private set; }
 
     // PACS send tracking
+    /// <summary>
+    /// Progress through the PACS-send pipeline. Separate from <see cref="Status"/>, which now
+    /// only carries the clinical lifecycle — the two axes advance independently and neither
+    /// overwrites the other.
+    /// </summary>
+    public StudyPacsStatus PacsStatus { get; private set; } = StudyPacsStatus.NotQueued;
+
     public string? TargetPacsId { get; private set; }
     public DateTime? SentToPacsAt { get; private set; }
     public int PacsSendAttempts { get; private set; }
@@ -53,6 +72,21 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
     // External image/report links (from ORU^R01 OBX segments)
     /// <summary>Newline-separated URLs to external image viewers or report portals, populated from ORU OBX-5 RP values.</summary>
     public string? ExternalImageLinks { get; private set; }
+
+    // Diagnostic report (from ORU^R01 OBX TX/FT segments and/or ED PDF)
+    /// <summary>Format of <see cref="ReportContent"/> (None when only a PDF or no report).</summary>
+    public ReportFormat ReportFormat { get; private set; } = ReportFormat.None;
+    /// <summary>The textual/HTML report body extracted from ORU OBX TX/FT segments.</summary>
+    public string? ReportContent { get; private set; }
+    /// <summary>Relative path (within the Hub workspace) to the report PDF, if any.</summary>
+    public string? ReportPdfPath { get; private set; }
+    /// <summary>When the first report artifact (text/HTML/PDF) was attached.</summary>
+    public DateTime? ReportReceivedAt { get; private set; }
+
+    /// <summary>True when a diagnostic report (text/HTML or PDF) is present.</summary>
+    public bool HasReport => ReportFormat != ReportFormat.None || !string.IsNullOrEmpty(ReportPdfPath);
+    /// <summary>True when at least one image link (liga de imágenes) is present.</summary>
+    public bool HasImageLinks => !string.IsNullOrEmpty(ExternalImageLinks);
 
     // Enterprise
     public int Priority { get; private set; }
@@ -69,6 +103,20 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
 
     private Study() { }
 
+    /// <summary>
+    /// Normalizes an inbound timestamp to UTC. DICOM StudyDate (0008,0020) and HL7 dates
+    /// carry no timezone, so after JSON deserialization they arrive as
+    /// <see cref="DateTimeKind.Unspecified"/> — which PostgreSQL's
+    /// <c>timestamp with time zone</c> rejects outright.
+    /// </summary>
+    private static DateTime? ToUtc(DateTime? value) => value switch
+    {
+        null => null,
+        { Kind: DateTimeKind.Utc } => value,
+        { Kind: DateTimeKind.Local } => value.Value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+    };
+
     public static Study Create(
         DicomUid studyInstanceUid,
         string? patientId = null,
@@ -80,19 +128,21 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         DateTime? studyDate = null,
         string? studyDescription = null,
         string? referringPhysician = null,
-        int maxRetries = 3)
+        int maxRetries = 3,
+        string? patientRecordId = null)
     {
         var study = new Study
         {
             Id = IdGenerator.NewId(),
             StudyInstanceUid = studyInstanceUid,
             PatientId = patientId,
+            PatientRecordId = patientRecordId,
             PatientName = patientName?.Trim(),
             SourceNodeId = sourceNodeId,
             SourceAeTitle = sourceAeTitle?.Trim(),
             ReceivingAeTitle = receivingAeTitle?.Trim(),
             AccessionNumber = accessionNumber?.Trim(),
-            StudyDate = studyDate,
+            StudyDate = ToUtc(studyDate),
             StudyDescription = studyDescription?.Trim(),
             ReferringPhysician = referringPhysician?.Trim(),
             Status = StudyStatus.Receiving,
@@ -121,7 +171,8 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         string? sendingFacility = null,
         DateTime? studyDate = null,
         string? studyDescription = null,
-        string? referringPhysician = null)
+        string? referringPhysician = null,
+        string? patientRecordId = null)
     {
         // Generate a synthetic UID: 2.25.<128-bit number from GUID>
         var uid = DicomUid.Create($"2.25.{BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0)}{BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0)}");
@@ -132,9 +183,10 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
             StudyInstanceUid = uid,
             AccessionNumber = accessionNumber.Trim(),
             PatientId = patientId,
+            PatientRecordId = patientRecordId,
             PatientName = patientName?.Trim(),
             SourceNodeId = sendingFacility,
-            StudyDate = studyDate,
+            StudyDate = ToUtc(studyDate),
             StudyDescription = studyDescription?.Trim(),
             ReferringPhysician = referringPhysician?.Trim(),
             Status = StudyStatus.Scheduled,
@@ -144,6 +196,7 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         };
 
         study.RecordStatusChange(null, StudyStatus.Scheduled, sendingFacility, "Scheduled from HL7 worklist");
+        study.AddDomainEvent(new StudyScheduledEvent(study.Id, study.AccessionNumber));
 
         return study;
     }
@@ -192,6 +245,7 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
         CurrentStatusSince = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
         RecordStatusChange(old, Status, null, "Re-scheduled");
+        AddDomainEvent(new StudyScheduledEvent(Id, AccessionNumber));
     }
 
     /// <summary>
@@ -200,7 +254,7 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
     /// </summary>
     public void UpdateStudyMetadata(DateTime? studyDate, string? studyDescription)
     {
-        if (studyDate.HasValue) StudyDate = studyDate;
+        if (studyDate.HasValue) StudyDate = ToUtc(studyDate);
         if (!string.IsNullOrWhiteSpace(studyDescription)) StudyDescription = studyDescription;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -230,56 +284,71 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
 
         RecordStatusChange(old, Status, null, "Study completed");
         AddDomainEvent(new StudyCompletedEvent(Id, StudyInstanceUid.Value, InstanceCount, TotalSizeBytes));
+
+        // If results (link/report) already arrived (e.g. ORU before images), advance
+        // straight to WaitingForReport / WaitingForImageLinks / Finalized.
+        RecomputeCompletion();
     }
+
+    // ── PACS-send axis ────────────────────────────────────────────────────────
+    // These move PacsStatus only. Status stays on the clinical axis, so results arriving
+    // after the study reached the PACS still advance it to WaitingForReport / Finalized.
 
     public void MarkQueuedForPacs(string targetPacsId)
     {
-        var old = Status;
         TargetPacsId = targetPacsId;
-        Status = StudyStatus.QueuedForSend;
-        CurrentStatusSince = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-
-        RecordStatusChange(old, Status, null, $"Queued for PACS {targetPacsId}");
-        AddDomainEvent(new StudyStatusChangedEvent(Id, old, Status, $"Queued for PACS {targetPacsId}"));
+        AdvancePacs(StudyPacsStatus.Queued, $"Queued for PACS {targetPacsId}");
     }
 
     public void MarkSendingToPacs()
     {
-        var old = Status;
-        Status = StudyStatus.Sending;
         PacsSendAttempts++;
-        CurrentStatusSince = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-
-        RecordStatusChange(old, Status, null, $"Sending attempt {PacsSendAttempts}");
-        AddDomainEvent(new StudyStatusChangedEvent(Id, old, Status, "Sending to PACS"));
+        AdvancePacs(StudyPacsStatus.Sending, $"Sending attempt {PacsSendAttempts}");
     }
 
     public void MarkSentToPacs()
     {
-        var old = Status;
-        Status = StudyStatus.SentToPacs;
         SentToPacsAt = DateTime.UtcNow;
         PacsSendLastError = null;
-        CurrentStatusSince = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
-
-        RecordStatusChange(old, Status, null, "Sent to PACS successfully");
+        AdvancePacs(StudyPacsStatus.Sent, "Sent to PACS successfully");
         AddDomainEvent(new StudySentToPacsEvent(Id, StudyInstanceUid.Value, TargetPacsId));
+    }
+
+    /// <summary>
+    /// Manual resend requested from the Hub UI: puts the study back into the send pipeline,
+    /// targeting only the PACS the operator chose. Independent of the clinical status, so a
+    /// finalized study can be resent without losing that it is finalized.
+    /// </summary>
+    public void MarkRequeuedManually(IReadOnlyList<string> targetPacsIds)
+    {
+        TargetPacsId = string.Join(",", targetPacsIds);
+        PacsSendLastError = null;
+        AdvancePacs(
+            StudyPacsStatus.Queued,
+            $"Manual resend requested to PACS: {string.Join(", ", targetPacsIds)}");
     }
 
     public void MarkFailed(string error)
     {
-        var old = Status;
-        Status = StudyStatus.Failed;
         PacsSendLastError = error;
         RetryCount++;
-        CurrentStatusSince = DateTime.UtcNow;
+        AdvancePacs(StudyPacsStatus.Failed, error);
+        AddDomainEvent(new StudyFailedEvent(Id, StudyInstanceUid.Value, error, RetryCount));
+    }
+
+    /// <summary>
+    /// Moves the PACS axis and records the transition. The audit row keeps the clinical status
+    /// in both columns (it did not change) and carries the PACS transition in the reason, so the
+    /// trail stays readable without a second audit table.
+    /// </summary>
+    private void AdvancePacs(StudyPacsStatus next, string reason)
+    {
+        var old = PacsStatus;
+        PacsStatus = next;
         UpdatedAt = DateTime.UtcNow;
 
-        RecordStatusChange(old, Status, null, error);
-        AddDomainEvent(new StudyFailedEvent(Id, StudyInstanceUid.Value, error, RetryCount));
+        RecordStatusChange(Status, Status, null, $"PACS {old} → {next}: {reason}");
+        AddDomainEvent(new StudyPacsStatusChangedEvent(Id, old, next, reason));
     }
 
     public void RecordWorklistRead(string modalityAeTitle, DateTime timestamp)
@@ -342,17 +411,115 @@ public sealed class Study : AggregateRoot<string>, ISoftDeletable
 
         ExternalImageLinks = string.Join('\n', existing);
         UpdatedAt = DateTime.UtcNow;
+
+        RecomputeCompletion();
+    }
+
+    /// <summary>
+    /// Attaches a diagnostic report (text/HTML body and/or a PDF stored in the Hub
+    /// workspace) received from an ORU^R01 message, then re-derives the study status.
+    /// </summary>
+    public void AttachReport(ReportFormat format, string? content, string? pdfPath)
+    {
+        if (format != ReportFormat.None && !string.IsNullOrWhiteSpace(content))
+        {
+            ReportFormat = format;
+            ReportContent = content.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(pdfPath))
+            ReportPdfPath = pdfPath.Trim();
+
+        if (HasReport)
+            ReportReceivedAt ??= DateTime.UtcNow;
+
+        UpdatedAt = DateTime.UtcNow;
+
+        RecomputeCompletion();
+    }
+
+    /// <summary>
+    /// Signals that results arrived for a study whose recomputed status stayed the same — a
+    /// re-sent ORU carrying a corrected report or an updated image link. A status transition is
+    /// the only thing subscribers normally react to, so an already-finalized study would
+    /// otherwise absorb the new results silently and never notify anyone.
+    /// </summary>
+    public void MarkResultsUpdated()
+    {
+        UpdatedAt = DateTime.UtcNow;
+
+        RecordStatusChange(Status, Status, null, "Results updated (re-sent ORU)");
+        AddDomainEvent(new StudyResultsUpdatedEvent(
+            Id, StudyInstanceUid.Value, HasImageLinks, HasReport));
+    }
+
+    /// <summary>
+    /// Re-derives the finalization status from the two deliverable artifacts —
+    /// the image link (liga de imágenes) and the diagnostic report:
+    /// <list type="bullet">
+    ///   <item>liga + reporte → <see cref="StudyStatus.Finalized"/></item>
+    ///   <item>solo reporte → <see cref="StudyStatus.WaitingForImageLinks"/></item>
+    ///   <item>solo liga → <see cref="StudyStatus.WaitingForReport"/></item>
+    /// </list>
+    /// <para>Runs regardless of how far the study got in the PACS-send pipeline: that progress
+    /// lives on <see cref="PacsStatus"/> now, so there is nothing on this axis to protect. The
+    /// guard that used to sit here is what froze studies at <c>SentToPacs</c> and kept the
+    /// results-based notification rules from ever firing.</para>
+    /// </summary>
+    public void RecomputeCompletion()
+    {
+        var links = HasImageLinks;
+        var report = HasReport;
+
+        StudyStatus next;
+        if (links && report) next = StudyStatus.Finalized;
+        else if (report)     next = StudyStatus.WaitingForImageLinks;
+        else if (links)      next = StudyStatus.WaitingForReport;
+        else                 return; // ni liga ni reporte aún
+
+        if (next == Status) return;
+
+        var old = Status;
+        Status = next;
+        CurrentStatusSince = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        RecordStatusChange(old, next, null, $"Completion recomputed → {next}");
+        AddDomainEvent(new StudyStatusChangedEvent(Id, old, next, $"Completion recomputed → {next}"));
+
+        if (next == StudyStatus.Finalized)
+            AddDomainEvent(new StudyFinalizedEvent(Id, StudyInstanceUid.Value, links, report));
     }
 
     /// <summary>
     /// Reassigns this study to a different patient (used during HL7 patient merge / ORM MRG processing).
+    /// Both the MRN and the patient FK move together — leaving one behind would split the
+    /// study between the prior and the surviving record.
     /// </summary>
-    public void ReassignToPatient(string newPatientId, string? newPatientName)
+    public void ReassignToPatient(string newPatientId, string? newPatientName, string? newPatientRecordId = null)
     {
         PatientId = newPatientId;
         if (!string.IsNullOrWhiteSpace(newPatientName))
             PatientName = newPatientName.Trim();
+        if (!string.IsNullOrWhiteSpace(newPatientRecordId))
+            PatientRecordId = newPatientRecordId;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Attaches the patient FK to a study that does not have it yet — self-repair for
+    /// records created before the link existed, or whose patient was registered later.
+    /// No-op when the study is already linked.
+    /// </summary>
+    /// <returns>True when the link was applied.</returns>
+    public bool LinkToPatientRecord(string patientRecordId)
+    {
+        if (string.IsNullOrWhiteSpace(patientRecordId) || PatientRecordId is not null)
+            return false;
+
+        PatientRecordId = patientRecordId;
+        UpdatedAt = DateTime.UtcNow;
+        return true;
     }
 
     public void AddSeries(StudySeries series)

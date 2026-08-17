@@ -1,6 +1,8 @@
 using Dicom.Edge.Hub.Application.Edge;
+using Dicom.Edge.Hub.Application.Equipment;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Application.Routing;
+using Dicom.Edge.Hub.Application.Studies;
 using Dicom.Edge.Hub.Domain.Common;
 using Dicom.Edge.Hub.Domain.Services;
 using Dicom.Edge.Hub.Infrastructure.EventHandlers;
@@ -29,6 +31,8 @@ public static class HubDomainServiceCollectionExtensions
 
         // Domain event handlers (dispatched by DomainEventDispatchInterceptor)
         services.AddScoped<IDomainEventHandler, AuditDomainEventHandler>();
+        // Fase 7: automatic results delivery when a study is finalized (auto-mode).
+        services.AddScoped<IDomainEventHandler, StudyAutoDeliveryHandler>();
 
         // M2M API key validation for Edge Node authentication
         services.AddScoped<IApiKeyValidator, NodeApiKeyValidator>();
@@ -37,6 +41,8 @@ public static class HubDomainServiceCollectionExtensions
         services.AddScoped<INodeConfigPushService, NodeConfigPushService>();
         services.AddScoped<INodePacsDestinationPushService, NodePacsDestinationPushService>();
         services.AddScoped<INodeDicomRoutingRulePushService, NodeDicomRoutingRulePushService>();
+        services.AddScoped<INodeEquipmentPushService, NodeEquipmentPushService>();
+        services.AddScoped<IStudyRequeuePushService, StudyRequeuePushService>();
 
         // In-memory PACS C-ECHO status store (refreshed each time a node reports)
         services.AddSingleton<INodePacsEchoStore, NodePacsEchoStore>();

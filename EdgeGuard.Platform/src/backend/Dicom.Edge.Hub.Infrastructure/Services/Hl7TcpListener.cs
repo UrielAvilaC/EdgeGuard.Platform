@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Channels;
 using Dicom.Edge.Hub.Application.Hl7;
+using Dicom.Edge.Hub.Application.Hl7.Pipeline;
 using Dicom.Edge.Hub.Domain.Entities;
 using Dicom.Edge.Hub.Domain.Interfaces;
 using Dicom.Edge.Hub.Infrastructure.Constants;
@@ -28,9 +29,15 @@ public class Hl7TcpListener : IHl7Listener
 {
     private readonly ILogger<Hl7TcpListener> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
-    private readonly Hl7ListenerOptions _options;
-    private readonly Channel<Hl7Message> _messageChannel;
-    private readonly SemaphoreSlim _connectionSemaphore;
+    private readonly IOptionsMonitor<Hl7ListenerOptions> _optionsMonitor;
+
+    // Re-bindable per (re)start: the snapshot, channel, semaphore and internal run token
+    // are refreshed in StartAsync so a configuration restart picks up new values.
+    private Hl7ListenerOptions _options;
+    private Channel<Hl7Message> _messageChannel;
+    private SemaphoreSlim _connectionSemaphore;
+    private CancellationTokenSource? _runCts;
+    private volatile bool _restartRequested;
 
     private TcpListener? _listener;
     private int _activeConnections;
@@ -39,27 +46,45 @@ public class Hl7TcpListener : IHl7Listener
     public bool IsRunning => _isRunning;
     public int Port => _options.Port;
     public int ActiveConnections => _activeConnections;
+    public bool RestartRequested => _restartRequested;
 
     public Hl7TcpListener(
         ILogger<Hl7TcpListener> logger,
         IServiceScopeFactory serviceScopeFactory,
-        IOptions<Hl7ListenerOptions> options)
+        IOptionsMonitor<Hl7ListenerOptions> optionsMonitor)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
-        _options = options.Value;
+        _optionsMonitor = optionsMonitor;
+        _options = optionsMonitor.CurrentValue;
+        _messageChannel = CreateChannel();
+        _connectionSemaphore = new SemaphoreSlim(_options.MaxConcurrentConnections);
+    }
 
-        _messageChannel = Channel.CreateBounded<Hl7Message>(
+    private Channel<Hl7Message> CreateChannel() =>
+        Channel.CreateBounded<Hl7Message>(
             new BoundedChannelOptions(_options.MaxQueuedMessages)
             {
                 FullMode = BoundedChannelFullMode.Wait
             });
 
-        _connectionSemaphore = new SemaphoreSlim(_options.MaxConcurrentConnections);
+    /// <summary>
+    /// Signals the supervised hosted service to stop the current run and rebind, picking up
+    /// the latest <see cref="Hl7ListenerOptions"/> (e.g. a changed TCP port). Does not stop the host.
+    /// </summary>
+    public void RequestRestart()
+    {
+        _logger.LogInformation("HL7 Listener restart requested");
+        _restartRequested = true;
+        _runCts?.Cancel();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        // Refresh the snapshot each (re)start so config changes (port, enabled, sizes) apply.
+        _restartRequested = false;
+        _options = _optionsMonitor.CurrentValue;
+
         if (!_options.Enabled)
         {
             _logger.LogInformation("HL7 Listener is disabled in configuration");
@@ -72,12 +97,19 @@ public class Hl7TcpListener : IHl7Listener
             return;
         }
 
+        // Fresh channel, semaphore and internal run token for this run (supports restart
+        // without tearing down the host).
+        _messageChannel = CreateChannel();
+        _connectionSemaphore = new SemaphoreSlim(_options.MaxConcurrentConnections);
+        _runCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var runToken = _runCts.Token;
+
         _logger.LogInformation(
             "Starting HL7 Listener on port {Port} with {Workers} workers (MLLP framing)",
             _options.Port, _options.ProcessingWorkers);
 
         var processingTasks = Enumerable.Range(0, _options.ProcessingWorkers)
-            .Select(i => ProcessMessagesAsync(i, cancellationToken))
+            .Select(i => ProcessMessagesAsync(i, runToken))
             .ToArray();
 
         _listener = new TcpListener(IPAddress.Any, _options.Port);
@@ -88,21 +120,20 @@ public class Hl7TcpListener : IHl7Listener
 
         try
         {
-            while (!cancellationToken.IsCancellationRequested)
+            while (!runToken.IsCancellationRequested)
             {
-                var client = await _listener.AcceptTcpClientAsync(cancellationToken);
-                _ = HandleClientAsync(client, cancellationToken);
+                var client = await _listener.AcceptTcpClientAsync(runToken);
+                _ = HandleClientAsync(client, runToken);
             }
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("HL7 Listener stopping…");
+            _logger.LogInformation("HL7 Listener run stopping…");
         }
         catch (SocketException se) when (
-            se.SocketErrorCode == SocketError.OperationAborted ||
-            cancellationToken.IsCancellationRequested)
+            se.SocketErrorCode == SocketError.OperationAborted || runToken.IsCancellationRequested)
         {
-            _logger.LogInformation("HL7 Listener stopped (socket aborted by host shutdown)");
+            _logger.LogInformation("HL7 Listener stopped (socket aborted)");
         }
         catch (Exception ex)
         {
@@ -112,6 +143,8 @@ public class Hl7TcpListener : IHl7Listener
         finally
         {
             await StopAsync(cancellationToken);
+            _runCts?.Dispose();
+            _runCts = null;
         }
     }
 
@@ -150,10 +183,36 @@ public class Hl7TcpListener : IHl7Listener
 
                 using var scope = _serviceScopeFactory.CreateScope();
                 var repository = scope.ServiceProvider.GetRequiredService<IHl7MessageRepository>();
+                var validator  = scope.ServiceProvider.GetRequiredService<IHl7ValidationService>();
 
                 await foreach (var content in ReadMllpMessagesAsync(stream, endpoint, linked.Token))
                 {
                     var message = Hl7Message.Create(content, endpoint, _options.Port);
+
+                    // P0-5: Validate BEFORE ACK. Sending AA on an invalid message means the
+                    // HIS never retransmits — silent PHI loss. When ValidateBeforeAck=true,
+                    // invalid messages receive a NACK (AE) and are persisted with
+                    // DispatchStatus=ValidationFailed so the dispatcher skips them.
+                    if (_options.ValidateBeforeAck)
+                    {
+                        var validation = validator.Validate(message);
+                        if (!validation.IsValid)
+                        {
+                            message.MarkAsValidationFailed(validation.ErrorMessage ?? "validation failed");
+                            await repository.AddAsync(message, linked.Token);
+
+                            _logger.LogWarning(
+                                "HL7 message {MessageId} rejected at intake — {Error}",
+                                message.Id, validation.ErrorMessage);
+
+                            var nack = BuildHl7Nack(message,
+                                Hl7ProtocolConstants.NackErrorCode,
+                                validation.ErrorMessage ?? "validation failed");
+                            await stream.WriteAsync(Encoding.UTF8.GetBytes(nack), linked.Token);
+                            continue;
+                        }
+                    }
+
                     await repository.AddAsync(message, linked.Token);
 
                     _logger.LogInformation(
@@ -300,6 +359,39 @@ public class Hl7TcpListener : IHl7Listener
             $"|{ackControlId}|{Hl7ProtocolConstants.ProcessingId}|{Hl7ProtocolConstants.Hl7Version}" +
             $"{Hl7ProtocolConstants.SegmentTerminator}" +
             $"MSA|{Hl7ProtocolConstants.AckCode}|{originalControlId}" +
+            $"{Hl7ProtocolConstants.SegmentTerminator}";
+
+        return $"{Hl7ProtocolConstants.StartBlock}{ackSegments}{Hl7ProtocolConstants.EndBlock}{Hl7ProtocolConstants.SegmentTerminator}";
+    }
+
+    /// <summary>
+    /// P0-5: Builds a NACK response with the given ACK code (AE = Application Error,
+    /// AR = Application Reject) and an error text placed in MSA-3.
+    /// HL7 separators in the error text are escaped per HL7 v2 spec.
+    /// </summary>
+    private string BuildHl7Nack(Hl7Message originalMessage, string nackCode, string errorText)
+    {
+        var timestamp         = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var ackControlId      = Guid.NewGuid().ToString("N")[..10].ToUpper();
+        var originalControlId = originalMessage.MessageControlId ?? ackControlId;
+
+        // Escape HL7 separators in the error text so it can never break the MSA segment.
+        var safeError = (errorText ?? "validation failed")
+            .Replace("|",  "\\F\\")
+            .Replace("^",  "\\S\\")
+            .Replace("~",  "\\R\\")
+            .Replace("\\", "\\E\\")
+            .Replace("\r", " ")
+            .Replace("\n", " ");
+        if (safeError.Length > 200) safeError = safeError[..200];
+
+        var ackSegments =
+            $"MSH|^~\\&|{Hl7ProtocolConstants.SenderApplication}|{Hl7ProtocolConstants.SenderFacility}" +
+            $"|{originalMessage.SendingApplication}|{originalMessage.SendingFacility}" +
+            $"|{timestamp}||{Hl7ProtocolConstants.AckMessageType}" +
+            $"|{ackControlId}|{Hl7ProtocolConstants.ProcessingId}|{Hl7ProtocolConstants.Hl7Version}" +
+            $"{Hl7ProtocolConstants.SegmentTerminator}" +
+            $"MSA|{nackCode}|{originalControlId}|{safeError}" +
             $"{Hl7ProtocolConstants.SegmentTerminator}";
 
         return $"{Hl7ProtocolConstants.StartBlock}{ackSegments}{Hl7ProtocolConstants.EndBlock}{Hl7ProtocolConstants.SegmentTerminator}";

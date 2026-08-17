@@ -93,6 +93,43 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
     }
 
     /// <summary>
+    /// Fills demographics that are currently empty without overwriting existing values.
+    /// Used by the DICOM ingestion path: HL7/RIS is authoritative for demographics, so a
+    /// C-STORE with poorer metadata may only complete gaps, never replace known data.
+    /// </summary>
+    public void FillMissingDemographics(
+        string? patientName = null,
+        DateOnly? birthDate = null,
+        string? sex = null)
+    {
+        var changed = false;
+
+        if (string.IsNullOrWhiteSpace(PatientName) && !string.IsNullOrWhiteSpace(patientName))
+        {
+            PatientName = patientName.Trim();
+            changed = true;
+        }
+
+        if (BirthDate is null && birthDate is not null)
+        {
+            BirthDate = birthDate;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(Sex) && !string.IsNullOrWhiteSpace(sex))
+        {
+            Sex = sex.Trim();
+            changed = true;
+        }
+
+        if (!changed) return;
+
+        LastUpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new PatientUpdatedEvent(Id, PatientDicomId.Value));
+    }
+
+    /// <summary>
     /// Updates patient contact information (phone and/or email).
     /// Only overwrites fields that are provided (non-null).
     /// </summary>
@@ -128,8 +165,35 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
         if (string.IsNullOrWhiteSpace(survivingPatientDicomId))
             throw new ArgumentException("Surviving patient ID cannot be empty.", nameof(survivingPatientDicomId));
 
+        // P0-7: Self-merge guard. A patient must never merge into itself.
+        if (string.Equals(survivingPatientDicomId, PatientDicomId.Value, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Cannot merge patient {PatientDicomId.Value} into itself.");
+
         MergedIntoPatientId = survivingPatientDicomId;
         IsActive = false;
+        LastUpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// P0-7: Updates the merge target for chain collapsing. Used when the SURVIVING
+    /// patient is later itself merged — every patient previously merged INTO this
+    /// (now-prior) patient must be re-pointed to the new surviving patient.
+    /// </summary>
+    public void UpdateMergeTarget(string newSurvivingPatientDicomId)
+    {
+        if (!IsMerged)
+            throw new InvalidOperationException(
+                "Patient is not merged; use MergeInto for initial merge.");
+        if (string.IsNullOrWhiteSpace(newSurvivingPatientDicomId))
+            throw new ArgumentException("New surviving patient ID cannot be empty.",
+                nameof(newSurvivingPatientDicomId));
+        if (string.Equals(newSurvivingPatientDicomId, PatientDicomId.Value, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"Cannot collapse merge chain into self ({PatientDicomId.Value}).");
+
+        MergedIntoPatientId = newSurvivingPatientDicomId;
         LastUpdatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }

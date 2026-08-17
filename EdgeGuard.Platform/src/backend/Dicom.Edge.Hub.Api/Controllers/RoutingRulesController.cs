@@ -7,12 +7,14 @@ using Dicom.Edge.Hub.Domain.Aggregates.Routing;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/routing-rules")]
 [Authorize(Policy = Policies.ViewConfiguration)]
+[EnableRateLimiting("api")]
 public class RoutingRulesController : ControllerBase
 {
     private readonly IHl7RoutingRuleRepository _ruleRepository;

@@ -313,17 +313,5 @@ namespace Dicom.Edge.Security.Authentication
                 _logger.LogInformation("Cleared {Count} revoked tokens", count);
             }
         }
-
-        [Obsolete("Use GenerateToken(TokenRequest) instead")]
-        string ITokenService.GenerateToken(string userId, string role)
-        {
-            var request = new TokenRequest
-            {
-                UserId = userId,
-                Roles = new List<string> { role }
-            };
-            var response = GenerateToken(request);
-            return response.AccessToken;
-        }
     }
 }

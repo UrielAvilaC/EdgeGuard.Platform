@@ -1,0 +1,36 @@
+<Project>
+
+  <!--
+    Solution-wide build policy. Imported automatically by every .csproj under this folder
+    (MSBuild walks up the directory tree and imports the nearest Directory.Build.props).
+
+    Goal: stop dead code from being merged again. The constructor parameters, fields and
+    locals removed in the dead-code cleanup all surface as specific compiler warnings, so we
+    promote *those* warnings to errors. CI then fails the moment they reappear.
+
+    We deliberately avoid a blanket <TreatWarningsAsErrors>true</TreatWarningsAsErrors>: that
+    would also fail on unrelated, pre-existing warnings (e.g. CS8604 nullability, NU* package
+    advisories) and bury the dead-code signal we actually care about. Each project keeps its
+    own Nullable / ImplicitUsings / LangVersion settings.
+  -->
+
+  <PropertyGroup>
+    <!-- .NET analyzers (on by default for the .NET 10 SDK) at the latest rule set. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <!--
+      Dead-code warnings promoted to build errors:
+        CS0168 - variable declared but never used
+        CS0169 - private field never used
+        CS0219 - variable assigned but its value never used
+        CS0414 - private field assigned but its value never used
+        CS0649 - field never assigned (always default)
+        CS1998 - async method without await (often a stubbed / dead async path)
+        CS8321 - local function declared but never used
+        CS9113 - primary-constructor parameter never read (dead injected dependency)
+    -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS0168;CS0169;CS0219;CS0414;CS0649;CS1998;CS8321;CS9113</WarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

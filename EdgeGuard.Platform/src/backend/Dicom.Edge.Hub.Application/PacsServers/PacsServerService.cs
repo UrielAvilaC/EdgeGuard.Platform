@@ -6,6 +6,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Dicom.Edge.Hub.Application.PacsServers;
 
@@ -16,8 +17,8 @@ namespace Dicom.Edge.Hub.Application.PacsServers;
 /// </summary>
 public sealed class PacsServerService(
     IPacsServerRepository pacsRepository,
-    INodeRepository nodeRepository,
-    INodePacsDestinationPushService pacsDestinationPushService,
+    INodeOutbox nodeOutbox,
+    IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,
     IUnitOfWork unitOfWork,
     ILogger<PacsServerService> logger) : IPacsServerService
@@ -104,8 +105,11 @@ public sealed class PacsServerService(
     }
 
     /// <summary>
-    /// Fire-and-forget: pushes updated PACS destinations to all active nodes in a new DI scope.
-    /// Uses CancellationToken.None so the push is not cancelled by the originating HTTP request.
+    /// Fans out updated PACS destinations to all active nodes after a PACS change.
+    /// P1-1: when async push is enabled (default), each node is enqueued and the
+    /// background dispatcher performs the HTTP pushes in parallel off the request
+    /// path (reporting status via SignalR). Otherwise falls back to the legacy
+    /// sequential in-scope push. The node lookup itself is a single fast query.
     /// </summary>
     private async Task PushPacsToAllNodesAsync()
     {
@@ -113,10 +117,19 @@ public sealed class PacsServerService(
         {
             using var scope = scopeFactory.CreateScope();
             var nodeRepo = scope.ServiceProvider.GetRequiredService<INodeRepository>();
-            var pushSvc  = scope.ServiceProvider.GetRequiredService<INodePacsDestinationPushService>();
 
             var nodes = await nodeRepo.GetActiveNodesAsync(CancellationToken.None);
-            foreach (var node in nodes.Where(n => !string.IsNullOrWhiteSpace(n.ApiEndpoint)))
+            var targets = nodes.Where(n => !string.IsNullOrWhiteSpace(n.ApiEndpoint));
+
+            if (pushOptions.Value.Async)
+            {
+                foreach (var node in targets)
+                    await nodeOutbox.EnqueueAsync(node.Id, NodePushKind.Pacs, CancellationToken.None);
+                return;
+            }
+
+            var pushSvc = scope.ServiceProvider.GetRequiredService<INodePacsDestinationPushService>();
+            foreach (var node in targets)
             {
                 try
                 {

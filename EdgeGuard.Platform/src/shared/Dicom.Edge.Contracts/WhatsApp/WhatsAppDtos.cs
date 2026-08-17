@@ -33,8 +33,8 @@ public sealed class CreateWhatsAppTemplateRequest
     [StringLength(512)]
     public string? Description { get; init; }
 
-    [Required, MinLength(1)]
-    public required string[] Tags { get; init; }
+    /// <summary>Ordered variable tags; index 0 → position 1. May be empty (template with no variables).</summary>
+    public string[] Tags { get; init; } = [];
 }
 
 public sealed class UpdateWhatsAppTemplateRequest
@@ -48,8 +48,8 @@ public sealed class UpdateWhatsAppTemplateRequest
     [StringLength(512)]
     public string? Description { get; init; }
 
-    [Required, MinLength(1)]
-    public required string[] Tags { get; init; }
+    /// <summary>Ordered variable tags; index 0 → position 1. May be empty (template with no variables).</summary>
+    public string[] Tags { get; init; } = [];
 }
 
 // ── Auto-Send Rules ──────────────────────────────────────────────────────────

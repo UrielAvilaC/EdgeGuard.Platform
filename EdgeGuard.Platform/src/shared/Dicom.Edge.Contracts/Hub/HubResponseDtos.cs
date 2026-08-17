@@ -117,11 +117,21 @@ public sealed record StudyDto
     public DateTime? StudyDate { get; init; }
     public string? StudyDescription { get; init; }
     public string? ReferringPhysician { get; init; }
+    /// <summary>DICOM Patient ID (MRN) as it arrived on the study.</summary>
     public string? PatientId { get; init; }
+
+    /// <summary>Id of the linked patient record in the Hub catalogue, when known.</summary>
+    public string? PatientRecordId { get; init; }
+
     public string? PatientName { get; init; }
     public string? SourceNodeId { get; init; }
     public string? SourceAeTitle { get; init; }
+    /// <summary>Clinical lifecycle: Scheduled / Receiving / Completed / WaitingFor… / Finalized.</summary>
     public required string Status { get; init; }
+
+    /// <summary>PACS-send pipeline: NotQueued / Queued / Sending / Sent / Failed. Independent of <see cref="Status"/>.</summary>
+    public string PacsStatus { get; init; } = "NotQueued";
+
     public int InstanceCount { get; init; }
     public int SeriesCount { get; init; }
     public long TotalSizeBytes { get; init; }
@@ -134,6 +144,53 @@ public sealed record StudyDto
     public int PacsSendAttempts { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
+
+    // Results (image links + diagnostic report)
+    public string ReportFormat { get; init; } = "None";
+    public bool HasReport { get; init; }
+    public bool HasImageLinks { get; init; }
+    public IReadOnlyList<string> ImageLinks { get; init; } = [];
+}
+
+/// <summary>
+/// Infrastructure view for a study's detail page: origin node identity + connectivity,
+/// target PACS identity + reachability, and PACS-send tracking. Resolved on demand
+/// (not part of the study list) so lists avoid per-row node/PACS lookups.
+/// </summary>
+public sealed record StudyInfrastructureDto
+{
+    // ── Origin node ──
+    public string? SourceNodeId { get; init; }
+    public string? SourceNodeName { get; init; }
+    public string? SourceAeTitle { get; init; }
+    /// <summary>Node status enum name (Online/Offline/Degraded/…), or null when unknown.</summary>
+    public string? NodeStatus { get; init; }
+    public DateTime? NodeLastHeartbeatAt { get; init; }
+
+    // ── Target PACS ──
+    public string? TargetPacsId { get; init; }
+    public string? TargetPacsName { get; init; }
+    public string? TargetPacsAeTitle { get; init; }
+    /// <summary>Last known C-ECHO reachability of the PACS from this node; null when never checked.</summary>
+    public bool? PacsReachable { get; init; }
+    public DateTime? PacsLastEchoAt { get; init; }
+
+    // ── PACS-send tracking ──
+    public DateTime? SentToPacsAt { get; init; }
+    public int PacsSendAttempts { get; init; }
+    public string? PacsSendLastError { get; init; }
+}
+
+/// <summary>Diagnostic report view for a study (sanitized content + links + PDF flag).</summary>
+public sealed record ReportDto
+{
+    public required string StudyId { get; init; }
+    public required string Status { get; init; }
+    public string ReportFormat { get; init; } = "None";
+    /// <summary>Sanitized HTML or plain text report body (null when only a PDF/links).</summary>
+    public string? Content { get; init; }
+    public bool HasPdf { get; init; }
+    public IReadOnlyList<string> ImageLinks { get; init; } = [];
 }
 
 // ── PACS Servers ─────────────────────────────────────────────────────────────

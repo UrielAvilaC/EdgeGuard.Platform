@@ -1,3 +1,4 @@
+using Dicom.Edge.Abstractions.Configuration;
 using Dicom.Edge.Node.Persistence.Constants;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
@@ -54,8 +55,14 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
             MapHubConnection(dbSettings, data);
             MapHubConnectionIdentity(dbSettings, data);
             MapDicomServer(dbSettings, data);
+            MapDiagnostics(dbSettings, data);
             MapPacsSender(dbSettings, data);
             MapPacsCEcho(dbSettings, data);
+
+            // AE unification: derive the registration AE and the SCU Calling AE from
+            // the single source of truth (dicom.ae_title). Must run last so it wins
+            // over any redundant DB rows. See NodeAeTitle.
+            DeriveNodeAeTitle(dbSettings, data);
         }
         catch
         {
@@ -92,17 +99,17 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Map(db, cfg, NodeSettingKeys.Hub.MaxReconnectAttempts,  ConfigPaths.HubMaxReconnectAttempts);
         Map(db, cfg, NodeSettingKeys.Hub.ReconnectDelaySeconds, ConfigPaths.HubReconnectDelaySeconds);
 
-        // Compose HubBaseUrl from individual DB keys only when Hostname is configured.
-        // If Hostname is empty the appsettings value is preserved (higher precedence wins).
-        if (db.TryGetValue(NodeSettingKeys.Hub.Protocol, out var protocol) &&
-            db.TryGetValue(NodeSettingKeys.Hub.Hostname, out var hostname) &&
-            !string.IsNullOrWhiteSpace(hostname))
-        {
-            var port = db.TryGetValue(NodeSettingKeys.Hub.Port, out var portStr)
-                ? portStr : ConfigDefaults.HubPort;
+        // Compose HubBaseUrl only when protocol, hostname AND port are all present in the
+        // DB. There is no fallback port on purpose: appsettings (HubConnection:HubBaseUrl)
+        // is the source of truth for the Hub address, and the DB may only override it with
+        // a complete, explicit address. A partial row set used to compose an invented
+        // "{protocol}://{host}:443" and point the node at a closed port.
+        var protocol = Value(db, NodeSettingKeys.Hub.Protocol);
+        var hostname = Value(db, NodeSettingKeys.Hub.Hostname);
+        var port     = Value(db, NodeSettingKeys.Hub.Port);
 
+        if (protocol is not null && hostname is not null && port is not null)
             cfg[ConfigPaths.HubBaseUrl] = $"{protocol}://{hostname}:{port}";
-        }
 
         // Map config pull interval (stored as minutes in DB, seconds in Options)
         if (db.TryGetValue(NodeSettingKeys.Hub.PullConfigIntervalMin, out var pullMin) &&
@@ -119,7 +126,8 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string?> cfg)
     {
         Map(db, cfg, NodeSettingKeys.General.NodeName,     ConfigPaths.HubNodeName);
-        Map(db, cfg, NodeSettingKeys.General.AeTitle,      ConfigPaths.HubAeTitle);
+        // HubConnection:AeTitle is DERIVED from dicom.ae_title (see DeriveNodeAeTitle);
+        // the node.ae_title row is intentionally NOT mapped for the AE.
         Map(db, cfg, NodeSettingKeys.General.IpAddress,    ConfigPaths.HubIpAddress);
         Map(db, cfg, NodeSettingKeys.Dicom.Port,           ConfigPaths.HubPort);
         Map(db, cfg, NodeSettingKeys.General.ApiEndpoint,  ConfigPaths.HubApiEndpoint);
@@ -180,6 +188,21 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         }
     }
 
+    // ── Diagnostics (per-association logging) ────────────────────────────────
+
+    /// <summary>
+    /// Maps the per-association logging switches so support can turn the association files
+    /// on/off and change their level or retention from the Hub, without a node restart.
+    /// </summary>
+    private static void MapDiagnostics(
+        Dictionary<string, string> db,
+        Dictionary<string, string?> cfg)
+    {
+        Map(db, cfg, NodeSettingKeys.Diagnostics.AssocLogEnabled,    ConfigPaths.AssocLogEnabled);
+        Map(db, cfg, NodeSettingKeys.Diagnostics.AssocLogLevel,      ConfigPaths.AssocLogLevel);
+        Map(db, cfg, NodeSettingKeys.Diagnostics.AssocLogRetainDays, ConfigPaths.AssocLogRetainDays);
+    }
+
     // ── PacsSender ───────────────────────────────────────────────────────────
 
     private static void MapPacsSender(
@@ -187,12 +210,34 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         Dictionary<string, string?> cfg)
     {
         Map(db, cfg, NodeSettingKeys.PacsSender.Enabled,                   ConfigPaths.PacsSenderEnabled);
-        Map(db, cfg, NodeSettingKeys.PacsSender.LocalAeTitle,              ConfigPaths.PacsSenderLocalAeTitle);
+        // PacsSender:LocalAeTitle is DERIVED from dicom.ae_title (see DeriveNodeAeTitle);
+        // the sender.local_ae_title row is intentionally NOT mapped for the AE.
         Map(db, cfg, NodeSettingKeys.PacsSender.MaxConcurrentSends,        ConfigPaths.PacsSenderMaxConcurrentSends);
         Map(db, cfg, NodeSettingKeys.PacsSender.TimeoutSeconds,            ConfigPaths.PacsSenderTimeoutSeconds);
         Map(db, cfg, NodeSettingKeys.PacsSender.MaxRetries,                ConfigPaths.PacsSenderMaxRetries);
         Map(db, cfg, NodeSettingKeys.PacsSender.RetryBaseDelaySeconds,     ConfigPaths.PacsSenderRetryBaseDelaySeconds);
         Map(db, cfg, NodeSettingKeys.PacsSender.ProcessingIntervalSeconds, ConfigPaths.PacsSenderProcessingIntervalSeconds);
+    }
+
+    // ── AE unification (single source of truth) ──────────────────────────────
+
+    /// <summary>
+    /// Derives <c>HubConnection:AeTitle</c> and <c>PacsSender:LocalAeTitle</c> from the
+    /// canonical <c>dicom.ae_title</c> setting so the registration AE and the outbound
+    /// SCU Calling AE always equal the SCP AE. Only applied when <c>dicom.ae_title</c>
+    /// is present in the DB, so an absent value defers to appsettings (and the
+    /// PostConfigure derivation on the bound options). See <see cref="NodeAeTitle"/>.
+    /// </summary>
+    private static void DeriveNodeAeTitle(
+        Dictionary<string, string> db,
+        Dictionary<string, string?> cfg)
+    {
+        if (db.TryGetValue(NodeSettingKeys.Dicom.AeTitle, out var ae) &&
+            !string.IsNullOrWhiteSpace(ae))
+        {
+            cfg[ConfigPaths.HubAeTitle] = ae;
+            cfg[ConfigPaths.PacsSenderLocalAeTitle] = ae;
+        }
     }
 
     // ── PacsCEcho ────────────────────────────────────────────────────────────
@@ -248,4 +293,10 @@ internal sealed class NodeDatabaseConfigurationProvider : ConfigurationProvider
         if (db.TryGetValue(dbKey, out var value) && !string.IsNullOrEmpty(value))
             cfg[configPath] = value;
     }
+
+    /// <summary>Returns the DB value for <paramref name="dbKey"/>, or null when absent or blank.</summary>
+    private static string? Value(Dictionary<string, string> db, string dbKey) =>
+        db.TryGetValue(dbKey, out var value) && !string.IsNullOrWhiteSpace(value)
+            ? value
+            : null;
 }

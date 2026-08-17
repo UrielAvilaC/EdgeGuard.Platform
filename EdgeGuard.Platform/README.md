@@ -55,7 +55,7 @@ Enterprise-grade WhatsApp notification system for automated and manual study res
 | Key | Default | Type | Description |
 |-----|---------|------|-------------|
 | `whatsapp.enabled` | `false` | bool | Global kill switch |
-| `whatsapp.enable_automatic_delivery` | `false` | bool | Enable auto-send on study status change |
+| `whatsapp.enable_automatic_delivery` | `false` | bool | Enable auto-send on study status change (source of truth for both WhatsApp and Email) |
 | `whatsapp.provider` | `Twilio` | string | Active messaging provider (`Twilio` \| `Meta`) |
 | `whatsapp.provider_config` | `{}` | encrypted | JSON: `{ AccountSid, AuthToken, PhoneNumber, MessagingServiceSid }` |
 | `whatsapp.default_country_prefix` | `+521` | string | Prepended to 10-digit phone numbers |

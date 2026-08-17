@@ -6,6 +6,7 @@ import { far } from '@fortawesome/free-regular-svg-icons';
 
 import { AuthService } from './core/auth/services/auth.service';
 import { TitleService } from './core/services/title.service';
+import { NodePushNotifier } from './core/services/node-push-notifier.service';
 
 @Component({
   selector: 'app-root',
@@ -20,10 +21,13 @@ export class App {
   private readonly library = inject(FaIconLibrary);
   private readonly authService = inject(AuthService);
   private readonly titleService = inject(TitleService);
+  private readonly nodePushNotifier = inject(NodePushNotifier);
 
   constructor() {
     this.authService.init();
     this.titleService.init();
+    // Surface async Hub→Node push results (NodePushStatus) as toasts app-wide.
+    this.nodePushNotifier.init();
 
     this.library.addIconPacks(fas, far);
   }

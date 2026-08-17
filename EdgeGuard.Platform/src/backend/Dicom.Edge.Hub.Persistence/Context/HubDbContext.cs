@@ -3,16 +3,20 @@ using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.Cleanup;
 using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
+using Dicom.Edge.Hub.Domain.Aggregates.Equipment;
 using Dicom.Edge.Hub.Domain.Aggregates.Identity;
+using Dicom.Edge.Hub.Domain.Aggregates.Modalities;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Routing;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Dicom.Edge.Hub.Persistence.Context;
 
@@ -40,15 +44,24 @@ public class HubDbContext : DbContext
     public DbSet<StudyCleanupPolicy> StudyCleanupPolicies => Set<StudyCleanupPolicy>();
     public DbSet<Hl7Message> Hl7Messages => Set<Hl7Message>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<OutboxTopic> OutboxTopics => Set<OutboxTopic>();
+    public DbSet<NodeOutboxMessage> NodeOutboxMessages => Set<NodeOutboxMessage>();
+    public DbSet<OutboxActivity> OutboxActivity => Set<OutboxActivity>();
     public DbSet<Hl7RoutingRule> Hl7RoutingRules => Set<Hl7RoutingRule>();
     public DbSet<NodeDicomRoutingRule> NodeDicomRoutingRules => Set<NodeDicomRoutingRule>();
     public DbSet<HubAuditLog> HubAuditLogs => Set<HubAuditLog>();
-    public DbSet<WhatsAppNotification> WhatsAppNotifications => Set<WhatsAppNotification>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
     public DbSet<WhatsAppTemplate> WhatsAppTemplates => Set<WhatsAppTemplate>();
     public DbSet<WhatsAppTemplateVariable> WhatsAppTemplateVariables => Set<WhatsAppTemplateVariable>();
-    public DbSet<WhatsAppAutoSendRule> WhatsAppAutoSendRules => Set<WhatsAppAutoSendRule>();
+    public DbSet<NotificationAutoSendRule> NotificationAutoSendRules => Set<NotificationAutoSendRule>();
     public DbSet<PacsSendAudit> PacsSendAudits => Set<PacsSendAudit>();
     public DbSet<NodeConfigurationProfile> NodeConfigurationProfiles => Set<NodeConfigurationProfile>();
+
+    // Equipment catalog (per-node equipment + global modality reference catalog)
+    public DbSet<Modality> Modalities => Set<Modality>();
+    public DbSet<NodeEquipment> NodeEquipment => Set<NodeEquipment>();
+    public DbSet<EquipmentModality> EquipmentModalities => Set<EquipmentModality>();
 
     // Identity
     public DbSet<User> Users => Set<User>();
@@ -70,7 +83,54 @@ public class HubDbContext : DbContext
         // Table names are set explicitly in each IEntityTypeConfiguration.
         // Columns, indexes, keys, and FK constraints are converted automatically.
         ApplySnakeCaseNaming(modelBuilder);
+
+        ApplyUtcDateTimeConversion(modelBuilder);
     }
+
+    /// <summary>
+    /// Forces every mapped <see cref="DateTime"/> to UTC on write.
+    ///
+    /// Npgsql maps <c>DateTime</c> to <c>timestamp with time zone</c>, which accepts
+    /// <see cref="DateTimeKind.Utc"/> only — anything else throws at save time. Dates that
+    /// enter the Hub from outside (DICOM StudyDate, HL7 dates) carry no timezone and
+    /// deserialize as <see cref="DateTimeKind.Unspecified"/>, so without this a single
+    /// study notification could fail its whole INSERT.
+    ///
+    /// Values already stored in the database are read back tagged as UTC, which is what
+    /// they have always been — the column has no other possible interpretation.
+    /// </summary>
+    private static void ApplyUtcDateTimeConversion(ModelBuilder modelBuilder)
+    {
+        var utc = new ValueConverter<DateTime, DateTime>(
+            v => ToUtc(v),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var nullableUtc = new ValueConverter<DateTime?, DateTime?>(
+            v => v.HasValue ? ToUtc(v.Value) : null,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null);
+
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entity.GetProperties())
+            {
+                // Never override a converter an entity configuration set deliberately.
+                if (property.GetValueConverter() is not null)
+                    continue;
+
+                if (property.ClrType == typeof(DateTime))
+                    property.SetValueConverter(utc);
+                else if (property.ClrType == typeof(DateTime?))
+                    property.SetValueConverter(nullableUtc);
+            }
+        }
+    }
+
+    private static DateTime ToUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
 
     /// <summary>
     /// Converts all column names, index names, primary key constraint names,

@@ -14,6 +14,7 @@ import { UiButton } from '../../../../shared/components/ui-button/ui-button.comp
 import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.component';
 import { UiChip, ChipColor } from '../../../../shared/components/ui-chip/ui-chip.component';
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
+import { PersonNamePipe } from '../../../../shared/pipes/person-name.pipe';
 import { DispatchStatus, DISPATCH_STATUS_OPTIONS } from '../../models/queue.models';
 import { QueueStore } from '../../services/queue.store';
 import { QueueFacade } from '../../services/queue.facade';
@@ -29,6 +30,7 @@ import { QueueFacade } from '../../services/queue.facade';
     UiAlert,
     UiChip,
     RelativeTimePipe,
+    PersonNamePipe,
   ],
   templateUrl: './queue-page.component.html',
   styleUrl: './queue-page.component.scss',

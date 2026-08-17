@@ -2,10 +2,13 @@ using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Hub.Domain.Aggregates.Equipment;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
+using Dicom.Edge.Hub.Application.Patients;
+using Dicom.Edge.Hub.Application.Studies;
 using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Security.Authentication;
@@ -29,17 +32,69 @@ public sealed class EdgeNodeService(
     IPacsServerRepository pacsRepository,
     INodeConfigurationService configService,
     INodePacsEchoStore pacsEchoStore,
+    INodeEquipmentRepository equipmentRepository,
+    IPatientRegistrationService patientRegistration,
     IPasswordHasher passwordHasher,
+    ISettingEncryptionService secretProtector,
     IUnitOfWork unitOfWork,
+    IStudyRealtimeNotifier studyRealtimeNotifier,
     ILogger<EdgeNodeService> logger) : IEdgeNodeService
 {
+    /// <summary>
+    /// Registers the study's patient in the Hub catalogue. A walk-in study never carries
+    /// an HL7 order, so the node notification is the only chance to create the record.
+    /// Never throws — a catalogue failure must not abort the study ingestion.
+    /// </summary>
+    private async Task<string?> EnsurePatientAsync(
+        string? patientDicomId,
+        string? patientName,
+        DateTime? birthDate,
+        string? sex,
+        Node node,
+        CancellationToken ct)
+    {
+        try
+        {
+            var patient = await patientRegistration.EnsurePatientAsync(
+                new PatientRegistrationInput
+                {
+                    PatientDicomId  = patientDicomId,
+                    PatientName     = patientName,
+                    BirthDate       = birthDate is null ? null : DateOnly.FromDateTime(birthDate.Value),
+                    Sex             = sex,
+                    FacilitySource  = node.FacilityName,
+                    CreatedByNodeId = node.Id,
+                },
+                PatientDataSource.Dicom,
+                ct);
+
+            return patient?.Id;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Patient registration failed for {PatientDicomId} from node {NodeId} — study ingestion continues",
+                patientDicomId, node.Id);
+            return null;
+        }
+    }
+
+    private Task NotifyStatusChangedAsync(Study study, string nodeId, CancellationToken ct) =>
+        studyRealtimeNotifier.StatusChangedAsync(
+            new StudyStatusChange(study.Id, study.Status.ToString(), study.PatientName, nodeId, DateTime.UtcNow, study.PacsStatus.ToString()),
+            ct);
+
     public async Task<NodeRegistrationResponse> RegisterAsync(
         HubNodeRegistrationRequest request, CancellationToken ct = default)
     {
-        var existing = await nodeRepository.GetByAeTitleAsync(request.AeTitle, ct);
+        // Re-registration discovery uses Name + IpAddress. The Hub DOES persist the
+        // node AE (Node.AeTitle); the Node derives it from its single source of truth
+        // (DicomServer:AeTitle) and reports it here at registration.
+        var existing = await nodeRepository.GetByNameAndIpAsync(request.Name, request.IpAddress, ct);
         if (existing is not null)
         {
-            logger.LogInformation("Node re-registration: {AeTitle} ({NodeId})", request.AeTitle, existing.Id);
+            logger.LogInformation("Node re-registration: {Name} ({NodeId}) at {Ip}",
+                request.Name, existing.Id, request.IpAddress);
             existing.UpdateHeartbeat();
             existing.UpdateConfiguration(
                 location: request.Location,
@@ -69,16 +124,18 @@ public sealed class EdgeNodeService(
 
         node.UpdateConfiguration(version: request.Version);
 
-        // Generate API key, hash it, store the hash
+        // Generate the API key and store both forms: the hash verifies inbound node→Hub
+        // calls, the encrypted copy signs outbound Hub→Node pushes.
         var rawApiKey = ApiKeyGenerator.Generate();
-        var apiKeyHash = passwordHasher.HashPassword(rawApiKey);
-        node.SetApiKeyHash(apiKeyHash);
+        node.SetApiKey(
+            passwordHasher.HashPassword(rawApiKey),
+            secretProtector.Encrypt(rawApiKey));
 
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("Node registered: {NodeId} {AeTitle} at {Ip}:{Port} (API key issued)",
-            node.Id, request.AeTitle, request.IpAddress, request.Port);
+        logger.LogInformation("Node registered: {NodeId} {Name} at {Ip}:{Port} (API key issued)",
+            node.Id, request.Name, request.IpAddress, request.Port);
 
         // First registration: return API key (one time only)
         return new NodeRegistrationResponse
@@ -117,6 +174,11 @@ public sealed class EdgeNodeService(
         var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
         if (node is null) return null;
 
+        // Register the patient before touching the study so the catalogue is populated
+        // even for walk-in studies that never went through a worklist order.
+        var patientRecordId = await EnsurePatientAsync(
+            request.PatientId, request.PatientName, request.PatientBirthDate, request.PatientSex, node, ct);
+
         var existing = await studyRepository.GetByStudyInstanceUidAsync(request.StudyInstanceUid, ct);
 
         // ── HL7 → DICOM fusion ────────────────────────────────────────────────
@@ -148,6 +210,11 @@ public sealed class EdgeNodeService(
             existing.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes, seriesCount: request.SeriesCount);
             existing.UpdateStudyMetadata(request.StudyDate, request.StudyDescription);
             existing.MarkCompleted();
+
+            // Self-repair: studies created before the patient existed (or before the FK)
+            // pick up the link on their next notification.
+            if (patientRecordId is not null) existing.LinkToPatientRecord(patientRecordId);
+
             await studyRepository.UpdateAsync(existing, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
@@ -155,6 +222,7 @@ public sealed class EdgeNodeService(
                 "Study updated from node {NodeId}: StudyUID={StudyUid} Instances={Count}",
                 request.NodeId, request.StudyInstanceUid, request.InstanceCount);
 
+            await NotifyStatusChangedAsync(existing, request.NodeId, ct);
             return new EdgeStudyNotifyResult(true, existing.Id, DateTime.UtcNow);
         }
 
@@ -165,7 +233,8 @@ public sealed class EdgeNodeService(
             sourceNodeId: request.NodeId,
             accessionNumber: request.AccessionNumber,
             studyDate: request.StudyDate,
-            studyDescription: request.StudyDescription);
+            studyDescription: request.StudyDescription,
+            patientRecordId: patientRecordId);
 
         study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes, seriesCount: request.SeriesCount);
         study.MarkCompleted();
@@ -177,6 +246,7 @@ public sealed class EdgeNodeService(
             "Study created from node {NodeId}: StudyUID={StudyUid} Patient={Patient}",
             request.NodeId, request.StudyInstanceUid, request.PatientName);
 
+        await NotifyStatusChangedAsync(study, request.NodeId, ct);
         return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
     }
 
@@ -217,6 +287,11 @@ public sealed class EdgeNodeService(
             return new EdgeStudyNotifyResult(true, existing.Id, DateTime.UtcNow);
         }
 
+        // First progress report for this study — the patient may not be in the catalogue
+        // yet. Deliberately not done on the update path above: progress fires per C-STORE.
+        var newStudyPatientRecordId = await EnsurePatientAsync(
+            request.PatientId, request.PatientName, request.PatientBirthDate, request.PatientSex, node, ct);
+
         var study = Study.Create(
             DicomUid.Create(request.StudyInstanceUid),
             patientId: request.PatientId,
@@ -224,7 +299,8 @@ public sealed class EdgeNodeService(
             sourceNodeId: request.NodeId,
             accessionNumber: request.AccessionNumber,
             studyDate: request.StudyDate,
-            studyDescription: request.StudyDescription);
+            studyDescription: request.StudyDescription,
+            patientRecordId: newStudyPatientRecordId);
 
         study.RecordImagesReceived(request.InstanceCount, request.TotalSizeBytes, seriesCount: request.SeriesCount);
 
@@ -235,6 +311,50 @@ public sealed class EdgeNodeService(
             "Study created via progress from node {NodeId}: StudyUID={StudyUid}",
             request.NodeId, request.StudyInstanceUid);
 
+        return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
+    }
+
+    public async Task<EdgeStudyNotifyResult?> ProcessStudyPacsStatusAsync(
+        StudyPacsStatusNotifyRequest request, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
+        if (node is null) return null;
+
+        var study = await studyRepository.GetByStudyInstanceUidAsync(request.StudyInstanceUid, ct);
+        if (study is null)
+        {
+            logger.LogWarning(
+                "PACS status report for unknown study {StudyUid} from node {NodeId} — ignored",
+                request.StudyInstanceUid, request.NodeId);
+            return null;
+        }
+
+        switch (request.Status)
+        {
+            case nameof(StudyStatus.Sending):
+                study.MarkSendingToPacs();
+                break;
+            case nameof(StudyStatus.SentToPacs):
+                study.MarkSentToPacs();
+                break;
+            case nameof(StudyStatus.Failed):
+                study.MarkFailed(request.Error ?? "PACS send failed");
+                break;
+            default:
+                logger.LogWarning(
+                    "Unsupported PACS status '{Status}' for study {StudyUid} from node {NodeId} — ignored",
+                    request.Status, request.StudyInstanceUid, request.NodeId);
+                return null;
+        }
+
+        await studyRepository.UpdateAsync(study, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Study {StudyUid} PACS status advanced to {Status} (node {NodeId}, PACS {Pacs})",
+            request.StudyInstanceUid, request.Status, request.NodeId, request.TargetPacsAeTitle);
+
+        await NotifyStatusChangedAsync(study, request.NodeId, ct);
         return new EdgeStudyNotifyResult(true, study.Id, DateTime.UtcNow);
     }
 
@@ -347,9 +467,11 @@ public sealed class EdgeNodeService(
     public Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(
         NodePacsEchoReportRequest request, CancellationToken ct = default)
     {
-        var node = nodeRepository.GetByIdAsync(request.NodeId, ct);
-        // We don't await the existence check — just store optimistically.
-        // If the node disappears it's a cosmetic issue.
+        // Store optimistically without checking node existence — the echo status
+        // lives in an in-memory store, so a stale node id is only a cosmetic issue.
+        // (Do NOT fire-and-forget an EF query here: an un-awaited DbContext read
+        // outlives the request scope, disposing the context mid-read and corrupting
+        // the Npgsql connection — "BindComplete while expecting ReadyForQueryMessage".)
         var status = new NodePacsCEchoStatusDto
         {
             NodeId        = request.NodeId,
@@ -374,5 +496,38 @@ public sealed class EdgeNodeService(
             request.NodeId, status.TotalChecked, status.TotalReachable);
 
         return Task.FromResult<EdgeOperationResult?>(new EdgeOperationResult(true, DateTime.UtcNow));
+    }
+
+    public async Task<EdgeOperationResult?> ProcessEquipmentStatusReportAsync(
+        NodeEquipmentStatusReportRequest request, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
+        if (node is null)
+            return null;
+
+        var updated = 0;
+        foreach (var entry in request.Equipment)
+        {
+            var equipment = await equipmentRepository.GetByNodeAndAeTitleAsync(request.NodeId, entry.AeTitle, ct);
+            if (equipment is null)
+                continue; // Unknown AE (cosmetic) — skip.
+
+            // Only advance LastConnectionAt — avoids needless writes on repeated reports.
+            if (equipment.LastConnectionAt is null || entry.LastSeenUtc > equipment.LastConnectionAt)
+            {
+                equipment.MarkConnected(entry.LastSeenUtc);
+                await equipmentRepository.UpdateAsync(equipment, ct);
+                updated++;
+            }
+        }
+
+        if (updated > 0)
+            await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogDebug(
+            "Equipment presence report for node {NodeId}: {Updated}/{Total} equipment updated",
+            request.NodeId, updated, request.Equipment.Count);
+
+        return new EdgeOperationResult(true, DateTime.UtcNow);
     }
 }

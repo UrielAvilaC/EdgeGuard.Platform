@@ -9,10 +9,13 @@ namespace Dicom.Edge.Node.DicomServer;
 public interface IWorklistCFindHandler
 {
     /// <summary>
-    /// Queries the local worklist using the supplied DICOM C-FIND keys
-    /// and yields matching response datasets.
+    /// Queries the local worklist using the supplied DICOM C-FIND keys and yields matching
+    /// response datasets, constrained to what the calling equipment is allowed to see
+    /// (its assigned modalities and optional scheduled station AE).
     /// </summary>
+    /// <param name="callingAe">The SCU calling AE title; resolves the equipment catalog entry.</param>
     IAsyncEnumerable<DicomDataset> QueryWorklistAsync(
         DicomDataset queryKeys,
+        string callingAe,
         CancellationToken ct = default);
 }

@@ -23,4 +23,7 @@ public static class TableNames
     public const string RoutingRules           = "routing_rules";
     public const string WorklistItems          = "worklist_items";
     public const string NodePacsServers        = "node_pacs_servers";
+    public const string Equipment              = "equipment";
+    public const string EquipmentModalities    = "equipment_modalities";
+    public const string Modalities             = "modalities";
 }

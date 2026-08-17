@@ -6,6 +6,7 @@ using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Dicom.Edge.Hub.Application.Nodes;
 
@@ -16,8 +17,8 @@ namespace Dicom.Edge.Hub.Application.Nodes;
 public sealed class NodeService(
     INodeRepository nodeRepository,
     IPacsServerRepository pacsRepository,
-    INodeConfigPushService configPushService,
-    INodePacsDestinationPushService pacsDestinationPushService,
+    INodeOutbox nodeOutbox,
+    IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,
     IUnitOfWork unitOfWork,
     ILogger<NodeService> logger) : INodeService
@@ -37,7 +38,7 @@ public sealed class NodeService(
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("Node created: {NodeId} {AeTitle}", node.Id, request.AeTitle);
+        logger.LogInformation("Node created: {NodeId} {Name}", node.Id, node.Name);
         return node;
     }
 
@@ -102,11 +103,22 @@ public sealed class NodeService(
 
         logger.LogInformation("PACS {PacsId} assigned to node {NodeId}", pacsId, nodeId);
 
-        // Push config (settings) + PACS destinations separately and immediately
+        // Push config (settings) + PACS destinations. P1-1: when async push is
+        // enabled (default), enqueue so the dispatcher handles it off the request
+        // path and reports status via SignalR; otherwise fall back to the legacy
+        // fire-and-forget helpers.
         if (!string.IsNullOrWhiteSpace(node.ApiEndpoint))
         {
-            _ = PushConfigInNewScopeAsync(nodeId);
-            _ = PushPacsInNewScopeAsync(nodeId);
+            if (pushOptions.Value.Async)
+            {
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Config, ct);
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Pacs, ct);
+            }
+            else
+            {
+                _ = PushConfigInNewScopeAsync(nodeId);
+                _ = PushPacsInNewScopeAsync(nodeId);
+            }
         }
 
         return true;
@@ -127,11 +139,22 @@ public sealed class NodeService(
 
         logger.LogInformation("PACS {PacsId} unassigned from node {NodeId}", pacsId, nodeId);
 
-        // Push config (settings) + PACS destinations separately and immediately
+        // Push config (settings) + PACS destinations. P1-1: when async push is
+        // enabled (default), enqueue so the dispatcher handles it off the request
+        // path and reports status via SignalR; otherwise fall back to the legacy
+        // fire-and-forget helpers.
         if (!string.IsNullOrWhiteSpace(node.ApiEndpoint))
         {
-            _ = PushConfigInNewScopeAsync(nodeId);
-            _ = PushPacsInNewScopeAsync(nodeId);
+            if (pushOptions.Value.Async)
+            {
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Config, ct);
+                await nodeOutbox.EnqueueAsync(nodeId, NodePushKind.Pacs, ct);
+            }
+            else
+            {
+                _ = PushConfigInNewScopeAsync(nodeId);
+                _ = PushPacsInNewScopeAsync(nodeId);
+            }
         }
 
         return true;

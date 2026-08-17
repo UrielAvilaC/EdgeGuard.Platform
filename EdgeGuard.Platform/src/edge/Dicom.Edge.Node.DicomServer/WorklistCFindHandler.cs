@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using Dicom.Edge.Abstractions.Equipment;
 using Dicom.Edge.Node.Worklist;
 using FellowOakDicom;
 using Microsoft.Extensions.Logging;
@@ -10,14 +11,19 @@ namespace Dicom.Edge.Node.DicomServer;
 /// Handles DICOM Modality Worklist (MWL) C-FIND queries by matching the incoming
 /// query keys against the local <see cref="IWorklistManager"/> store and mapping
 /// each <see cref="WorklistItem"/> to a standard DICOM MWL response dataset.
+/// The result is constrained per calling equipment: only worklist items whose modality
+/// is in the equipment's allowed set (and, when configured, whose scheduled station AE
+/// matches) are returned.
 /// </summary>
 public sealed class WorklistCFindHandler(
     IWorklistManager worklistManager,
+    IEquipmentCatalog equipmentCatalog,
     ILogger<WorklistCFindHandler> logger) : IWorklistCFindHandler
 {
     /// <inheritdoc />
     public async IAsyncEnumerable<DicomDataset> QueryWorklistAsync(
         DicomDataset queryKeys,
+        string callingAe,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         // ── Extract query filters from the DICOM C-FIND request dataset ──
@@ -25,7 +31,7 @@ public sealed class WorklistCFindHandler(
         var patientName = queryKeys.GetSingleValueOrDefault(DicomTag.PatientName, string.Empty);
         var accessionNumber = queryKeys.GetSingleValueOrDefault(DicomTag.AccessionNumber, string.Empty);
 
-        string modality = string.Empty;
+        string modality = queryKeys.GetSingleValueOrDefault(DicomTag.Modality, string.Empty);
         string scheduledDate = string.Empty;
         string scheduledStationAe = string.Empty;
 
@@ -36,6 +42,10 @@ public sealed class WorklistCFindHandler(
             {
                 var spsItem = spsSeq.Items[0];
                 modality = spsItem.GetSingleValueOrDefault(DicomTag.Modality, string.Empty);
+                if (!string.IsNullOrEmpty(modality))
+                {
+                    modality = modality.Trim('*');
+                }
                 scheduledDate = spsItem.GetSingleValueOrDefault(
                     DicomTag.ScheduledProcedureStepStartDate, string.Empty);
                 scheduledStationAe = spsItem.GetSingleValueOrDefault(
@@ -46,18 +56,68 @@ public sealed class WorklistCFindHandler(
         // ── Parse DICOM date filter into from/to for DB-level pre-filtering ──
         var (dateFrom, dateTo) = ParseDicomDateRange(scheduledDate);
 
+        // ── Per-equipment constraint: resolve the calling equipment from the catalog ──
+        var equipment = equipmentCatalog.FindByAeTitle(callingAe);
+
+        // When the catalog is populated, the association layer has already rejected
+        // unknown/disabled equipment. Defensive guard for the race where MWL is queried
+        // by an AE with no catalog entry while the catalog is populated.
+        if (equipment is null && !equipmentCatalog.IsEmpty)
+        {
+            logger.LogWarning(
+                "MWL C-FIND from uncatalogued AE '{CallingAe}' — returning empty worklist", callingAe);
+            yield break;
+        }
+
+        // null  => no per-equipment constraint (empty catalog → legacy behaviour)
+        // empty => equipment exists but has no modalities assigned → sees nothing
+        var allowedModalities = equipment?.ModalityCodes;
+        var equipmentStationAe = equipment?.StationAeTitle;
+
+        if (allowedModalities is { Count: 0 })
+        {
+            logger.LogInformation(
+                "MWL C-FIND: equipment '{CallingAe}' has no modalities assigned — empty worklist", callingAe);
+            yield break;
+        }
+
+        // Resolve the modality to push to the DB-level filter, honouring the equipment's
+        // allowed set. When the device requested a modality outside its allowed set, stop.
+        string? dbModality = string.IsNullOrEmpty(modality) ? null : modality;
+
+        if (allowedModalities is { Count: > 0 })
+        {
+            if (!string.IsNullOrEmpty(modality))
+            {
+                if (!allowedModalities.Contains(modality, StringComparer.OrdinalIgnoreCase))
+                {
+                    logger.LogInformation(
+                        "MWL C-FIND: requested modality '{Modality}' is not allowed for '{CallingAe}' — empty worklist",
+                        modality, callingAe);
+                    yield break;
+                }
+                dbModality = modality;
+            }
+            else if (allowedModalities.Count == 1)
+            {
+                // Single allowed modality — push it to the DB filter for efficiency.
+                dbModality = allowedModalities[0];
+            }
+            // else: multiple allowed modalities, no device filter → filter in-memory below.
+        }
+
         logger.LogDebug(
-            "MWL C-FIND query — PatientId={PatientId}, PatientName={PatientName}, " +
-            "AccessionNumber={AccessionNumber}, Modality={Modality}, " +
+            "MWL C-FIND query — CallingAE={CallingAe}, PatientId={PatientId}, PatientName={PatientName}, " +
+            "AccessionNumber={AccessionNumber}, Modality={Modality}, AllowedModalities={Allowed}, " +
             "ScheduledDate={Date}, StationAE={StationAe}",
-            patientId, patientName, accessionNumber, modality, scheduledDate, scheduledStationAe);
+            callingAe, patientId, patientName, accessionNumber, modality,
+            allowedModalities is null ? "(any)" : string.Join("/", allowedModalities),
+            scheduledDate, scheduledStationAe);
 
         // Push modality and date filters to the DB; remaining filters are applied in-memory.
-        var items = await worklistManager.QueryAsync(dateFrom, dateTo,
-            string.IsNullOrEmpty(modality) ? null : modality, ct);
+        var items = await worklistManager.QueryAsync(dateFrom, dateTo, dbModality, ct);
 
         int matchCount = 0;
-        var queriedIds = new List<string>();
 
         foreach (var item in items)
         {
@@ -67,8 +127,8 @@ public sealed class WorklistCFindHandler(
                     accessionNumber, scheduledStationAe))
                 continue;
 
-            if (!string.IsNullOrEmpty(item.AccessionNumber))
-                queriedIds.Add(item.AccessionNumber);
+            if (!MatchesEquipment(item, allowedModalities, equipmentStationAe))
+                continue;
 
             yield return BuildResponseDataset(item);
             matchCount++;
@@ -76,8 +136,47 @@ public sealed class WorklistCFindHandler(
 
         logger.LogInformation("MWL C-FIND completed — {MatchCount} matches returned", matchCount);
 
-        if (queriedIds.Count > 0)
-            _ = worklistManager.MarkItemsAsQueriedAsync(queriedIds, ct);
+        // ── MWL-FIX-1 ─────────────────────────────────────────────────────
+        // PREVIOUSLY: items returned by C-FIND were marked as "queried" so they
+        // would not appear again. This broke standard MWL usage where modalities
+        // legitimately re-query the worklist multiple times per shift.
+        //
+        // The correct state transition is: `pending` → `queried` (or `completed`)
+        // when the corresponding DICOM images arrive via C-STORE (matched by
+        // AccessionNumber). That transition is owned by the C-STORE handler /
+        // study completion pipeline, NOT by C-FIND.
+        // ──────────────────────────────────────────────────────────────────
+    }
+
+    // ── Per-equipment matching ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Enforces the per-equipment constraint on a worklist item: the item's modality must
+    /// be in the equipment's allowed set, and (when the equipment declares a station AE)
+    /// the item's scheduled station AE must match. Items without a station AE are treated
+    /// leniently (HL7 ORM frequently omits OBR-21/22) — mirroring the query-key behaviour.
+    /// </summary>
+    private static bool MatchesEquipment(
+        WorklistItem item,
+        IReadOnlyList<string>? allowedModalities,
+        string? equipmentStationAe)
+    {
+        if (allowedModalities is { Count: > 0 })
+        {
+            if (string.IsNullOrEmpty(item.Modality) ||
+                !allowedModalities.Contains(item.Modality.Trim(), StringComparer.OrdinalIgnoreCase))
+                return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(equipmentStationAe) &&
+            !string.IsNullOrWhiteSpace(item.ScheduledStationAeTitle) &&
+            !string.Equals(
+                item.ScheduledStationAeTitle.Trim(),
+                equipmentStationAe.Trim(),
+                StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return true;
     }
 
     // ── Query matching ──────────────────────────────────────────────────────
@@ -95,6 +194,13 @@ public sealed class WorklistCFindHandler(
         string accessionNumber,
         string scheduledStationAe)
     {
+        // Query values are trimmed because DICOM CS / SH / AE VRs pad with trailing
+        // spaces; some SCUs do not strip them before sending the C-FIND request.
+        patientId = patientId?.Trim() ?? string.Empty;
+        patientName = patientName?.Trim() ?? string.Empty;
+        accessionNumber = accessionNumber?.Trim() ?? string.Empty;
+        scheduledStationAe = scheduledStationAe?.Trim() ?? string.Empty;
+
         if (!string.IsNullOrEmpty(patientId) &&
             !WildcardMatch(item.PatientId, patientId))
             return false;
@@ -107,8 +213,16 @@ public sealed class WorklistCFindHandler(
             !WildcardMatch(item.AccessionNumber, accessionNumber))
             return false;
 
+        // MWL-FIX-2: When the item does not carry a ScheduledStationAeTitle
+        // (HL7 ORM frequently omits OBR-21/22), treat the item as matching any
+        // station AE filter from the modality. Strict equality on null would
+        // silently drop every matching study, which is the original symptom.
         if (!string.IsNullOrEmpty(scheduledStationAe) &&
-            !string.Equals(item.ScheduledStationAeTitle, scheduledStationAe, StringComparison.OrdinalIgnoreCase))
+            !string.IsNullOrEmpty(item.ScheduledStationAeTitle) &&
+            !string.Equals(
+                item.ScheduledStationAeTitle.Trim(),
+                scheduledStationAe,
+                StringComparison.OrdinalIgnoreCase))
             return false;
 
         return true;
@@ -189,17 +303,23 @@ public sealed class WorklistCFindHandler(
         if (string.IsNullOrWhiteSpace(dicomDate))
             return (null, null);
 
+        // MWL-FIX-4: end-of-day (23:59:59.9999999) on the upper bound so that
+        // items persisted with a non-midnight ScheduledDate (e.g., when EF/SQLite
+        // round-trip introduces sub-second precision) still match a "today" query.
         if (dicomDate.Contains('-'))
         {
             var parts = dicomDate.Split('-', 2);
             var from = ParseSingleDicomDate(parts[0]);
-            var to   = ParseSingleDicomDate(parts[1]);
+            var to = EndOfDay(ParseSingleDicomDate(parts[1]));
             return (from, to);
         }
 
         var single = ParseSingleDicomDate(dicomDate);
-        return (single, single);
+        return (single, EndOfDay(single));
     }
+
+    private static DateTime? EndOfDay(DateTime? value) =>
+        value.HasValue ? value.Value.Date.AddDays(1).AddTicks(-1) : null;
 
     /// <summary>Parses a single DICOM DA string <c>YYYYMMDD</c>; returns <c>null</c> on failure.</summary>
     private static DateTime? ParseSingleDicomDate(string value)

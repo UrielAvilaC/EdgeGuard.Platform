@@ -3,17 +3,18 @@ using Dicom.Edge.Hub.Application.WhatsApp;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Dicom.Edge.Hub.Api.Controllers;
 
 [ApiController]
 [Route("api/whatsapp")]
 [Authorize(Policy = Policies.EditConfiguration)]
+[EnableRateLimiting("api")]
 public class WhatsAppController(
     IWhatsAppNotificationService notificationService,
     IWhatsAppTemplateService templateService,
-    IWhatsAppAutoSendRuleService ruleService,
-    ILogger<WhatsAppController> logger) : ControllerBase
+    INotificationAutoSendRuleService ruleService) : ControllerBase
 {
     // ── Config & Tags ────────────────────────────────────────────────────────
 

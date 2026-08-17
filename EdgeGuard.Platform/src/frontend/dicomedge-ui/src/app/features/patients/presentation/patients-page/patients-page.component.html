@@ -46,7 +46,7 @@
       >
         <ng-template [uiCellDef]="'patientName'" let-row let-value="value">
           <div class="flex items-center gap-2">
-            <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+            <span class="font-medium text-gray-900 dark:text-white">{{ value | personName }}</span>
             @if (!row.isActive) {
               <ui-chip color="default">Inactivo</ui-chip>
             }

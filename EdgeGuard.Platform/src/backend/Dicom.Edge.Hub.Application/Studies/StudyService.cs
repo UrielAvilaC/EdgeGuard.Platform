@@ -43,11 +43,11 @@ public sealed class StudyService(
         if (!Enum.TryParse<StudyStatus>(request.Status, true, out var newStatus))
             return (null, $"Invalid status: {request.Status}");
 
+        // Only the clinical axis is settable by hand. The PACS axis is driven by what the node
+        // actually reports, so letting an operator declare "sent" would fake a delivery.
         switch (newStatus)
         {
             case StudyStatus.Completed: study.MarkCompleted(); break;
-            case StudyStatus.Failed: study.MarkFailed(request.Reason ?? "Manual status change"); break;
-            case StudyStatus.SentToPacs: study.MarkSentToPacs(); break;
             default:
                 return (null, $"Manual transition to {newStatus} is not supported");
         }

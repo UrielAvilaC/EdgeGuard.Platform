@@ -15,6 +15,7 @@ import { UiDataTable, UiCellDef } from '../../../../shared/components/ui-data-ta
 import { UiChip } from '../../../../shared/components/ui-chip/ui-chip.component';
 import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.component';
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
+import { PersonNamePipe } from '../../../../shared/pipes/person-name.pipe';
 import { TableColumn } from '../../../../shared/models/table.model';
 import { Patient } from '../../models/patient.models';
 import { PatientsStore } from '../../services/patients.store';
@@ -34,6 +35,7 @@ import { PatientFilters } from '../patient-filters/patient-filters.component';
     UiChip,
     UiAlert,
     RelativeTimePipe,
+    PersonNamePipe,
     PatientFilters,
   ],
   templateUrl: './patients-page.component.html',

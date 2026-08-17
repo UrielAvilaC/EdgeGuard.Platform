@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Dicom.Edge.Hub.Domain.Aggregates.Audit;
 using Dicom.Edge.Hub.Domain.Aggregates.HealthChecks;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Outbox;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Interfaces;
@@ -20,41 +21,46 @@ public sealed class HubDataRetentionService(
     IHubAuditLogRepository auditLogRepository,
     IHl7MessageRepository hl7MessageRepository,
     IHealthCheckRepository healthCheckRepository,
-    IWhatsAppNotificationRepository whatsAppRepository,
+    INotificationRepository notificationRepository,
+    INodeOutboxRepository nodeOutboxRepository,
     IPacsSendAuditRepository pacsSendAuditRepository,
     IStudyStatusAuditRepository studyStatusAuditRepository,
-    IOptions<HubBackgroundJobsOptions> options,
+    IOptionsMonitor<HubBackgroundJobsOptions> options,
     ILogger<HubDataRetentionService> logger) : IHubDataRetentionService
 {
-    private readonly DataRetentionPolicyOptions _policy = options.Value.DataRetention;
-
     public async Task<DataRetentionResult> ExecuteRetentionAsync(CancellationToken ct = default)
     {
         var sw = Stopwatch.StartNew();
+        // Read the latest policy each cycle so system_settings edits apply without a restart.
+        var policy = options.CurrentValue.DataRetention;
         logger.LogInformation("Data retention cycle starting");
 
         var auditLogs = await PurgeTableAsync(
-            "AuditLogs", _policy.AuditLogRetentionDays,
+            "AuditLogs", policy.AuditLogRetentionDays, policy.BatchSize,
             (cutoff, batch, token) => auditLogRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
         var hl7Messages = await PurgeTableAsync(
-            "Hl7Messages", _policy.Hl7MessageRetentionDays,
+            "Hl7Messages", policy.Hl7MessageRetentionDays, policy.BatchSize,
             (cutoff, batch, token) => hl7MessageRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
         var healthChecks = await PurgeTableAsync(
-            "HealthChecks", _policy.HealthCheckRetentionDays,
+            "HealthChecks", policy.HealthCheckRetentionDays, policy.BatchSize,
             (cutoff, batch, token) => healthCheckRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
-        var whatsApp = await PurgeTableAsync(
-            "WhatsAppNotifications", _policy.WhatsAppNotificationRetentionDays,
-            (cutoff, batch, token) => whatsAppRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
+        var notifications = await PurgeTableAsync(
+            "Notifications", policy.NotificationOutboxRetentionDays, policy.BatchSize,
+            (cutoff, batch, token) => notificationRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
+
+        var nodeOutbox = await PurgeTableAsync(
+            "NodeOutboxMessages", policy.NodeOutboxRetentionDays, policy.BatchSize,
+            (cutoff, batch, token) => nodeOutboxRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
         var pacsSend = await PurgeTableAsync(
-            "PacsSendAudits", _policy.PacsSendAuditRetentionDays,
+            "PacsSendAudits", policy.PacsSendAuditRetentionDays, policy.BatchSize,
             (cutoff, batch, token) => pacsSendAuditRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
         var studyStatus = await PurgeTableAsync(
-            "StudyStatusAudits", _policy.StudyStatusAuditRetentionDays,
+            "StudyStatusAudits", policy.StudyStatusAuditRetentionDays, policy.BatchSize,
             (cutoff, batch, token) => studyStatusAuditRepository.DeleteOlderThanAsync(cutoff, batch, token), ct);
 
         sw.Stop();
@@ -64,7 +70,8 @@ public sealed class HubDataRetentionService(
             AuditLogsDeleted = auditLogs,
             Hl7MessagesDeleted = hl7Messages,
             HealthChecksDeleted = healthChecks,
-            WhatsAppNotificationsDeleted = whatsApp,
+            NotificationsDeleted = notifications,
+            NodeOutboxDeleted = nodeOutbox,
             PacsSendAuditsDeleted = pacsSend,
             StudyStatusAuditsDeleted = studyStatus,
             Duration = sw.Elapsed
@@ -80,6 +87,7 @@ public sealed class HubDataRetentionService(
     private async Task<int> PurgeTableAsync(
         string tableName,
         int retentionDays,
+        int batchSize,
         Func<DateTime, int, CancellationToken, Task<int>> deleteFunc,
         CancellationToken ct)
     {
@@ -91,11 +99,11 @@ public sealed class HubDataRetentionService(
 
         var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
         logger.LogDebug("Purging {Table} older than {Cutoff:u} (batch={Batch})",
-            tableName, cutoff, _policy.BatchSize);
+            tableName, cutoff, batchSize);
 
         try
         {
-            var deleted = await deleteFunc(cutoff, _policy.BatchSize, ct);
+            var deleted = await deleteFunc(cutoff, batchSize, ct);
             if (deleted > 0)
                 logger.LogInformation("Purged {Deleted} records from {Table}", deleted, tableName);
             return deleted;

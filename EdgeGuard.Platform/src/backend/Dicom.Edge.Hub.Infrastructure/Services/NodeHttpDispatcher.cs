@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Dicom.Edge.Common.Resilience;
 using Dicom.Edge.Contracts.Edge;
 using Dicom.Edge.Contracts.Hl7;
 using Dicom.Edge.Hub.Application.Dispatch;
@@ -10,13 +11,16 @@ namespace Dicom.Edge.Hub.Infrastructure.Services;
 public sealed class NodeHttpDispatcher : INodeDispatcher
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly INodeResiliencePipelineProvider _pipelineProvider;
     private readonly ILogger<NodeHttpDispatcher> _logger;
 
     public NodeHttpDispatcher(
         IHttpClientFactory httpClientFactory,
+        INodeResiliencePipelineProvider pipelineProvider,
         ILogger<NodeHttpDispatcher> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _pipelineProvider = pipelineProvider;
         _logger = logger;
     }
 
@@ -26,22 +30,36 @@ public sealed class NodeHttpDispatcher : INodeDispatcher
         {
             var client = _httpClientFactory.CreateClient(DispatchConstants.HttpClientName);
 
+            // P0-10: Use a per-node resilience pipeline (one circuit breaker per nodeId).
+            // One unreachable node can no longer trip the breaker for the others.
+            var pipeline = _pipelineProvider.GetForNode(request.TargetNodeId);
+
             var payload = new Hl7WorklistPushRequest
             {
-                HubMessageId = request.MessageId,
-                MessageType = request.MessageType,
-                TriggerEvent = request.TriggerEvent,
-                RawContent = request.Content,
-                PatientId = request.PatientId,
-                PatientName = request.PatientName,
-                AccessionNumber = request.AccessionNumber,
-                SendingFacility = request.SendingFacility,
-                SendingApplication = request.SendingApplication,
-                Modality = request.Modality,
+                HubMessageId         = request.MessageId,
+                MessageType          = request.MessageType,
+                TriggerEvent         = request.TriggerEvent,
+                RawContent           = request.Content,
+                PatientId            = request.PatientId,
+                PatientName          = request.PatientName,
+                AccessionNumber      = request.AccessionNumber,
+                SendingFacility      = request.SendingFacility,
+                SendingApplication   = request.SendingApplication,
+                Modality             = request.Modality,
                 ProcedureDescription = request.ProcedureDescription,
                 RequestedProcedureId = request.ProcedureId,
-                Priority = request.Priority,
-                SentAtUtc = DateTime.UtcNow
+                Priority             = request.Priority,
+                SentAtUtc            = DateTime.UtcNow,
+
+                // MWL-FIX-3: forward MWL fields end-to-end.
+                PatientBirthDate                 = request.PatientBirthDate,
+                PatientSex                       = request.PatientSex,
+                ScheduledDateTime                = request.ScheduledDateTime,
+                ScheduledStationAeTitle          = request.ScheduledStationAeTitle,
+                ScheduledPerformingPhysicianName = request.ScheduledPerformingPhysicianName,
+                ScheduledProcedureStepId         = request.ScheduledProcedureStepId,
+                ReferringPhysicianName           = request.ReferringPhysicianName,
+                StudyInstanceUid                 = request.StudyInstanceUid,
             };
 
             var url = request.NodeApiEndpoint.TrimEnd('/') + NodeApiRoutes.Hl7WorklistPush;
@@ -50,7 +68,9 @@ public sealed class NodeHttpDispatcher : INodeDispatcher
                 "Dispatching message {MessageId} to node {NodeId} at {Url}",
                 request.MessageId, request.TargetNodeId, url);
 
-            var response = await client.PostAsJsonAsync(url, payload, ct);
+            var response = await pipeline.ExecuteAsync(
+                async cancellationToken => await client.PostAsJsonAsync(url, payload, cancellationToken),
+                ct);
 
             if (!response.IsSuccessStatusCode)
             {

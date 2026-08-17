@@ -70,6 +70,18 @@ public class PatientRepository : IPatientRepository
     public async Task<int> CountAsync(CancellationToken ct = default) =>
         await _context.Patients.CountAsync(ct);
 
+    /// <summary>
+    /// P0-7: Returns patients whose <c>MergedIntoPatientId</c> equals the given prior ID.
+    /// Bypasses the soft-delete query filter — chain-collapsing must update deactivated
+    /// records too.
+    /// </summary>
+    public async Task<IReadOnlyList<Patient>> GetByMergedIntoPatientIdAsync(
+        string priorPatientDicomId, CancellationToken ct = default) =>
+        await _context.Patients
+            .IgnoreQueryFilters()
+            .Where(p => p.MergedIntoPatientId == priorPatientDicomId)
+            .ToListAsync(ct);
+
     public async Task<PagedResult<Patient>> GetFilteredPagedAsync(
         PaginationRequest pagination,
         PatientFilterCriteria filter,

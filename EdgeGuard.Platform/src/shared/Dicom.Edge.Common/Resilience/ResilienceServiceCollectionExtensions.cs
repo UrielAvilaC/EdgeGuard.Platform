@@ -67,4 +67,26 @@ public static class ResilienceServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// P0-10: Registers a per-node <see cref="ResiliencePipelineRegistry{TKey}"/> keyed by
+    /// node identifier. Each node gets its OWN circuit breaker so one unreachable node
+    /// does not trip the breaker for all other nodes (no more cascading failure).
+    ///
+    /// Usage:
+    /// <code>
+    /// var pipeline = registry.GetPipeline&lt;HttpResponseMessage&gt;(nodeId);
+    /// var response = await pipeline.ExecuteAsync(async ct =&gt; await client.SendAsync(req, ct), ct);
+    /// </code>
+    /// </summary>
+    public static IServiceCollection AddPerNodeResilience(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.Configure<ResilienceOptions>(
+            configuration.GetSection(ResilienceOptions.SectionName));
+
+        services.AddSingleton<INodeResiliencePipelineProvider, NodeResiliencePipelineProvider>();
+        return services;
+    }
 }

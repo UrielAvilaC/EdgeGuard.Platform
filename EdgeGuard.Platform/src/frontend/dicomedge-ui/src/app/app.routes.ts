@@ -76,11 +76,32 @@ export const routes: Routes = [
         loadChildren: () => import('./features/queue/queue.routes').then((m) => m.queueRoutes),
       },
       {
+        path: 'outbox',
+        title: 'Outbox',
+        canActivate: [permissionGuard],
+        data: { permission: 'ViewSystemStatus' },
+        loadChildren: () => import('./features/outbox/outbox.routes').then((m) => m.outboxRoutes),
+      },
+      {
         path: 'whatsapp',
         title: 'WhatsApp',
         canActivate: [permissionGuard],
         data: { permission: 'ViewConfiguration' },
         loadChildren: () => import('./features/whatsapp/whatsapp.routes').then((m) => m.whatsappRoutes),
+      },
+      {
+        path: 'email-templates',
+        title: 'Plantillas Email',
+        canActivate: [permissionGuard],
+        data: { permission: 'ViewConfiguration' },
+        loadComponent: () => import('./features/email-templates/email-templates-page.component'),
+      },
+      {
+        path: 'notification-settings',
+        title: 'Notificaciones',
+        canActivate: [permissionGuard],
+        data: { permission: 'ViewConfiguration' },
+        loadComponent: () => import('./features/notification-settings/notification-settings-page.component'),
       },
       {
         path: 'users',

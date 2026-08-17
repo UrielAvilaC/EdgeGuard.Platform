@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Hosting;
 using Dicom.Edge.Common.Resilience;
 using Dicom.Edge.Diagnostics.Bootstrap;
 using Dicom.Edge.Diagnostics.Extensions;
@@ -12,6 +13,7 @@ using Dicom.Edge.Hub.Persistence.Configuration;
 using Dicom.Edge.Hub.Persistence.Extensions;
 using Dicom.Edge.Hub.Api.Extensions;
 using Dicom.Edge.Hub.Api.Hubs;
+using Dicom.Edge.Hub.Api.HostedServices;
 using Dicom.Edge.Security.Extensions;
 
 BootstrapLogger.Initialize(HubApiConstants.BootstrapLogPath);
@@ -22,6 +24,11 @@ try
 
     // Enterprise Serilog logging (file, Seq, HTTP, console, PHI redaction)
     builder.UseHubLogging();
+
+    // P0-8: Hosted service failures must NOT take down the host.
+    // Individual services (HL7 listener, dispatch workers) implement their own supervisor loops.
+    builder.Services.Configure<HostOptions>(o =>
+        o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 
     builder.Services.AddControllers();
     builder.Services.AddOpenApi();
@@ -41,24 +48,37 @@ try
         });
     });
 
-    // Rate limiting — protect edge and API endpoints from abuse
+    // P0-9: Rate limiting — protect edge and API endpoints from abuse.
+    // The "edge" policy is PARTITIONED BY node identity (X-Node-Id header)
+    // so one chatty node cannot exhaust the bucket for the others.
+    // The "api" policy is global (sufficient for SPA users).
     builder.Services.AddRateLimiter(options =>
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-        options.AddFixedWindowLimiter("edge", limiter =>
+        // Per-node partitioned limiter for /api/edge/* endpoints.
+        options.AddPolicy("edge", context =>
         {
-            limiter.PermitLimit = 100;
-            limiter.Window = TimeSpan.FromMinutes(1);
-            limiter.QueueLimit = 10;
-            limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            var partitionKey = context.Request.Headers["X-Node-Id"].ToString();
+            if (string.IsNullOrEmpty(partitionKey))
+                partitionKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+            return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ =>
+                new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit          = 200,
+                    Window               = TimeSpan.FromMinutes(1),
+                    QueueLimit           = 20,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                });
         });
 
+        // Global limiter for /api/* endpoints (SPA-facing).
         options.AddFixedWindowLimiter("api", limiter =>
         {
-            limiter.PermitLimit = 200;
-            limiter.Window = TimeSpan.FromMinutes(1);
-            limiter.QueueLimit = 20;
+            limiter.PermitLimit          = 200;
+            limiter.Window               = TimeSpan.FromMinutes(1);
+            limiter.QueueLimit           = 20;
             limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         });
     });
@@ -83,6 +103,10 @@ try
     // Platform resilience pipelines (retry + circuit breaker via Polly v8)
     builder.Services.AddPlatformResilience(builder.Configuration);
 
+    // P0-10: Per-node resilience — one circuit breaker per nodeId.
+    // Prevents one unreachable node from tripping the breaker for all others.
+    builder.Services.AddPerNodeResilience(builder.Configuration);
+
     // Clean Architecture service registration
     builder.Services.AddHubPersistence(builder.Configuration);
     builder.Services.AddHubDomainServices();
@@ -95,14 +119,31 @@ try
     builder.Services.AddEdgeSecurity(builder.Configuration);
     builder.Services.AddEdgeAuthentication(builder.Configuration);
 
+    // HTML sanitizer for rendering ORU report bodies safely (XSS protection).
+    builder.Services.AddSingleton<Ganss.Xss.IHtmlSanitizer>(_ => new Ganss.Xss.HtmlSanitizer());
+
     // SignalR for real-time dashboard notifications
     builder.Services.AddSignalR();
+
+    // Real-time outbox monitoring: SignalR transport for IOutboxNotifier (both dispatchers).
+    builder.Services.AddSingleton<Dicom.Edge.Hub.Application.Outbox.IOutboxNotifier,
+        OutboxSignalRNotifier>();
+
+    // Real-time study status updates: SignalR transport for IStudyRealtimeNotifier.
+    builder.Services.AddSingleton<Dicom.Edge.Hub.Application.Studies.IStudyRealtimeNotifier,
+        StudySignalRNotifier>();
+
+    // P1-1: background dispatcher that drains the durable node outbox off the request
+    // path and reports results over SignalR. Lives here because it needs IHubContext.
+    builder.Services.AddHostedService<NodeOutboxHostedService>();
 
     var app = builder.Build();
 
     // ── Apply pending migrations & seed system settings ───────────────────
     await app.Services.MigrateHubAsync();
     await app.Services.SeedHubSettingsAsync();
+    await app.Services.SeedOutboxTopicsAsync();
+    await app.Services.SeedModalityCatalogAsync();
     await app.Services.SeedAdminUserAsync();
 
     // Diagnostics middleware pipeline (order matters)
@@ -136,7 +177,9 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
-    app.MapHub<EdgeHubNotificationHub>("/hubs/notifications");
+    // SignalR uses long-lived connections; a per-request rate limiter would break
+    // the persistent hub channel, so it is explicitly excluded.
+    app.MapHub<EdgeHubNotificationHub>("/hubs/notifications").DisableRateLimiting();
 
     // SPA client-side routing fallback — must be last, only in production.
     if (!app.Environment.IsDevelopment())

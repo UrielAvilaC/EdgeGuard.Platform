@@ -13,6 +13,14 @@ public interface IStudyRouter
     Task<IReadOnlyList<PacsDestination>> ResolveDestinationsAsync(
         StudyRoutingContext context,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Resolves destinations explicitly by <c>NodePacsServer.Id</c>, bypassing routing rules.
+    /// Used for manual resend requests from the Hub where the operator picked specific PACS.
+    /// </summary>
+    Task<IReadOnlyList<PacsDestination>> ResolveExplicitDestinationsAsync(
+        IReadOnlyList<string> pacsIds,
+        CancellationToken ct = default);
 }
 
 /// <summary>
@@ -25,6 +33,9 @@ public sealed class StudyRoutingContext
     public string? SourceAeTitle { get; init; }
     public string? InstitutionName { get; init; }
     public string? ReferringPhysician { get; init; }
+    public string? StudyDescription { get; init; }
+    public string? AccessionNumber { get; init; }
+    public int InstanceCount { get; init; }
     public int Priority { get; init; } = 5;
     public bool IsUrgent { get; init; }
 }

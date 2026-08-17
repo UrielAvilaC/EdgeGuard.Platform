@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Dicom.Edge.Models.Enums;
 
 namespace Dicom.Edge.Hub.Domain.Entities;
 
@@ -39,11 +40,18 @@ public class Hl7Message
     public string? ProcedureDescription { get; private set; }
     public string? ProcedureId { get; private set; }
 
+    /// <summary>
+    /// Human-readable referring/ordering physician, parsed on demand from the raw message:
+    /// first populated of OBR-16 (Ordering Provider), ORC-12 (Ordering Provider) or
+    /// PV1-8 (Referring Doctor). Not persisted — derived from <see cref="Content"/>.
+    /// </summary>
+    public string? ReferringPhysician => ExtractReferringPhysician(Content);
+
     // ── MRG segment — patient/study merge ────────────────────────────────────
     /// <summary>MRG.1 — Prior patient ID to be merged into <see cref="PatientId"/>.</summary>
     public string? MrgPriorPatientId { get; private set; }
 
-    /// <summary>MRG.7 — Prior patient name (family^given).</summary>
+    /// <summary>MRG.7 — Prior patient name (family^given), with trailing empty components trimmed.</summary>
     public string? MrgPriorPatientName { get; private set; }
 
     /// <summary>MRG.3 — Prior accession number used in ORM order-merge scenarios.</summary>
@@ -65,6 +73,13 @@ public class Hl7Message
         string.IsNullOrEmpty(ImageLinksJson)
             ? Array.Empty<string>()
             : JsonSerializer.Deserialize<List<string>>(ImageLinksJson) ?? [];
+
+    // ── ORU OBX diagnostic report ─────────────────────────────────────────────
+    /// <summary>Report body (text/HTML) extracted from ORU OBX TX/FT segments. PHI.</summary>
+    public string? ReportText { get; private set; }
+
+    /// <summary>Format of <see cref="ReportText"/> (None when no textual report).</summary>
+    public ReportFormat ReportFormat { get; private set; } = ReportFormat.None;
 
     // ── Dispatch lifecycle ────────────────────────────────────────────────────
     public Hl7DispatchStatus DispatchStatus { get; private set; }
@@ -89,19 +104,37 @@ public class Hl7Message
         var cleanContent = content.Replace("\v", "").Replace("\x1C", "");
 
         var imageLinks = ExtractObxImageLinks(cleanContent);
+        var (reportText, reportFormat) = ExtractObxReportText(cleanContent);
+
+        var messageType  = ExtractField(cleanContent, "MSH", 8)?.Split('^').FirstOrDefault() ?? "UNKNOWN";
+        var triggerEvent = ExtractTriggerEvent(cleanContent);
+
+        // P0-6: For ADT^A40 (Merge Patient), the SURVIVING patient is the LAST PID
+        // segment BEFORE the MRG segment (HL7 v2 spec). Using the first PID here would
+        // silently swap prior/surviving on senders that emit "merge-context" PID first —
+        // a critical patient safety bug. For all other message types, the first PID is used.
+        var isAdtA40 = string.Equals(messageType, "ADT", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(triggerEvent, "A40", StringComparison.OrdinalIgnoreCase);
+
+        var patientId   = isAdtA40
+            ? ExtractSurvivingPatientField(cleanContent, 3, componentIndex: 0)
+            : ExtractSubField(cleanContent, "PID", 3, componentIndex: 0);
+        var patientName = TrimTrailingEmptyComponents(isAdtA40
+            ? ExtractSurvivingPatientField(cleanContent, 5)
+            : ExtractField(cleanContent, "PID", 5));
 
         return new Hl7Message
         {
             Id = Guid.NewGuid(),
             Content = content,
-            MessageType = ExtractField(cleanContent, "MSH", 8)?.Split('^').FirstOrDefault() ?? "UNKNOWN",
-            TriggerEvent = ExtractTriggerEvent(cleanContent),
+            MessageType = messageType,
+            TriggerEvent = triggerEvent,
             SendingApplication = ExtractField(cleanContent, "MSH", 2),
             SendingFacility = ExtractField(cleanContent, "MSH", 3),
             MessageControlId = ExtractField(cleanContent, "MSH", 9),
             Hl7Version = ExtractField(cleanContent, "MSH", 11),
-            PatientId = ExtractSubField(cleanContent, "PID", 3, componentIndex: 0),
-            PatientName = ExtractField(cleanContent, "PID", 5),
+            PatientId = patientId,
+            PatientName = patientName,
             AccessionNumber = ExtractSubField(cleanContent, "OBR", 2, componentIndex: 0),
             StudyDate = ExtractField(cleanContent, "OBR", 7),
             Modality = ExtractField(cleanContent, "OBR", 24),
@@ -113,12 +146,15 @@ public class Hl7Message
             PatientBirthDate = ExtractField(cleanContent, "PID", 7),
             // MRG segment
             MrgPriorPatientId = ExtractSubField(cleanContent, "MRG", 1, componentIndex: 0),
-            MrgPriorPatientName = ExtractSubField(cleanContent, "MRG", 7, componentIndex: 0),
+            MrgPriorPatientName = TrimTrailingEmptyComponents(ExtractField(cleanContent, "MRG", 7)),
             MrgPriorAccessionNumber = ExtractSubField(cleanContent, "MRG", 3, componentIndex: 0),
             // OBX image links
             ImageLinksJson = imageLinks.Count > 0
                 ? JsonSerializer.Serialize(imageLinks)
                 : null,
+            // OBX diagnostic report (text/HTML)
+            ReportText = reportText,
+            ReportFormat = reportFormat,
             ReceivedAt = DateTime.UtcNow,
             ClientEndpoint = clientEndpoint,
             ReceivedOnPort = receivedOnPort,
@@ -226,6 +262,34 @@ public class Hl7Message
         }
     }
 
+    /// <summary>
+    /// Extracts a human-readable physician name from the first populated of
+    /// OBR-16, ORC-12 or PV1-8. XCN format is <c>ID^Family^Given^...</c>; returns
+    /// "Given Family" when name components exist, otherwise the raw (first repetition) value.
+    /// </summary>
+    private static string? ExtractReferringPhysician(string content)
+    {
+        var raw = ExtractField(content, "OBR", 16)
+               ?? ExtractField(content, "ORC", 12)
+               ?? ExtractField(content, "PV1", 8);
+
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        // Use the first repetition only (XCN repetitions separated by ~).
+        var xcn = raw.Split('~')[0];
+        var components = xcn.Split('^');
+
+        var family = components.Length > 1 ? components[1].Trim() : string.Empty;
+        var given  = components.Length > 2 ? components[2].Trim() : string.Empty;
+
+        var name = string.Join(' ',
+            new[] { given, family }.Where(p => !string.IsNullOrEmpty(p)));
+
+        return string.IsNullOrWhiteSpace(name)
+            ? TrimTrailingEmptyComponents(xcn)
+            : name;
+    }
+
     private static string? ExtractTriggerEvent(string content)
     {
         var msgType = ExtractField(content, "MSH", 8);
@@ -249,6 +313,68 @@ public class Hl7Message
 
         var components = repetitions[repetitionIndex].Split('^');
         return components.Length > componentIndex ? NullIfEmpty(components[componentIndex]) : null;
+    }
+
+    /// <summary>
+    /// P0-6: For ADT^A40 (Merge Patient), returns a field from the SURVIVING PID
+    /// — i.e. the LAST PID segment that PRECEDES the MRG segment, per HL7 v2 spec.
+    /// Falls back to first PID when no MRG segment is present.
+    /// Returns null if no PID is found.
+    /// </summary>
+    private static string? ExtractSurvivingPatientField(string content, int fieldIndex, int componentIndex = -1)
+    {
+        try
+        {
+            var segments = content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+
+            // Locate MRG segment (the "prior patient" boundary).
+            var mrgIndex = -1;
+            for (int i = 0; i < segments.Length; i++)
+            {
+                if (segments[i].StartsWith("MRG|", StringComparison.OrdinalIgnoreCase))
+                {
+                    mrgIndex = i;
+                    break;
+                }
+            }
+
+            // Find the last PID before MRG (or first PID if no MRG).
+            string? targetPid = null;
+            if (mrgIndex < 0)
+            {
+                targetPid = segments.FirstOrDefault(
+                    s => s.StartsWith("PID|", StringComparison.OrdinalIgnoreCase));
+            }
+            else
+            {
+                for (int i = mrgIndex - 1; i >= 0; i--)
+                {
+                    if (segments[i].StartsWith("PID|", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetPid = segments[i];
+                        break;
+                    }
+                }
+            }
+
+            if (targetPid is null) return null;
+
+            var fields = targetPid.Split('|');
+            if (fieldIndex >= fields.Length) return null;
+            var fieldValue = fields[fieldIndex];
+
+            if (componentIndex < 0)
+                return NullIfEmpty(fieldValue);
+
+            var components = fieldValue.Split('^');
+            return components.Length > componentIndex
+                ? NullIfEmpty(components[componentIndex])
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>
@@ -310,6 +436,86 @@ public class Hl7Message
     }
 
     /// <summary>
+    /// Collects the diagnostic report body from ORU OBX segments whose OBX-2 value
+    /// type is "TX" (text) or "FT" (formatted text), ignoring OBX-5 values that are
+    /// plain URLs (those are image links). The format is HTML when any line contains
+    /// markup, otherwise plain text.
+    /// </summary>
+    private static (string? text, ReportFormat format) ExtractObxReportText(string content)
+    {
+        var lines = new List<string>();
+
+        foreach (var segment in content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!segment.StartsWith("OBX|", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var fields = segment.Split('|');
+            if (fields.Length < 6) continue;
+
+            var valueType = fields[2].Trim();
+            var rawValue  = fields[5].Trim();
+
+            var isText = string.Equals(valueType, "TX", StringComparison.OrdinalIgnoreCase)
+                      || string.Equals(valueType, "FT", StringComparison.OrdinalIgnoreCase);
+            if (!isText || string.IsNullOrWhiteSpace(rawValue)) continue;
+
+            // Skip values that are just a URL (those are captured as image links).
+            if (rawValue.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+                rawValue.StartsWith("wado", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            lines.Add(rawValue);
+        }
+
+        if (lines.Count == 0) return (null, ReportFormat.None);
+
+        var body = string.Join('\n', lines);
+        var isHtml = body.Contains('<') && body.Contains('>');
+        return (body, isHtml ? ReportFormat.Html : ReportFormat.PlainText);
+    }
+
+    /// <summary>
+    /// Extracts an embedded PDF (base64) from an ORU OBX segment whose OBX-2 value
+    /// type is "ED" (Encapsulated Data). HL7 ED OBX-5 is component-delimited, e.g.
+    /// <c>^application^pdf^Base64^&lt;b64&gt;</c>; the base64 payload follows the
+    /// "Base64" encoding component. Returns <c>null</c> when no PDF ED is present.
+    /// Public so the ORU handler can re-extract from the persisted raw content.
+    /// </summary>
+    public static string? ExtractReportPdfBase64(string rawContent)
+    {
+        if (string.IsNullOrEmpty(rawContent)) return null;
+        var content = rawContent.Replace("\v", "").Replace("\x1C", "");
+
+        foreach (var segment in content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!segment.StartsWith("OBX|", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var fields = segment.Split('|');
+            if (fields.Length < 6) continue;
+            if (!string.Equals(fields[2].Trim(), "ED", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var components = fields[5].Split('^');
+            var isPdf = components.Any(c => c.Contains("pdf", StringComparison.OrdinalIgnoreCase));
+            if (!isPdf) continue;
+
+            var b64Index = Array.FindIndex(components,
+                c => c.Trim().Equals("Base64", StringComparison.OrdinalIgnoreCase));
+
+            if (b64Index >= 0 && b64Index + 1 < components.Length)
+            {
+                var payload = components[b64Index + 1].Trim();
+                if (!string.IsNullOrEmpty(payload)) return payload;
+            }
+
+            // Fallback: last non-empty component when no explicit Base64 marker.
+            var last = components[^1].Trim();
+            if (!string.IsNullOrEmpty(last)) return last;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Extracts phone from PID-13 component 1 (first repetition that is NOT an email).
     /// Falls back to PID-14 component 1.
     /// </summary>
@@ -364,6 +570,25 @@ public class Hl7Message
 
     private static string? NullIfEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    /// <summary>
+    /// Truncates trailing empty components (^) from an HL7 XPN name field. Many senders pad
+    /// PID-5 with empty components (e.g. <c>Doe^John^^^</c>), which would otherwise be stored
+    /// and surfaced verbatim. Interior empty components are preserved (<c>Doe^^M</c> stays as-is)
+    /// so component positions are not shifted. Returns null when the field is empty or all-empty.
+    /// </summary>
+    private static string? TrimTrailingEmptyComponents(string? field)
+    {
+        if (string.IsNullOrWhiteSpace(field)) return null;
+
+        var components = field.Split('^');
+        var lastNonEmpty = Array.FindLastIndex(
+            components, c => !string.IsNullOrWhiteSpace(c));
+
+        if (lastNonEmpty < 0) return null;
+
+        return NullIfEmpty(string.Join('^', components, 0, lastNonEmpty + 1));
+    }
 }
 
 public enum Hl7MessageStatus

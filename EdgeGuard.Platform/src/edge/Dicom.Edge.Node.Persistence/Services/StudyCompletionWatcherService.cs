@@ -98,6 +98,19 @@ public sealed class StudyCompletionWatcherService(
             .Select(g => new { StudyUid = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.StudyUid, x => x.Count, ct);
 
+        // ── Resolve patient demographics for the batch in one query ───────────
+        // Carried to the Hub so it can register walk-in patients (no worklist order).
+        var patientIds = ready
+            .Select(s => s.PatientId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet();
+
+        var patients = patientIds.Count == 0
+            ? []
+            : await ctx.Patients
+                .Where(p => patientIds.Contains(p.PatientId))
+                .ToDictionaryAsync(p => p.PatientId, ct);
+
         var now = DateTime.UtcNow;
         foreach (var study in ready)
         {
@@ -127,6 +140,10 @@ public sealed class StudyCompletionWatcherService(
                 });
             }
 
+            var patient = study.PatientId is not null
+                ? patients.GetValueOrDefault(study.PatientId)
+                : null;
+
             await eventBus.PublishAsync(new StudyCompletedEvent(
                 new StudyContext
                 {
@@ -136,6 +153,8 @@ public sealed class StudyCompletionWatcherService(
                     CompletedAt      = now,
                     PatientId        = study.PatientId,
                     PatientName      = study.PatientName,
+                    PatientBirthDate = patient?.BirthDate,
+                    PatientSex       = patient?.Sex,
                     AccessionNumber  = study.AccessionNumber,
                     TotalSizeBytes   = study.TotalSizeBytes,
                     StudyDate        = study.StudyDate,

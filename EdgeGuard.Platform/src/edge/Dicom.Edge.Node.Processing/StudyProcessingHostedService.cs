@@ -66,7 +66,38 @@ public sealed class StudyProcessingHostedService(
                     "Processing work item {ItemId} for study {StudyUid} (type={Type}, retry={Retry})",
                     workItem.Id, workItem.StudyInstanceUid, workItem.Type, workItem.RetryCount);
 
-                await pipeline.ProcessStudyAsync(workItem, stoppingToken);
+                try
+                {
+                    var result = await pipeline.ProcessStudyAsync(workItem, stoppingToken);
+
+                    // The study is considered successfully processed when the Hub was notified
+                    // and no PACS destination rejected it. On success we remove the item so the
+                    // node queue does not accumulate locked "Sending" rows; on failure we keep it
+                    // (status Failed) for diagnostics / manual retry.
+                    var success = result.HubNotified && result.DestinationsFailed == 0;
+                    if (success)
+                    {
+                        await workQueue.CompleteAsync(workItem, stoppingToken);
+                    }
+                    else
+                    {
+                        var error = result.Errors.Count > 0
+                            ? string.Join("; ", result.Errors)
+                            : "Study processing did not complete successfully";
+                        await workQueue.FailAsync(workItem, error, stoppingToken);
+                    }
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex,
+                        "Pipeline threw for work item {ItemId} (study {StudyUid}) — marking Failed",
+                        workItem.Id, workItem.StudyInstanceUid);
+                    await workQueue.FailAsync(workItem, ex.Message, stoppingToken);
+                }
 
                 // Small delay between items to avoid monopolizing the DB
                 await Task.Delay(BusyPollInterval, stoppingToken);
@@ -106,6 +137,8 @@ internal sealed class StudyCompletionEnqueueHandler(
             CreatedAt = DateTime.UtcNow,
             PatientId = @event.Study.PatientId,
             PatientName = @event.Study.PatientName,
+            PatientBirthDate = @event.Study.PatientBirthDate,
+            PatientSex = @event.Study.PatientSex,
             AccessionNumber = @event.Study.AccessionNumber,
             TotalSizeBytes = @event.Study.TotalSizeBytes,
             InstanceCount = @event.Study.InstanceCount,

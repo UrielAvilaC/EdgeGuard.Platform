@@ -120,6 +120,12 @@ public static class PersistenceExtensions
         services.AddSingleton<IWorklistManager, SqliteWorklistManager>();
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<INodePacsServerRepository, NodePacsServerRepository>();
+
+        // Equipment catalog: in-memory cache read by the DICOM SCP (association + MWL).
+        services.AddSingleton<IEquipmentCatalog, InMemoryEquipmentCatalog>();
+
+        // Equipment presence: in-memory last-seen tracker written by the SCP on accept.
+        services.AddSingleton<IEquipmentActivityTracker, InMemoryEquipmentActivityTracker>();
     }
 
     // ── Background services ───────────────────────────────────────────────────
@@ -135,7 +141,22 @@ public static class PersistenceExtensions
         services.AddHostedService(sp =>
             sp.GetRequiredService<StudyCompletionWatcherService>());
         services.AddHostedService<StudyCleanupService>();
-        services.AddHostedService<RoutingRuleLoaderService>();
+
+        // Singleton so PacsBackfillService can force an immediate rule reload before it
+        // resolves destinations; the same instance also runs as the periodic hosted service.
+        services.AddSingleton<RoutingRuleLoaderService>();
+        services.AddHostedService(sp => sp.GetRequiredService<RoutingRuleLoaderService>());
+
+        // Historical replay when the Hub assigns a new PACS to this node.
+        services.AddSingleton<PacsBackfillService>();
+        services.AddSingleton<IPacsBackfillTrigger>(sp =>
+            sp.GetRequiredService<PacsBackfillService>());
+        services.AddHostedService(sp => sp.GetRequiredService<PacsBackfillService>());
+
+        // Equipment loader: singleton so the sync endpoint can force an immediate reload
+        // via LoadNowAsync, plus the same instance runs as the periodic hosted service.
+        services.AddSingleton<EquipmentLoaderService>();
+        services.AddHostedService(sp => sp.GetRequiredService<EquipmentLoaderService>());
     }
 
     // ── OpenTelemetry tracing ─────────────────────────────────────────────────
@@ -162,6 +183,7 @@ internal sealed class PersistenceInitializerService(
     IDbContextFactory<EdgeNodeDbContext> factory,
     INodeSettingsService settingsService,
     INodeConfigurationReloader configReloader,
+    IConfiguration configuration,
     ILogger<PersistenceInitializerService> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -190,10 +212,25 @@ internal sealed class PersistenceInitializerService(
 
         // ── Phase 2: Seed missing settings ───────────────────────────────────
         await NodeSettingsSeed.SeedMissingAsync(ctx,logger, cancellationToken);
+        await Seed.ModalityCatalogSeed.SeedAsync(ctx, cancellationToken);
         logger.LogDebug("Seed check complete");
+
+        // ── Phase 2b: Hydrate hub.* rows from appsettings ────────────────────
+        // Hub settings are seeded empty (their values live in appsettings), so they
+        // must be filled here — immediately after the migration and before any
+        // IOptions<HubConnectionOptions> binding — otherwise the DB configuration
+        // provider (higher precedence) would blank out the deployed configuration.
+        // A node that never registered (no hub.api_key) is re-hydrated from appsettings
+        // on every start; once registered, only empty rows are filled. Throws when the
+        // Hub is enabled and appsettings carries no Hub address — there is no default.
+        var hydrated = await NodeSettingsHubHydrator.HydrateFromConfigurationAsync(
+            ctx, configuration, logger, cancellationToken);
 
         // ── Phase 3: Warm settings cache ─────────────────────────────────────
         await settingsService.ReloadAsync(cancellationToken);
+
+        // Republish the freshly hydrated rows to IConfiguration / IOptionsMonitor.
+        if (hydrated > 0) configReloader.Reload();
         logger.LogInformation("NodeSettings cache warmed ({Count} entries loaded)",
             (await ctx.NodeSettings.CountAsync(cancellationToken)));
 

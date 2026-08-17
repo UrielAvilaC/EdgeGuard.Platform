@@ -18,7 +18,23 @@ export const API_ROUTES = {
     PENDING_PACS: '/studies/pending-pacs',
     COUNT: '/studies/count',
     STATUS: (id: string) => `/studies/${id}/status`,
+    REQUEUE: (id: string) => `/studies/${id}/requeue`,
+    INFRASTRUCTURE: (id: string) => `/studies/${id}/infrastructure`,
     EXPORT: '/studies/export',
+    REPORT: (id: string) => `/studies/${id}/report`,
+    REPORT_PDF: (id: string) => `/studies/${id}/report/pdf`,
+    REPORT_QR: (id: string) => `/studies/${id}/report/qr`,
+  },
+  NOTIFICATION_TEMPLATES: {
+    LIST: '/notification-templates',
+    BY_ID: (id: string) => `/notification-templates/${id}`,
+    TAGS: '/notification-templates/tags',
+    PREVIEW: '/notification-templates/preview',
+  },
+  NOTIFICATION_SETTINGS: {
+    GET: '/notification-settings',
+    AUTO_MODE: '/notification-settings/auto-mode',
+    SMTP_TEST: '/notification-settings/smtp/test',
   },
   PATIENTS: {
     LIST: '/patients',
@@ -65,6 +81,12 @@ export const API_ROUTES = {
     SUMMARY: '/queue-monitoring/summary',
     BY_STATUS: (status: string) => `/queue-monitoring/by-dispatch-status/${status}`,
     QUEUED: '/queue-monitoring/queued',
+  },
+  OUTBOX: {
+    ACTIVITY: '/outbox',
+    TOPICS: '/outbox/topics',
+    RETRY: (store: string, id: string) => `/outbox/${store}/${id}/retry`,
+    DEAD_LETTER: (store: string, id: string) => `/outbox/${store}/${id}/dead-letter`,
   },
   WHATSAPP: {
     CONFIG_STATUS: '/whatsapp/config-status',
@@ -117,6 +139,15 @@ export const API_ROUTES = {
     ENABLE:  (nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/enable`,
     DISABLE: (nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/disable`,
     PRIORITY:(nodeId: string, id: string) => `/nodes/${nodeId}/dicom-routing-rules/${id}/priority`,
+  },
+  MODALITIES: {
+    LIST: (supportedOnly = false) => `/modalities${supportedOnly ? '?supportedOnly=true' : ''}`,
+  },
+  NODE_EQUIPMENT: {
+    BY_NODE: (nodeId: string) => `/nodes/${nodeId}/equipment`,
+    BY_ID:   (nodeId: string, id: string) => `/nodes/${nodeId}/equipment/${id}`,
+    ENABLE:  (nodeId: string, id: string) => `/nodes/${nodeId}/equipment/${id}/enable`,
+    DISABLE: (nodeId: string, id: string) => `/nodes/${nodeId}/equipment/${id}/disable`,
   },
   HUB: {
     RUNTIME: '/hub/runtime',
