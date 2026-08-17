@@ -458,9 +458,12 @@ try {
     }
 
     # ── Ejecución ────────────────────────────────────────────────────────────
-    $modeForSteps = if ($state.ResolvedMode -eq 'Auto') { 'Install' } else { $state.ResolvedMode }
-
     foreach ($def in $StepDefinitions) {
+        # El modo se relee en cada iteración a propósito: el paso 01 resuelve
+        # 'Auto' leyendo installed.json, y los pasos siguientes deben respetar
+        # esa decisión. Hasta entonces se asume Install, que es el superconjunto.
+        $modeForSteps = if ($state.ResolvedMode -eq 'Auto') { 'Install' } else { $state.ResolvedMode }
+
         if ($def.Modes -notcontains $modeForSteps) {
             Write-SetupLog "$($def.Id) omitido en modo $modeForSteps" -Level Detail
             continue
