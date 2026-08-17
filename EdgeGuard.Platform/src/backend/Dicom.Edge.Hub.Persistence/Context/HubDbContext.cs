@@ -16,6 +16,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Routing;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Dicom.Edge.Hub.Persistence.Context;
 
@@ -82,7 +83,54 @@ public class HubDbContext : DbContext
         // Table names are set explicitly in each IEntityTypeConfiguration.
         // Columns, indexes, keys, and FK constraints are converted automatically.
         ApplySnakeCaseNaming(modelBuilder);
+
+        ApplyUtcDateTimeConversion(modelBuilder);
     }
+
+    /// <summary>
+    /// Forces every mapped <see cref="DateTime"/> to UTC on write.
+    ///
+    /// Npgsql maps <c>DateTime</c> to <c>timestamp with time zone</c>, which accepts
+    /// <see cref="DateTimeKind.Utc"/> only — anything else throws at save time. Dates that
+    /// enter the Hub from outside (DICOM StudyDate, HL7 dates) carry no timezone and
+    /// deserialize as <see cref="DateTimeKind.Unspecified"/>, so without this a single
+    /// study notification could fail its whole INSERT.
+    ///
+    /// Values already stored in the database are read back tagged as UTC, which is what
+    /// they have always been — the column has no other possible interpretation.
+    /// </summary>
+    private static void ApplyUtcDateTimeConversion(ModelBuilder modelBuilder)
+    {
+        var utc = new ValueConverter<DateTime, DateTime>(
+            v => ToUtc(v),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var nullableUtc = new ValueConverter<DateTime?, DateTime?>(
+            v => v.HasValue ? ToUtc(v.Value) : null,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null);
+
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entity.GetProperties())
+            {
+                // Never override a converter an entity configuration set deliberately.
+                if (property.GetValueConverter() is not null)
+                    continue;
+
+                if (property.ClrType == typeof(DateTime))
+                    property.SetValueConverter(utc);
+                else if (property.ClrType == typeof(DateTime?))
+                    property.SetValueConverter(nullableUtc);
+            }
+        }
+    }
+
+    private static DateTime ToUtc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
 
     /// <summary>
     /// Converts all column names, index names, primary key constraint names,

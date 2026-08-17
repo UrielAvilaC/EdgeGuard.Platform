@@ -1,5 +1,6 @@
 using Dicom.Edge.Hub.Application.Constants;
 using Dicom.Edge.Hub.Domain.Aggregates.Audit;
+using Dicom.Edge.Hub.Application.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
 using Dicom.Edge.Hub.Domain.Entities;
@@ -22,6 +23,7 @@ public sealed class Hl7PatientSyncService(
     IPatientRepository patientRepository,
     IStudyRepository studyRepository,
     IHubAuditLogRepository auditRepository,
+    IPatientRegistrationService patientRegistration,
     ILogger<Hl7PatientSyncService> logger) : IHl7PatientSyncService
 {
     public async Task SyncFromHl7Async(Hl7Message message, CancellationToken ct = default)
@@ -74,44 +76,24 @@ public sealed class Hl7PatientSyncService(
             string.IsNullOrWhiteSpace(message.PatientName))
             return;
 
-        var existing = await patientRepository.GetByPatientDicomIdAsync(message.PatientId, ct);
+        var patient = await patientRegistration.EnsurePatientAsync(
+            new PatientRegistrationInput
+            {
+                PatientDicomId = message.PatientId,
+                PatientName    = message.PatientName,
+                BirthDate      = ParseBirthDate(message.PatientBirthDate),
+                Sex            = message.PatientSex,
+                PhoneNumber    = message.PatientPhone,
+                Email          = message.PatientEmail,
+                FacilitySource = message.SendingFacility,
+            },
+            PatientDataSource.Hl7,
+            ct);
 
-        if (existing is not null)
-        {
-            var hadContact = !string.IsNullOrWhiteSpace(message.PatientPhone) ||
-                             !string.IsNullOrWhiteSpace(message.PatientEmail);
-
-            existing.UpdateDemographics(
-                message.PatientName,
-                ParseBirthDate(message.PatientBirthDate),
-                message.PatientSex);
-
-            if (hadContact)
-                existing.UpdateContactInfo(message.PatientPhone, message.PatientEmail);
-
-            await patientRepository.UpdateAsync(existing, ct);
-
+        if (patient is not null)
             logger.LogDebug(
-                "Updated patient {PatientDicomId} from {MessageType} {MessageId}",
+                "Patient {PatientDicomId} synced from {MessageType} {MessageId}",
                 message.PatientId, message.MessageType, message.Id);
-        }
-        else
-        {
-            var patient = Patient.Create(
-                PatientIdentifier.Create(message.PatientId),
-                message.PatientName,
-                ParseBirthDate(message.PatientBirthDate),
-                message.PatientSex,
-                phoneNumber:    message.PatientPhone,
-                email:          message.PatientEmail,
-                facilitySource: message.SendingFacility);
-
-            await patientRepository.AddAsync(patient, ct);
-
-            logger.LogInformation(
-                "Created patient {PatientDicomId} from {MessageType} {MessageId}",
-                message.PatientId, message.MessageType, message.Id);
-        }
     }
 
     // ── ADT^A40 — Merge Patient Records ──────────────────────────────────────
@@ -196,13 +178,18 @@ public sealed class Hl7PatientSyncService(
                 message.Id, priorId);
         }
 
-        // 3. Reassign all studies that belong to the prior patient
-        var priorStudies = await studyRepository.GetByPatientIdAsync(priorId, ct);
+        // 3. Reassign all studies that belong to the prior patient — both those linked by
+        //    FK and any that only carry the prior MRN.
+        var priorStudies = prior is not null
+            ? await studyRepository.GetByPatientAsync(prior.Id, priorId, ct)
+            : await studyRepository.GetByPatientIdAsync(priorId, ct);
         if (priorStudies.Count > 0)
         {
             foreach (var study in priorStudies)
             {
-                study.ReassignToPatient(survivingId, message.PatientName);
+                // The FK moves with the MRN — otherwise the study would still be listed
+                // under the deprecated patient record.
+                study.ReassignToPatient(survivingId, message.PatientName, surviving.Id);
                 await studyRepository.UpdateAsync(study, ct);
             }
 
@@ -260,7 +247,7 @@ public sealed class Hl7PatientSyncService(
 
         foreach (var study in priorStudies)
         {
-            study.ReassignToPatient(survivingId, survivingName);
+            study.ReassignToPatient(survivingId, survivingName, survivingPatient?.Id);
             await studyRepository.UpdateAsync(study, ct);
         }
 

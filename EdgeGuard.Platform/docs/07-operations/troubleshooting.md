@@ -172,6 +172,31 @@ Expected rejection log:
 
 5. If the node restricts calling AE Titles, add the modality AE to the allowed list in the Hub UI under **Nodes → [Node] → Allowed AE Titles**.
 
+**Fastest path: read the association's own log file**
+
+The node writes one file per association (see
+[monitoring.md → Per-Association DICOM Logs](monitoring.md#per-association-dicom-logs)),
+including the rejected ones. It contains the negotiation and the exact rejection reason for
+that single association, with no interleaving from other modalities:
+
+```powershell
+# The most recent associations from a given modality, newest first
+Get-ChildItem "C:\EdgeGuard\Node\logs\associations" -Recurse -Filter "*CT-SIEMENS*.log" |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 5
+
+# Read the last one end to end
+Get-ChildItem "C:\EdgeGuard\Node\logs\associations" -Recurse -Filter "*CT-SIEMENS*.log" |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1 | Get-Content
+
+# Or list every association that ended badly today
+Get-ChildItem "C:\EdgeGuard\Node\logs\associations\$(Get-Date -Format yyyy-MM-dd)" |
+    Select-String -Pattern "status=(Rejected|Aborted)"
+```
+
+This is also the file to send to the modality vendor. If the folder is empty, check that
+`Diagnostics:File:PerAssociation:Enabled` is `true` (or `diagnostics.assoc_log_enabled` on the
+Hub) — and note the setting applies from the **next** association onward.
+
 ---
 
 ## 3. HL7 Messages Not Arriving

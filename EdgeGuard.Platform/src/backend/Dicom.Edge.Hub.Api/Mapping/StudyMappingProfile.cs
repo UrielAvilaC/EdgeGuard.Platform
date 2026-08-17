@@ -18,17 +18,22 @@ public static class StudyMappingProfile
         StudyDescription = entity.StudyDescription,
         ReferringPhysician = entity.ReferringPhysician,
         PatientId = entity.PatientId,
+        PatientRecordId = entity.PatientRecordId,
         PatientName = entity.PatientName,
         SourceNodeId = entity.SourceNodeId,
         SourceAeTitle = entity.SourceAeTitle,
         Status = entity.Status.ToString(),
         InstanceCount = entity.InstanceCount,
-        SeriesCount = entity.Series.Count,
+        // The count the node reported, not Series.Count: per-series detail is not part of
+        // the edge contract, so the collection is empty. AddSeries keeps the two in sync
+        // if series rows ever exist.
+        SeriesCount = entity.SeriesCount,
         TotalSizeBytes = entity.TotalSizeBytes,
         FirstImageReceivedAt = entity.FirstImageReceivedAt,
         LastImageReceivedAt = entity.LastImageReceivedAt,
         Priority = entity.Priority,
         IsUrgent = entity.IsUrgent,
+        PacsStatus = entity.PacsStatus.ToString(),
         TargetPacsId = entity.TargetPacsId,
         SentToPacsAt = entity.SentToPacsAt,
         PacsSendAttempts = entity.PacsSendAttempts,

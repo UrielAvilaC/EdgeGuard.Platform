@@ -1,5 +1,6 @@
 using Dicom.Edge.Contracts.Notifications;
 using Dicom.Edge.Hub.Application.Notifications;
+using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,8 +23,15 @@ public class NotificationSettingsController(INotificationSettingsService service
     [Authorize(Policy = Policies.EditConfiguration)]
     public async Task<IActionResult> SetAutoMode([FromBody] SetAutoModeRequest request, CancellationToken ct)
     {
-        await service.SetAutoModeAsync(request.AutoMode, ct);
-        return NoContent();
+        // Never answer 204 on a write that did not land — that is what made the toggle
+        // look like it worked while auto-delivery stayed off.
+        var persisted = await service.SetAutoModeAsync(request.AutoMode, ct);
+        return persisted
+            ? NoContent()
+            : Problem(
+                title: "Setting not persisted",
+                detail: $"'{HubSettingKeys.WhatsApp.EnableAutomaticDelivery}' could not be stored.",
+                statusCode: StatusCodes.Status500InternalServerError);
     }
 
     [HttpPost("smtp/test")]

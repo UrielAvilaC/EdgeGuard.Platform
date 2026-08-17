@@ -1,4 +1,5 @@
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
+using Dicom.Edge.Security.Cryptography;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -8,32 +9,33 @@ namespace Dicom.Edge.Hub.Infrastructure.Http;
 /// P0-1: Resolves the raw signing key per node, with short-TTL in-memory caching
 /// so the DB is not hit on every outbound push.
 ///
-/// <para><b>Implementation note:</b> The <see cref="Node"/> aggregate currently stores
-/// only <c>ApiKeyHash</c> (one-way hash for verifying INCOMING calls from the node).
-/// Outbound signing requires the raw key. Until the Node entity is extended with a
-/// (server-side-encrypted) signing-secret column, this provider returns <c>null</c>,
-/// which leaves the outbound request unsigned. The Node-side middleware will allow
-/// such requests through while <c>NodeAuth:Enforce = false</c> (feature flag), giving
-/// us a safe rollout path.</para>
+/// <para>The key is <see cref="Node.SigningSecret"/> — the node's API key held in reversible
+/// form, encrypted at rest — decrypted here for <see cref="HubAuthDelegatingHandler"/> to HMAC
+/// the outbound request. <c>ApiKeyHash</c> cannot serve this purpose: it is one-way and only
+/// verifies inbound node→Hub calls.</para>
 ///
-/// <para>To complete the loop end-to-end, add a <c>SigningSecret</c> field to
-/// <see cref="Node"/>, populate it at registration (returned to the Node once via the
-/// bootstrap response), and have this class return it.</para>
+/// <para>Nodes registered before the field existed have no secret until they next authenticate
+/// against the Hub (<c>NodeApiKeyValidator</c> backfills it). Until then this returns
+/// <c>null</c> and the request goes out unsigned, which the node still accepts while
+/// <c>NodeAuth:Enforce = false</c>.</para>
 /// </summary>
 public sealed class NodeAuthKeyProvider : INodeAuthKeyProvider
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
     private readonly INodeRepository _nodes;
+    private readonly ISettingEncryptionService _secretProtector;
     private readonly IMemoryCache _cache;
     private readonly ILogger<NodeAuthKeyProvider> _logger;
 
     public NodeAuthKeyProvider(
         INodeRepository nodes,
+        ISettingEncryptionService secretProtector,
         IMemoryCache cache,
         ILogger<NodeAuthKeyProvider> logger)
     {
         _nodes = nodes;
+        _secretProtector = secretProtector;
         _cache = cache;
         _logger = logger;
     }
@@ -53,10 +55,30 @@ public sealed class NodeAuthKeyProvider : INodeAuthKeyProvider
             return null;
         }
 
-        // TODO: extend Node aggregate with a raw SigningSecret (encrypted at rest)
-        // and return it here. Until then, signing is a no-op and the Node middleware
-        // remains in monitor mode (NodeAuth:Enforce=false).
         string? signingKey = null;
+
+        if (node.SigningSecret is { Length: > 0 } encrypted)
+        {
+            try
+            {
+                signingKey = _secretProtector.Decrypt(encrypted);
+            }
+            catch (Exception ex)
+            {
+                // Typically a Data Protection key ring that was rotated away or lost. The
+                // stored ciphertext is unrecoverable; the node re-supplies its key on its next
+                // authenticated call and NodeApiKeyValidator writes a fresh secret.
+                _logger.LogError(ex,
+                    "Could not decrypt the signing secret for node {NodeId} — sending unsigned",
+                    nodeId);
+            }
+        }
+        else
+        {
+            _logger.LogDebug(
+                "Node {NodeId} has no signing secret yet (pre-existing registration) — sending unsigned",
+                nodeId);
+        }
 
         _cache.Set(cacheKey, signingKey, CacheTtl);
         return signingKey;

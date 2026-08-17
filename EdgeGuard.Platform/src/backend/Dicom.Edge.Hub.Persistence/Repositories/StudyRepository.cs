@@ -38,6 +38,21 @@ public class StudyRepository : IStudyRepository
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Study>> GetByPatientAsync(
+        string patientRecordId, string? patientDicomId = null, CancellationToken ct = default) =>
+        await _context.Studies
+            .AsNoTracking()
+            .Where(s => s.PatientRecordId == patientRecordId ||
+                        (patientDicomId != null && s.PatientRecordId == null && s.PatientId == patientDicomId))
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Study>> GetUnlinkedByPatientIdAsync(
+        string patientId, CancellationToken ct = default) =>
+        await _context.Studies
+            .Where(s => s.PatientId == patientId && s.PatientRecordId == null)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<Study>> GetByNodeAsync(string nodeId, CancellationToken ct = default) =>
         await _context.Studies
             .AsNoTracking()
@@ -52,6 +67,13 @@ public class StudyRepository : IStudyRepository
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<Study>> GetByPacsStatusAsync(StudyPacsStatus status, CancellationToken ct = default) =>
+        await _context.Studies
+            .AsNoTracking()
+            .Where(s => s.PacsStatus == status)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<Study>> GetByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct = default) =>
         await _context.Studies
             .AsNoTracking()
@@ -61,7 +83,9 @@ public class StudyRepository : IStudyRepository
 
     public async Task<IReadOnlyList<Study>> GetPendingForPacsAsync(CancellationToken ct = default) =>
         await _context.Studies
-            .Where(s => s.Status == StudyStatus.QueuedForSend || s.Status == StudyStatus.Completed)
+            // Queued on the PACS axis, or clinically complete and never queued.
+            .Where(s => s.PacsStatus == StudyPacsStatus.Queued
+                     || (s.PacsStatus == StudyPacsStatus.NotQueued && s.Status == StudyStatus.Completed))
             .OrderBy(s => s.Priority)
             .ThenBy(s => s.CreatedAt)
             .ToListAsync(ct);
@@ -112,7 +136,7 @@ public class StudyRepository : IStudyRepository
         if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<StudyStatus>(filter.Status, true, out var s))
             status = s;
 
-        var query = BuildFilteredQuery(filter.Search, status, filter.SourceNodeId, filter.PatientId, filter.DateFrom, filter.DateTo, filter.IsUrgent);
+        var query = BuildFilteredQuery(filter.Search, status, filter.SourceNodeId, filter.PatientId, filter.PatientRecordId, filter.DateFrom, filter.DateTo, filter.IsUrgent);
         var totalCount = await query.CountAsync(ct);
         var items = await query
             .ApplySort(filter.SortBy, filter.SortDir, StudySortFields, q => q.OrderByDescending(x => x.CreatedAt))
@@ -137,7 +161,7 @@ public class StudyRepository : IStudyRepository
         if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<StudyStatus>(filter.Status, true, out var s))
             status = s;
 
-        return await BuildFilteredQuery(filter.Search, status, filter.SourceNodeId, filter.PatientId, filter.DateFrom, filter.DateTo, filter.IsUrgent)
+        return await BuildFilteredQuery(filter.Search, status, filter.SourceNodeId, filter.PatientId, filter.PatientRecordId, filter.DateFrom, filter.DateTo, filter.IsUrgent)
             .ApplySort(filter.SortBy, filter.SortDir, StudySortFields, q => q.OrderByDescending(x => x.CreatedAt))
             .ToListAsync(ct);
     }
@@ -159,7 +183,7 @@ public class StudyRepository : IStudyRepository
 
     private IQueryable<Study> BuildFilteredQuery(
         string? search, StudyStatus? status, string? sourceNodeId,
-        string? patientId, DateTime? dateFrom, DateTime? dateTo, bool? isUrgent)
+        string? patientId, string? patientRecordId, DateTime? dateFrom, DateTime? dateTo, bool? isUrgent)
     {
         var query = _context.Studies.AsNoTracking().AsQueryable();
 
@@ -171,7 +195,14 @@ public class StudyRepository : IStudyRepository
 
         if (status.HasValue) query = query.Where(s => s.Status == status.Value);
         if (!string.IsNullOrWhiteSpace(sourceNodeId)) query = query.Where(s => s.SourceNodeId == sourceNodeId);
-        if (!string.IsNullOrWhiteSpace(patientId)) query = query.Where(s => s.PatientId == patientId);
+        // The FK wins when present: after a patient merge the study keeps the surviving
+        // record's FK while its MRN may differ, so an AND of both would drop it.
+        if (!string.IsNullOrWhiteSpace(patientRecordId))
+            query = query.Where(s => s.PatientRecordId == patientRecordId ||
+                                     (patientId != null && s.PatientRecordId == null && s.PatientId == patientId));
+        else if (!string.IsNullOrWhiteSpace(patientId))
+            query = query.Where(s => s.PatientId == patientId);
+
         if (dateFrom.HasValue) query = query.Where(s => s.StudyDate >= dateFrom.Value);
         if (dateTo.HasValue) query = query.Where(s => s.StudyDate <= dateTo.Value);
         if (isUrgent.HasValue) query = query.Where(s => s.IsUrgent == isUrgent.Value);

@@ -26,7 +26,7 @@ public sealed class DashboardService(
         var nodeCount = await nodeRepository.CountAsync(ct);
         var nodes = await nodeRepository.GetAllAsync(ct);
         var pending = await studyRepository.GetPendingForPacsAsync(ct);
-        var failed = await studyRepository.GetByStatusAsync(StudyStatus.Failed, ct);
+        var failed = await studyRepository.GetByPacsStatusAsync(StudyPacsStatus.Failed, ct);
         var recent = await studyRepository.GetPagedAsync(new Common.Pagination.PaginationRequest { Page = 1, PageSize = 10 }, ct);
         var queueSummary = await hl7MonitoringService.GetQueueSummaryAsync(ct);
 
@@ -59,7 +59,7 @@ public sealed class DashboardService(
                 SourceAeTitle = s.SourceAeTitle,
                 Status = s.Status.ToString(),
                 InstanceCount = s.InstanceCount,
-                SeriesCount = s.Series.Count,
+                SeriesCount = s.SeriesCount,
                 TotalSizeBytes = s.TotalSizeBytes,
                 Priority = s.Priority,
                 IsUrgent = s.IsUrgent,

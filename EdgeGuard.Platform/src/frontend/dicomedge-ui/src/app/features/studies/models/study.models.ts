@@ -1,16 +1,16 @@
 import { BaseFilter } from '../../../shared/models/filter.model';
 
+/** Clinical lifecycle of a study. The PACS transport lives on {@link StudyPacsStatus}. */
 export type StudyStatus =
   | 'Scheduled'
   | 'Receiving'
   | 'Completed'
   | 'WaitingForImageLinks'
   | 'WaitingForReport'
-  | 'Finalized'
-  | 'QueuedForSend'
-  | 'Sending'
-  | 'SentToPacs'
-  | 'Failed';
+  | 'Finalized';
+
+/** Progress through the PACS-send pipeline, independent of the clinical status. */
+export type StudyPacsStatus = 'NotQueued' | 'Queued' | 'Sending' | 'Sent' | 'Failed';
 
 export type ReportFormat = 'None' | 'Html' | 'PlainText';
 
@@ -32,11 +32,15 @@ export interface Study {
   studyDate: string | null;
   studyDescription: string | null;
   referringPhysician: string | null;
+  /** DICOM Patient ID (MRN) as it arrived on the study. */
   patientId: string | null;
+  /** Id of the linked patient record in the catalogue; null when the study is unlinked. */
+  patientRecordId: string | null;
   patientName: string | null;
   sourceNodeId: string | null;
   sourceAeTitle: string | null;
   status: StudyStatus;
+  pacsStatus: StudyPacsStatus;
   instanceCount: number;
   seriesCount: number;
   totalSizeBytes: number;
@@ -103,9 +107,13 @@ export const STUDY_STATUS_OPTIONS: { value: StudyStatus; label: string }[] = [
   { value: 'WaitingForImageLinks', label: 'En espera de liga' },
   { value: 'WaitingForReport', label: 'En espera de reporte' },
   { value: 'Finalized', label: 'Finalizado' },
-  { value: 'QueuedForSend', label: 'En cola PACS' },
+];
+
+export const STUDY_PACS_STATUS_OPTIONS: { value: StudyPacsStatus; label: string }[] = [
+  { value: 'NotQueued', label: 'Sin encolar' },
+  { value: 'Queued', label: 'En cola PACS' },
   { value: 'Sending', label: 'Enviando' },
-  { value: 'SentToPacs', label: 'Enviado a PACS' },
+  { value: 'Sent', label: 'Enviado a PACS' },
   { value: 'Failed', label: 'Fallido' },
 ];
 

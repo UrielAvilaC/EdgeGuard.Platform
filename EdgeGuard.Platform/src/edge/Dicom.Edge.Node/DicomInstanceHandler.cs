@@ -29,7 +29,7 @@ internal sealed class DicomInstanceHandler(
     IStudyHubNotifier hubNotifier,
     ILogger<DicomInstanceHandler> logger) : IDicomInstanceHandler
 {
-    public async Task HandleInstanceAsync(
+    public async Task<long> HandleInstanceAsync(
         DicomDataset dataset,
         string callingAeTitle,
         CancellationToken ct = default)
@@ -43,7 +43,7 @@ internal sealed class DicomInstanceHandler(
             logger.LogWarning(
                 "Received DICOM instance with missing UIDs (Study={StudyUid}, SOP={SopUid}) from {CallingAe} — skipping",
                 studyUid, sopUid, callingAeTitle);
-            return;
+            return 0;
         }
 
         logger.LogInformation(
@@ -254,7 +254,13 @@ internal sealed class DicomInstanceHandler(
                 studyDate:       study.StudyDate,
                 studyDescription: study.StudyDescription,
                 seriesCount:     seriesCount,
+                // Demographics from the Patient module so the Hub can register a
+                // walk-in patient that never arrived through a worklist order.
+                patientBirthDate: patient.BirthDate,
+                patientSex:       patient.Sex,
                 ct:              ct);
         }
+
+        return fileSize;
     }
 }

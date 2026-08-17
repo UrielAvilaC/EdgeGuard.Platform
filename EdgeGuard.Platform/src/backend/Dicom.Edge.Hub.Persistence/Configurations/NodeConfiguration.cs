@@ -21,6 +21,9 @@ public class NodeConfiguration : IEntityTypeConfiguration<Node>
         builder.Property(n => n.Version).HasMaxLength(32);
         builder.Property(n => n.Status).HasConversion<string>().HasMaxLength(32);
         builder.Property(n => n.ApiKeyHash).HasMaxLength(128);
+        // Data Protection ciphertext of the API key ("ENC:" + base64url payload) — much
+        // longer than the key itself, so this is sized well above the BCrypt hash column.
+        builder.Property(n => n.SigningSecret).HasMaxLength(1024);
 
         builder.OwnsOne(n => n.AeTitle, vo =>
         {

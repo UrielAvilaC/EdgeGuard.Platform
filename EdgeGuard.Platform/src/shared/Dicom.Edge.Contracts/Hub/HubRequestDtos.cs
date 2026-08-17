@@ -98,6 +98,13 @@ public sealed class StudyNotifyRequest
     [StringLength(256)]
     public string? PatientName { get; init; }
 
+    /// <summary>Patient Birth Date (0010,0030). Lets the Hub register the patient with full demographics.</summary>
+    public DateTime? PatientBirthDate { get; init; }
+
+    /// <summary>Patient Sex (0010,0040).</summary>
+    [StringLength(16)]
+    public string? PatientSex { get; init; }
+
     [StringLength(64)]
     public string? AccessionNumber { get; init; }
 
@@ -136,6 +143,13 @@ public sealed class StudyProgressNotifyRequest
 
     [StringLength(256)]
     public string? PatientName { get; init; }
+
+    /// <summary>Patient Birth Date (0010,0030). Lets the Hub register the patient with full demographics.</summary>
+    public DateTime? PatientBirthDate { get; init; }
+
+    /// <summary>Patient Sex (0010,0040).</summary>
+    [StringLength(16)]
+    public string? PatientSex { get; init; }
 
     [Range(0, int.MaxValue)]
     public int InstanceCount { get; init; }

@@ -39,19 +39,36 @@ public sealed class SystemSettingsService : ISystemSettingsService
         return entities.Select(Map).ToList();
     }
 
-    public async Task SetAsync(string key, string value, CancellationToken ct = default)
+    public async Task<bool> SetAsync(string key, string value, CancellationToken ct = default)
     {
         var entity = await _repository.GetByKeyAsync(key, ct);
+
         if (entity is null)
         {
-            _logger.LogWarning("System setting '{Key}' not found", key);
-            return;
+            // The key is declared and has a default, but its row was never inserted — a DB
+            // seeded before the key existed. Create it now from the default definition;
+            // otherwise this was an update against nothing and the caller got a false success.
+            var definition = HubSettingsDefaults.Build()
+                .FirstOrDefault(s => string.Equals(s.Id, key, StringComparison.OrdinalIgnoreCase));
+
+            if (definition is null)
+            {
+                _logger.LogWarning("System setting '{Key}' is not a known setting — not persisted", key);
+                return false;
+            }
+
+            definition.UpdateValue(value);
+            await _repository.AddAsync(definition, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+            _logger.LogInformation("System setting '{Key}' created from defaults and set", key);
+            return true;
         }
 
         entity.UpdateValue(value);
         await _repository.UpdateAsync(entity, ct);
         await _unitOfWork.SaveChangesAsync(ct);
         _logger.LogInformation("System setting '{Key}' updated", key);
+        return true;
     }
 
     public async Task SeedDefaultsAsync(CancellationToken ct = default)

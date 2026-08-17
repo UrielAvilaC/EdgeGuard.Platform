@@ -62,6 +62,19 @@ public static class SharedNodeSettingKeys
         public const string QrEnabled                 = "dicom.qr_enabled";
     }
 
+    // ── Diagnostics ───────────────────────────────────────────────────────────────
+    public static class Diagnostics
+    {
+        /// <summary>Enables the per-DICOM-association log files.</summary>
+        public const string AssocLogEnabled    = "diagnostics.assoc_log_enabled";
+
+        /// <summary>Serilog level written to each association file (Debug by default).</summary>
+        public const string AssocLogLevel      = "diagnostics.assoc_log_level";
+
+        /// <summary>Days the association files are kept before cleanup removes them.</summary>
+        public const string AssocLogRetainDays = "diagnostics.assoc_log_retain_days";
+    }
+
     // ── Cleanup ───────────────────────────────────────────────────────────────────
     public static class Cleanup
     {
@@ -115,6 +128,15 @@ public static class SharedNodeSettingKeys
         public const string Enabled         = "cecho.enabled";
         public const string IntervalSeconds = "cecho.interval_seconds";
         public const string Destinations    = "cecho.destinations";
+    }
+
+    // ── PACS Backfill (historical resend when a new PACS is assigned) ────────────
+    public static class PacsBackfill
+    {
+        public const string Enabled      = "backfill.enabled";
+        public const string LookbackDays = "backfill.lookback_days";
+        public const string MaxStudies   = "backfill.max_studies";
+        public const string Priority     = "backfill.priority";
     }
 
     // ── Node API ─────────────────────────────────────────────────────────────────

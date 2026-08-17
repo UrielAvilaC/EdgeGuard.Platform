@@ -6,7 +6,9 @@ public sealed record StudyStatusChange(
     string Status,
     string? PatientName,
     string? NodeId,
-    DateTime TimestampUtc);
+    DateTime TimestampUtc,
+    /// <summary>PACS-send phase, so the UI refreshes that column too — it no longer rides on <paramref name="Status"/>.</summary>
+    string? PacsStatus = null);
 
 /// <summary>
 /// Publishes study status transitions to subscribers (SignalR). Defined in Application so the

@@ -4,6 +4,7 @@ using Dicom.Edge.Contracts.Edge;
 using Dicom.Edge.Hub.Application.Studies;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Infrastructure.Constants;
+using Dicom.Edge.Hub.Infrastructure.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Infrastructure.Services;
@@ -38,7 +39,11 @@ public sealed class StudyRequeuePushService(
         try
         {
             var client = httpClientFactory.CreateClient(DispatchConstants.HttpClientName);
-            var response = await client.PostAsJsonAsync(url, payload, ct);
+
+            // /api/studies is a protected prefix on the node: the request must carry the
+            // target node id so HubAuthDelegatingHandler can sign it. Without it the node
+            // rejects (or, with NodeAuth:Enforce=false, logs) "missing-bearer".
+            var response = await client.PostAsJsonToNodeAsync(nodeId, url, payload, ct);
 
             if (!response.IsSuccessStatusCode)
             {

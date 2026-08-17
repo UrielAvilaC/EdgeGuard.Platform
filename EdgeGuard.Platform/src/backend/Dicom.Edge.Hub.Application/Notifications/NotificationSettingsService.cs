@@ -10,7 +10,8 @@ namespace Dicom.Edge.Hub.Application.Notifications;
 public interface INotificationSettingsService
 {
     Task<NotificationSettingsDto> GetAsync(CancellationToken ct = default);
-    Task SetAutoModeAsync(bool autoMode, CancellationToken ct = default);
+    /// <summary>Returns false when the setting could not be persisted.</summary>
+    Task<bool> SetAutoModeAsync(bool autoMode, CancellationToken ct = default);
     /// <summary>Effective auto-mode: DB setting overrides appsettings. Used by the auto-delivery handler.</summary>
     Task<bool> ResolveAutoModeAsync(CancellationToken ct = default);
     Task<TestSmtpResponse> TestSmtpAsync(string toEmail, CancellationToken ct = default);
@@ -35,12 +36,21 @@ public sealed class NotificationSettingsService(
         };
     }
 
-    public Task SetAutoModeAsync(bool autoMode, CancellationToken ct = default) =>
-        settings.SetAsync(HubSettingKeys.Notifications.AutoMode, autoMode ? "true" : "false", ct);
+    /// <summary>
+    /// Single source of truth for automatic delivery: <c>whatsapp.enable_automatic_delivery</c>,
+    /// the key exposed in System Settings → WhatsApp. The "Modo automático" toggle on the
+    /// Notifications screen is a second view over this same key, so both screens always agree —
+    /// the alternative (a separate <c>notifications.auto_mode</c>) meant one of the two switches
+    /// was always decorative.
+    /// </summary>
+    private const string AutoModeKey = HubSettingKeys.WhatsApp.EnableAutomaticDelivery;
+
+    public Task<bool> SetAutoModeAsync(bool autoMode, CancellationToken ct = default) =>
+        settings.SetAsync(AutoModeKey, autoMode ? "true" : "false", ct);
 
     public async Task<bool> ResolveAutoModeAsync(CancellationToken ct = default)
     {
-        var setting = await settings.GetAsync(HubSettingKeys.Notifications.AutoMode, ct);
+        var setting = await settings.GetAsync(AutoModeKey, ct);
         return setting is not null && bool.TryParse(setting.Value, out var value)
             ? value
             : notificationOptions.Value.AutoMode;

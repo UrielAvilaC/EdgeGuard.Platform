@@ -93,6 +93,43 @@ public sealed class Patient : AggregateRoot<string>, ISoftDeletable
     }
 
     /// <summary>
+    /// Fills demographics that are currently empty without overwriting existing values.
+    /// Used by the DICOM ingestion path: HL7/RIS is authoritative for demographics, so a
+    /// C-STORE with poorer metadata may only complete gaps, never replace known data.
+    /// </summary>
+    public void FillMissingDemographics(
+        string? patientName = null,
+        DateOnly? birthDate = null,
+        string? sex = null)
+    {
+        var changed = false;
+
+        if (string.IsNullOrWhiteSpace(PatientName) && !string.IsNullOrWhiteSpace(patientName))
+        {
+            PatientName = patientName.Trim();
+            changed = true;
+        }
+
+        if (BirthDate is null && birthDate is not null)
+        {
+            BirthDate = birthDate;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(Sex) && !string.IsNullOrWhiteSpace(sex))
+        {
+            Sex = sex.Trim();
+            changed = true;
+        }
+
+        if (!changed) return;
+
+        LastUpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+        AddDomainEvent(new PatientUpdatedEvent(Id, PatientDicomId.Value));
+    }
+
+    /// <summary>
     /// Updates patient contact information (phone and/or email).
     /// Only overwrites fields that are provided (non-null).
     /// </summary>

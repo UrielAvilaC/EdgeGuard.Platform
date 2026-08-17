@@ -8,11 +8,12 @@ EdgeGuard Platform uses Serilog for structured logging, with optional sinks for 
 
 1. [Health Check Endpoints](#health-check-endpoints)
 2. [Log Configuration](#log-configuration)
-3. [PHI Redaction](#phi-redaction)
-4. [Correlation ID Propagation](#correlation-id-propagation)
-5. [OpenTelemetry and Prometheus](#opentelemetry-and-prometheus)
-6. [Key Metrics to Monitor](#key-metrics-to-monitor)
-7. [Log Examples](#log-examples)
+3. [Per-Association DICOM Logs](#per-association-dicom-logs)
+4. [PHI Redaction](#phi-redaction)
+5. [Correlation ID Propagation](#correlation-id-propagation)
+6. [OpenTelemetry and Prometheus](#opentelemetry-and-prometheus)
+7. [Key Metrics to Monitor](#key-metrics-to-monitor)
+8. [Log Examples](#log-examples)
 
 ---
 
@@ -232,6 +233,72 @@ For forwarding logs to a SIEM or log aggregator via HTTP:
   }
 }
 ```
+
+---
+
+## Per-Association DICOM Logs
+
+Besides the daily log, the Edge Node writes **one file per DICOM association** covering the
+whole exchange — from the A-ASSOCIATE-RQ until release, abort or connection close. This is the
+file to attach when troubleshooting a modality with the vendor: it contains a single
+association's traffic and nothing else, even when several modalities are sending at once.
+
+**Location:** `<Diagnostics:File:PerAssociation:Path>/<yyyy-MM-dd>/`, by default
+`C:\EdgeGuard\Node\logs\associations\2026-08-09\`.
+
+**File name:** `20260809-143012.481_CT-SIEMENS_10.0.0.21_a1b2c3d4.log`
+— connection timestamp, calling AE, remote IP and the short **association id**.
+
+**Contents**
+
+| Section | What it records |
+|---|---|
+| Header | Association id, UTC start, calling/called AE, remote host and port |
+| Validation | Equipment catalog / AE / IP decision, and the **rejection reason** when refused |
+| Negotiation | Every presentation context with SOP class, result and transfer syntax |
+| C-STORE | `begin`/`end` pair per instance: SOP class, SOP/Study/Series UID, status, bytes, ms |
+| C-FIND | Query keys (MWL and Study Root), one line per result at Debug, total and duration |
+| C-ECHO | Verification requests |
+| fo-dicom internals | PDU/DIMSE traffic emitted by the DICOM stack itself |
+| Footer | `SUMMARY` with final status, duration, C-STORE ok/failed, bytes, C-FIND and error counts |
+
+Associations that are **rejected** also produce a file — that is usually the one needed during
+homologation of a new modality.
+
+**Correlation with the daily log.** Every event carries an `AssociationId` property, and when
+an association closes the daily log gets one summary line pointing at the file:
+
+```powershell
+# Find the association file for a modality that failed this morning
+Get-Content "C:\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" |
+    Select-String -Pattern "Association .* — CallingAE=CT-SIEMENS" | Select-Object -Last 5
+```
+
+**Configuration** (`appsettings.json`, section `Diagnostics:File:PerAssociation`):
+
+| Key | Default | Purpose |
+|---|---|---|
+| `Enabled` | `true` | Master switch; `false` restores the previous behaviour exactly |
+| `Path` | `logs/associations` | Base directory (a folder per day is created underneath) |
+| `MinimumLevel` | `Debug` | Detail level of the association files, independent of the daily log |
+| `UseCompactJson` | `false` | Plain text for support, JSON for Seq/ELK ingestion |
+| `RetainDays` | `14` | Age-based retention |
+| `MaxFilesPerDay` | `5000` | Cap against association floods |
+| `MaxFileSizeMb` | `10` | Cap per file |
+| `MaxTotalSizeMb` | `2048` | Cap for the whole directory (oldest days deleted first) |
+| `MaxOpen` | `20` | Files kept open simultaneously; align with `DicomServer:MaxClients` |
+| `IncludeFoDicomInternals` | `true` | Include the DICOM stack's own PDU/DIMSE events |
+| `StaleTimeoutMinutes` | `20` | Force-close associations with no release/abort callback |
+| `CleanupIntervalMinutes` | `60` | Retention cycle period |
+
+The same three switches can be pushed from the Hub through `node_settings`:
+`diagnostics.assoc_log_enabled`, `diagnostics.assoc_log_level`,
+`diagnostics.assoc_log_retain_days` — they take effect on the **next** association, without
+restarting the service.
+
+> PHI redaction applies to these files exactly as it does to the daily log: they go through
+> the same Serilog pipeline, so `PatientName`, `PatientID` and the configured patterns are
+> replaced by `[REDACTED]`.
 
 ---
 

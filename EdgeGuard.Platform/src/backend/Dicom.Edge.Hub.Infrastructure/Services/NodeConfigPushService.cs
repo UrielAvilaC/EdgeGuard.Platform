@@ -4,6 +4,7 @@ using Dicom.Edge.Contracts.Edge;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Infrastructure.Constants;
+using Dicom.Edge.Hub.Infrastructure.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Infrastructure.Services;
@@ -51,7 +52,7 @@ public sealed class NodeConfigPushService : INodeConfigPushService
                 "Pushing configuration to node {NodeId} at {Url}, version={Version}",
                 nodeId, url, syncDto.ConfigVersion);
 
-            var response = await client.PostAsJsonAsync(url, syncDto, ct);
+            var response = await client.PostAsJsonToNodeAsync(nodeId, url, syncDto, ct);
 
             if (!response.IsSuccessStatusCode)
             {

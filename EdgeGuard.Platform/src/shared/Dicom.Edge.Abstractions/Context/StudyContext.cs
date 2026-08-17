@@ -14,6 +14,8 @@ namespace Dicom.Edge.Abstractions.Context
         // ── Patient / study metadata for Hub notification ──────────────────────
         public string? PatientId { get; set; }
         public string? PatientName { get; set; }
+        public DateTime? PatientBirthDate { get; set; }
+        public string? PatientSex { get; set; }
         public string? AccessionNumber { get; set; }
         public long TotalSizeBytes { get; set; }
         public DateTime? StudyDate { get; set; }

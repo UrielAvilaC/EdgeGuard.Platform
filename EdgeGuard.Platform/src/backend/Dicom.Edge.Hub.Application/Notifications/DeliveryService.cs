@@ -1,10 +1,14 @@
+using Dicom.Edge.Hub.Application.Patients;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Notifications;
 using Dicom.Edge.Hub.Domain.Aggregates.Patients;
 using Dicom.Edge.Hub.Domain.Aggregates.Studies;
+using Dicom.Edge.Hub.Application.Configuration;
 using Dicom.Edge.Hub.Application.WhatsApp;
+using Dicom.Edge.Hub.Domain.Aggregates.Configuration;
+using Dicom.Edge.Hub.Domain.ValueObjects;
 using Dicom.Edge.Models.Enums;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +17,17 @@ namespace Dicom.Edge.Hub.Application.Notifications;
 /// <summary>Resolves templates and enqueues study-result deliveries (email + WhatsApp).</summary>
 public interface IDeliveryService
 {
-    Task<DeliverResultsResponse?> DeliverAsync(string studyId, DeliverResultsRequest request, CancellationToken ct = default);
+    /// <param name="triggeredBy">
+    /// How the delivery was initiated. Defaults to <see cref="NotificationTriggerSource.Manual"/>
+    /// so an operator-driven call reads naturally; the auto-send rule handler passes
+    /// <see cref="NotificationTriggerSource.Automatic"/>. Recorded on each notification and shown
+    /// in the delivery history.
+    /// </param>
+    Task<DeliverResultsResponse?> DeliverAsync(
+        string studyId,
+        DeliverResultsRequest request,
+        NotificationTriggerSource triggeredBy = NotificationTriggerSource.Manual,
+        CancellationToken ct = default);
     Task<IReadOnlyList<DeliveryHistoryDto>> GetHistoryAsync(string studyId, CancellationToken ct = default);
 }
 
@@ -26,17 +40,19 @@ public sealed class DeliveryService(
     INotificationVariableResolver resolver,
     INotificationDispatcher dispatcher,
     INotificationRepository notificationRepository,
+    ISystemSettingsService systemSettings,
     ILogger<DeliveryService> logger) : IDeliveryService
 {
     public async Task<DeliverResultsResponse?> DeliverAsync(
-        string studyId, DeliverResultsRequest request, CancellationToken ct = default)
+        string studyId,
+        DeliverResultsRequest request,
+        NotificationTriggerSource triggeredBy = NotificationTriggerSource.Manual,
+        CancellationToken ct = default)
     {
         var study = await studyRepository.GetByIdAsync(studyId, ct);
         if (study is null) return null;
 
-        var patient = study.PatientId is not null
-            ? await patientRepository.GetByIdAsync(study.PatientId, ct)
-            : null;
+        var patient = await StudyPatientResolver.ResolveAsync(patientRepository, study, ct);
 
         var facilityName = study.SourceNodeId is not null
             ? (await nodeRepository.GetByIdAsync(study.SourceNodeId, ct))?.Name
@@ -51,7 +67,13 @@ public sealed class DeliveryService(
         if (request.Emails.Length > 0 && !string.IsNullOrEmpty(request.EmailTemplateId))
         {
             var template = await emailTemplateRepository.GetByIdAsync(request.EmailTemplateId, ct);
-            if (template is not null)
+            if (template is null)
+            {
+                logger.LogWarning(
+                    "Delivery for study {StudyId}: email template {TemplateId} not found — no email target built",
+                    studyId, request.EmailTemplateId);
+            }
+            else
             {
                 var subject = resolver.Render(template.Subject, values);
                 var body = resolver.Render(template.Body, values);
@@ -80,30 +102,60 @@ public sealed class DeliveryService(
             // Load WITH variables so we can resolve the positional Content template values —
             // GetByIdAsync alone leaves template.Variables empty and Twilio receives {}.
             var template = await whatsAppTemplateRepository.GetByIdWithVariablesAsync(request.WhatsAppTemplateId, ct);
-            if (template is not null)
+            if (template is null)
             {
+                logger.LogWarning(
+                    "Delivery for study {StudyId}: WhatsApp template {TemplateId} not found — no WhatsApp target built",
+                    studyId, request.WhatsAppTemplateId);
+            }
+            else
+            {
+                // The provider needs E.164. Feeding it the raw stored value (e.g. "55 1234 5678")
+                // gets the message rejected at Twilio after burning the retry budget, so normalize
+                // here with the same prefix the manual WhatsApp screen uses.
+                var prefix = (await systemSettings.GetAsync(
+                    HubSettingKeys.WhatsApp.DefaultCountryPrefix, ct))?.Value;
+                if (string.IsNullOrWhiteSpace(prefix)) prefix = "+521";
+
                 var whatsAppVars = WhatsAppVariableResolver.Resolve(study, patient, template.Variables, imageLink, facilityName);
                 foreach (var phone in request.Phones.Where(p => !string.IsNullOrWhiteSpace(p)))
+                {
+                    var normalized = PhoneNumberNormalizer.Normalize(phone, prefix);
+                    if (normalized is null)
+                    {
+                        logger.LogWarning(
+                            "Delivery for study {StudyId}: phone '{Phone}' is not a valid number — skipped",
+                            studyId, PhoneNumberNormalizer.RedactForAudit(phone));
+                        continue;
+                    }
+
                     targets.Add(new DeliveryTarget
                     {
                         Channel = NotificationChannel.WhatsApp,
                         To = phone.Trim(),
-                        NormalizedPhone = phone.Trim(),
+                        NormalizedPhone = normalized,
                         ContentSid = template.ContentSid,
                         TemplateId = template.Id,
                         Variables = whatsAppVars,
                     });
+                }
             }
         }
 
-        if (targets.Count == 0) return new DeliverResultsResponse { Enqueued = 0 };
+        if (targets.Count == 0)
+        {
+            logger.LogWarning(
+                "Delivery for study {StudyId}: nothing to send — no template resolved or no valid recipient",
+                studyId);
+            return new DeliverResultsResponse { Enqueued = 0 };
+        }
 
         var result = await dispatcher.DeliverAsync(new DeliveryRequest
         {
             StudyId = study.Id,
             PatientId = study.PatientId,
             StudyStatus = study.Status.ToString(),
-            TriggeredBy = NotificationTriggerSource.Manual,
+            TriggeredBy = triggeredBy,
             Targets = targets,
         }, ct);
 

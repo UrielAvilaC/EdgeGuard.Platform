@@ -32,11 +32,18 @@ public static class SharedNodeSettingDefaults
             E(K.General.ContactPhone, "",             C.General,  "Contact Phone",          V.String),
 
             // ── Hub ─────────────────────────────────────────────────────────
+            // The transport address (protocol / hostname / port) has NO default: it is
+            // node-owned, deployed via the node's appsettings and hydrated into its
+            // node_settings by NodeSettingsHubHydrator. Shipping "https"/"443" here made
+            // the Hub hand every node an invented address on the first config pull, which
+            // overwrote the working one and cut the channel. The node now rejects these
+            // keys on a push (NodeSettingsService.NodeOwnedKeys); keeping them empty stops
+            // the Hub from displaying values it does not own either.
             E(K.Hub.Enabled,               "false",  C.Hub, "Hub Integration Enabled",       V.Bool),
-            E(K.Hub.Protocol,              "https",  C.Hub, "Hub Protocol",                  V.String),
+            E(K.Hub.Protocol,              "",       C.Hub, "Hub Protocol",                  V.String),
             E(K.Hub.Hostname,              "",       C.Hub, "Hub Hostname",                  V.String),
-            E(K.Hub.Port,                  "443",    C.Hub, "Hub Port",                      V.Int),
-            E(K.Hub.BasePath,              "/api",   C.Hub, "Hub API Base Path",             V.String),
+            E(K.Hub.Port,                  "",       C.Hub, "Hub Port",                      V.Int),
+            E(K.Hub.BasePath,              "",       C.Hub, "Hub API Base Path",             V.String),
             E(K.Hub.ApiKey,                "",       C.Hub, "Hub API Key",                   V.String),
             E(K.Hub.TimeoutSeconds,        "30",     C.Hub, "Hub Request Timeout (sec)",     V.Int),
             E(K.Hub.HeartbeatIntervalSec,  "60",     C.Hub, "Heartbeat Interval (sec)",      V.Int),

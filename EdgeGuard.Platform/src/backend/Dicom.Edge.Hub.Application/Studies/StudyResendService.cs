@@ -26,8 +26,8 @@ public sealed class StudyResendService(
         var study = await studyRepository.GetByIdAsync(studyId, ct);
         if (study is null) return StudyResendResult.MissingStudy();
 
-        if (study.Status != StudyStatus.Failed)
-            return StudyResendResult.Invalid($"Study is not Failed (current status: {study.Status}).");
+        //if (study.Status != StudyStatus.Failed)
+            //return StudyResendResult.Invalid($"Study is not Failed (current status: {study.Status}).");
 
         if (string.IsNullOrWhiteSpace(study.SourceNodeId))
             return StudyResendResult.Invalid("Study has no source node — cannot resend.");
@@ -61,7 +61,7 @@ public sealed class StudyResendService(
         await unitOfWork.SaveChangesAsync(ct);
 
         await studyRealtimeNotifier.StatusChangedAsync(
-            new StudyStatusChange(study.Id, study.Status.ToString(), study.PatientName, node.Id, DateTime.UtcNow),
+            new StudyStatusChange(study.Id, study.Status.ToString(), study.PatientName, node.Id, DateTime.UtcNow, study.PacsStatus.ToString()),
             ct);
 
         logger.LogInformation(

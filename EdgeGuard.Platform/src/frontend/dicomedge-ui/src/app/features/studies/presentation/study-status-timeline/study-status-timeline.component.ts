@@ -37,12 +37,6 @@ const STATUS_ORDER: Record<StudyStatus, number> = {
   WaitingForImageLinks: 3,
   WaitingForReport: 3,
   Finalized: 4,
-  // PACS-send states are orthogonal to the clinical axis: the study is already
-  // clinically "Completado", so they map to that step (PACS info lives elsewhere).
-  QueuedForSend: 2,
-  Sending: 2,
-  SentToPacs: 2,
-  Failed: -1,
 };
 
 @Component({
@@ -58,7 +52,13 @@ export class StudyStatusTimeline {
   protected readonly faCircleXmark = faCircleXmark;
   protected readonly steps = TIMELINE_STEPS;
 
-  protected readonly isFailed = computed(() => this.currentStatus() === 'Failed');
+  /**
+   * A PACS-send failure no longer lands on the clinical status, so the caller passes it in
+   * explicitly. The timeline still renders its failed state, it just no longer infers it.
+   */
+  readonly pacsFailed = input(false);
+
+  protected readonly isFailed = computed(() => this.pacsFailed());
 
   private readonly currentIndex = computed(() => STATUS_ORDER[this.currentStatus()] ?? -1);
 

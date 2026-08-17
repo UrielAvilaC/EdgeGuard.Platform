@@ -70,7 +70,7 @@
             Ciclo de Vida
           </h3>
           <div class="overflow-x-auto">
-            <app-study-status-timeline [currentStatus]="s.status" />
+            <app-study-status-timeline [currentStatus]="s.status" [pacsFailed]="s.pacsStatus === 'Failed'" />
           </div>
         </mat-card>
 

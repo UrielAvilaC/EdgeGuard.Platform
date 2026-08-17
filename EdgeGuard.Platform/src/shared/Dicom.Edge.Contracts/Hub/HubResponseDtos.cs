@@ -117,11 +117,21 @@ public sealed record StudyDto
     public DateTime? StudyDate { get; init; }
     public string? StudyDescription { get; init; }
     public string? ReferringPhysician { get; init; }
+    /// <summary>DICOM Patient ID (MRN) as it arrived on the study.</summary>
     public string? PatientId { get; init; }
+
+    /// <summary>Id of the linked patient record in the Hub catalogue, when known.</summary>
+    public string? PatientRecordId { get; init; }
+
     public string? PatientName { get; init; }
     public string? SourceNodeId { get; init; }
     public string? SourceAeTitle { get; init; }
+    /// <summary>Clinical lifecycle: Scheduled / Receiving / Completed / WaitingFor… / Finalized.</summary>
     public required string Status { get; init; }
+
+    /// <summary>PACS-send pipeline: NotQueued / Queued / Sending / Sent / Failed. Independent of <see cref="Status"/>.</summary>
+    public string PacsStatus { get; init; } = "NotQueued";
+
     public int InstanceCount { get; init; }
     public int SeriesCount { get; init; }
     public long TotalSizeBytes { get; init; }

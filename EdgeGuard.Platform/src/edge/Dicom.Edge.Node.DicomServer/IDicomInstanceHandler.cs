@@ -11,7 +11,11 @@ public interface IDicomInstanceHandler
     /// <summary>
     /// Called for each DICOM instance (image) received via C-STORE.
     /// </summary>
-    Task HandleInstanceAsync(
+    /// <returns>
+    /// Bytes written to local storage, or <c>0</c> when the instance was skipped.
+    /// Reported by the SCP in the per-association log.
+    /// </returns>
+    Task<long> HandleInstanceAsync(
         DicomDataset dataset,
         string callingAeTitle,
         CancellationToken ct = default);
