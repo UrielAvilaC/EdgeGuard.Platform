@@ -4,12 +4,89 @@
     Paso 07 — Variables de entorno del app pool
 
 .DESCRIPTION
-    Escribe la configuración como variables de entorno del app pool. appsettings.Production.json queda vacío a propósito, de modo que el estado vive en IIS y una actualización nunca tiene que fusionar archivos de configuración. Genera Jwt__SecretKey con RNG si no existe, y lo conserva si ya lo hay: rotarlo invalidaría todas las sesiones activas.
+    Escribe TODA la configuración específica del despliegue como variables de
+    entorno del app pool. appsettings.Production.json queda vacío a propósito,
+    de modo que el estado vive en IIS y una actualización nunca tiene que
+    fusionar archivos de configuración.
 
-.NOTES
-    Cuerpo pendiente: se implementa en la Fase 4.
-    El contrato ya es el definitivo — Config y State no cambiarán.
+    Los nombres de variable están tomados del código, no de la guía de
+    despliegue, que tenía dos mal:
+
+      EDGEGUARD_HUB_CONNECTIONSTRING  (no HUB_DB_CONNECTION_STRING)
+      Jwt__SecretKey                  (no Jwt__Secret)
 #>
+
+<#
+.SYNOPSIS
+    Genera un secreto de firma criptográficamente aleatorio.
+.DESCRIPTION
+    64 caracteres del alfabeto base64url. JwtTokenService exige 32 como mínimo y
+    aborta el arranque por debajo de eso.
+#>
+function New-JwtSecret {
+    $bytes = New-Object byte[] 48
+    $rng   = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+
+    return ([Convert]::ToBase64String($bytes) -replace '\+', '-' -replace '/', '_' -replace '=', '').Substring(0, 64)
+}
+
+<#
+.SYNOPSIS
+    Lee las variables de entorno actuales del app pool.
+#>
+function Get-AppPoolEnvironment {
+    [CmdletBinding()]
+    param([string]$AppPoolName)
+
+    $result = @{}
+    $collection = (Get-ItemProperty "IIS:\AppPools\$AppPoolName" -Name environmentVariables -ErrorAction SilentlyContinue)
+
+    if ($collection -and $collection.Collection) {
+        foreach ($entry in $collection.Collection) {
+            $result[$entry.name] = $entry.value
+        }
+    }
+    return $result
+}
+
+<#
+.SYNOPSIS
+    Construye el conjunto completo de variables a partir de la configuración.
+#>
+function Build-HubEnvironment {
+    [CmdletBinding()]
+    param([hashtable]$Config, [string]$JwtSecret)
+
+    $connectionString =
+        "Host=$($Config.DbHost);Port=$($Config.DbPort);Database=$($Config.DbName);" +
+        "Username=$($Config.DbUser);Password=$($Config.DbPassword)"
+
+    $env = [ordered]@{
+        'ASPNETCORE_ENVIRONMENT'          = 'Production'
+        'EDGEGUARD_HUB_CONNECTIONSTRING'  = $connectionString
+        'Jwt__SecretKey'                  = $JwtSecret
+        'Jwt__Issuer'                     = "http://$($Config.HostHeader)"
+        'DataProtection__KeyPath'         = $Config.DataProtectionKeyPath
+        'Diagnostics__InstanceId'         = $Config.InstanceId
+        'Diagnostics__Redaction__Mode'    = $Config.RedactionMode
+        'Hl7Listener__Enabled'            = $Config.Hl7Enabled.ToString().ToLowerInvariant()
+        'Hl7Listener__Port'               = $Config.Hl7Port.ToString()
+        'Hl7Listener__ValidateBeforeAck'  = $Config.Hl7ValidateBeforeAck.ToString().ToLowerInvariant()
+        'NodeAuth__Enforce'               = $Config.NodeAuthEnforce.ToString().ToLowerInvariant()
+    }
+
+    # Los arreglos de configuración se indexan: Cors__AllowedOrigins__0, __1, ...
+    $i = 0
+    foreach ($origin in @($Config.CorsAllowedOrigins)) {
+        if ([string]::IsNullOrWhiteSpace($origin)) { continue }
+        $env["Cors__AllowedOrigins__$i"] = $origin
+        $i++
+    }
+
+    return $env
+}
+
 function Step-SetAppPoolConfig {
     [CmdletBinding()]
     param(
@@ -17,5 +94,56 @@ function Step-SetAppPoolConfig {
         [Parameter(Mandatory)][hashtable]$State
     )
 
-    Write-SetupLog "Sin implementar todavía (Fase 4)." -Level Warn
+    Import-Module WebAdministration -ErrorAction Stop
+    $poolPath = "IIS:\AppPools\$($Config.AppPoolName)"
+
+    # ── Secreto de firma ─────────────────────────────────────────────────────
+    # Se conserva el existente. Rotarlo en una actualización invalidaría todas
+    # las sesiones activas y sacaría a los usuarios de la SPA sin explicación.
+    $existing  = if (Test-SetupDryRun) { @{} } else { Get-AppPoolEnvironment -AppPoolName $Config.AppPoolName }
+    $jwtSecret = $null
+
+    if ($existing.ContainsKey('Jwt__SecretKey') -and
+        -not [string]::IsNullOrWhiteSpace($existing['Jwt__SecretKey'])) {
+        $jwtSecret = $existing['Jwt__SecretKey']
+        Write-SetupLog "Se conserva el Jwt__SecretKey existente (rotarlo cerraría todas las sesiones)" -Level Detail
+    }
+    else {
+        $jwtSecret = New-JwtSecret
+        Write-SetupLog "Jwt__SecretKey generado ($($jwtSecret.Length) caracteres)" -Level Detail
+    }
+
+    Register-SetupSecret $jwtSecret
+
+    # ── Composición ──────────────────────────────────────────────────────────
+    $environment = Build-HubEnvironment -Config $Config -JwtSecret $jwtSecret
+    Register-SetupSecret $environment['EDGEGUARD_HUB_CONNECTIONSTRING']
+
+    foreach ($name in $environment.Keys) {
+        Write-SetupLog "$name = $($environment[$name])" -Level Detail
+    }
+
+    # ── Escritura ────────────────────────────────────────────────────────────
+    # Se reemplaza la colección completa en vez de fusionar: así una variable
+    # retirada de la configuración desaparece de verdad, en lugar de quedar
+    # viva de una instalación anterior.
+    Invoke-SetupAction -Description "escribir $($environment.Count) variables de entorno en el app pool" -Action {
+        $collection = @()
+        foreach ($name in $environment.Keys) {
+            $collection += @{ name = $name; value = [string]$environment[$name] }
+        }
+        Set-ItemProperty $poolPath -Name environmentVariables -Value $collection -ErrorAction Stop
+    } | Out-Null
+
+    if (Test-SetupDryRun) { return }
+
+    # ── Postcondición ────────────────────────────────────────────────────────
+    $written = Get-AppPoolEnvironment -AppPoolName $Config.AppPoolName
+    foreach ($required in @('EDGEGUARD_HUB_CONNECTIONSTRING', 'Jwt__SecretKey', 'DataProtection__KeyPath')) {
+        if (-not $written.ContainsKey($required) -or [string]::IsNullOrWhiteSpace($written[$required])) {
+            throw "La variable $required no quedó escrita en el app pool."
+        }
+    }
+
+    Write-SetupLog "$($written.Count) variables verificadas en el app pool" -Level Detail
 }
