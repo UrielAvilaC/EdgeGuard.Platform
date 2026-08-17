@@ -236,6 +236,36 @@ function ConvertFrom-SetupSecureString {
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 }
 
+<#
+.SYNOPSIS
+    Restaura una instalación desde su respaldo.
+.DESCRIPTION
+    Vive en el módulo, y no en línea dentro del catch del maestro, para que se
+    pueda probar por separado: es el código que solo se ejecuta cuando algo ya
+    salió mal, que es justo cuando no puede fallar a su vez.
+#>
+function Restore-SetupBackup {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$BackupPath,
+        [Parameter(Mandatory)][string]$InstallPath
+    )
+
+    if (-not (Test-Path -LiteralPath $BackupPath)) {
+        throw "El respaldo $BackupPath no existe; no hay nada que restaurar."
+    }
+
+    if (Test-Path -LiteralPath $InstallPath) {
+        Remove-Item -LiteralPath $InstallPath -Recurse -Force -ErrorAction Stop
+    }
+
+    Copy-Item -LiteralPath $BackupPath -Destination $InstallPath -Recurse -Force -ErrorAction Stop
+
+    if (-not (Test-Path -LiteralPath $InstallPath)) {
+        throw "La restauración no dejó nada en $InstallPath."
+    }
+}
+
 function Get-SetupFileHashSafe {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
@@ -256,5 +286,6 @@ Export-ModuleMember -Function @(
     'Test-SetupDryRun'
     'Test-SetupAdministrator'
     'ConvertFrom-SetupSecureString'
+    'Restore-SetupBackup'
     'Get-SetupFileHashSafe'
 )

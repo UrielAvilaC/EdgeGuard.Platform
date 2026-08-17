@@ -371,6 +371,12 @@ function Show-SetupSummary {
 $logFile = Start-SetupLog -Directory $LogDir -DryRun:$DryRun
 Write-SetupLog "Registro en $logFile"
 
+# Declaradas fuera del try: el manejador de errores las consulta para decidir si
+# hay que revertir, y bajo StrictMode referenciar una variable sin asignar lanza
+# excepción — el propio manejador fallaría justo cuando más se le necesita.
+$config = $null
+$state  = $null
+
 try {
     # ── Configuración ────────────────────────────────────────────────────────
     $configPath = Resolve-ConfigFile -Explicit $ConfigFile
@@ -483,6 +489,39 @@ try {
 catch {
     Write-SetupLog ""
     Write-SetupLog "INSTALACIÓN ABORTADA: $($_.Exception.Message)" -Level Error
+
+    # ── Reversión ────────────────────────────────────────────────────────────
+    # Solo hay algo que revertir si el paso 05 llegó a respaldar. Antes de eso
+    # nada se tocó, y después el respaldo es una copia íntegra de lo que había.
+    if ($state -and $state.ContainsKey('Backup') -and $state.Backup -and -not $DryRun) {
+        Write-SetupLog "Revirtiendo al estado anterior desde $($state.Backup)" -Level Warn
+        try {
+            Restore-SetupBackup -BackupPath $state.Backup -InstallPath $config.InstallPath
+
+            # El sitio anterior vuelve a quedar en pie; si no arranca, el
+            # operador lo verá en el log de IIS y no en un directorio a medias.
+            if (Get-Module -ListAvailable -Name WebAdministration) {
+                Import-Module WebAdministration -ErrorAction SilentlyContinue
+                if (Test-Path "IIS:\AppPools\$($config.AppPoolName)") {
+                    Start-WebAppPool -Name $config.AppPoolName -ErrorAction SilentlyContinue
+                }
+            }
+
+            Write-SetupLog "Reversión completada. La instalación anterior quedó restaurada." -Level Ok
+            Write-SetupLog "El respaldo se conserva en $($state.Backup)" -Level Detail
+        }
+        catch {
+            Write-SetupLog "LA REVERSIÓN FALLÓ: $($_.Exception.Message)" -Level Error
+            Write-SetupLog "El respaldo íntegro sigue en $($state.Backup) — restáuralo a mano." -Level Error
+        }
+    }
+    elseif ($state -and $state.ContainsKey('Backup') -and $state.Backup) {
+        Write-SetupLog "DRY-RUN: no hay nada que revertir." -Level Detail
+    }
+    else {
+        Write-SetupLog "No se modificó la instalación: no hay nada que revertir." -Level Detail
+    }
+
     Write-SetupLog "Registro completo: $logFile" -Level Detail
     exit 1
 }
