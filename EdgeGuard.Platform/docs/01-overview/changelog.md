@@ -50,7 +50,7 @@ All notable changes to EdgeGuard Platform are documented here. This file follows
 
 ### breaking
 - `RoutingRule.Priority` field renamed from `Order` to `Priority` in the REST API and database schema. Run `dotnet ef database update` to apply the migration.
-- `HUB_DB_CONNECTION_STRING` environment variable is now the canonical configuration source. The `ConnectionStrings:HubDatabase` appsettings key is retained as a fallback but is deprecated.
+- `EDGEGUARD_HUB_CONNECTIONSTRING` environment variable is now the canonical configuration source. The `ConnectionStrings:HubDatabase` appsettings key is retained as a fallback but is deprecated.
 
 ---
 

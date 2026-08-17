@@ -112,9 +112,9 @@ Set the connection string as an environment variable **on the App Pool** so it i
 ```powershell
 $pool = "IIS:\AppPools\EdgeGuardHub"
 Set-ItemProperty $pool -Name "environmentVariables" -Value @(
-    @{ name = "HUB_DB_CONNECTION_STRING"
+    @{ name = "EDGEGUARD_HUB_CONNECTIONSTRING"
        value = "Host=db.your-org.local;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=<strong-password>;SSL Mode=Require" }
-    @{ name = "Jwt__Secret"
+    @{ name = "Jwt__SecretKey"
        value = "<at-least-32-char-random-secret>" }
     @{ name = "Jwt__Issuer"
        value = "https://hub.your-org.local" }
@@ -211,7 +211,7 @@ The bootstrap token is invalidated. Log in normally at `https://hub.your-org.loc
 - [ ] Application Initialization warms up `/health` on app pool start
 - [ ] TLS certificate bound to port 443 (TLS 1.2+); HTTP→HTTPS redirect rule
 - [ ] WebSockets enabled at site level (SignalR)
-- [ ] `Jwt__Secret` is ≥32 chars random, stored in App Pool env vars (not in `appsettings.json`)
+- [ ] `Jwt__SecretKey` is ≥32 chars random, stored in App Pool env vars (not in `appsettings.json`)
 - [ ] `Diagnostics__Redaction__Mode=Strict`
 - [ ] `Cors:AllowedOrigins` restricted to your SPA URL
 - [ ] PostgreSQL user has minimal privileges (not superuser)
@@ -227,7 +227,7 @@ Full deployment guide: [deployment-hub.md](../07-operations/deployment-hub.md).
 For local development against the source tree (no IIS), run Kestrel directly:
 
 ```powershell
-$env:HUB_DB_CONNECTION_STRING = "Host=localhost;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=..."
+$env:EDGEGUARD_HUB_CONNECTIONSTRING = "Host=localhost;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=..."
 dotnet run --project src/backend/Dicom.Edge.Hub.Api
 # Listening on http://localhost:5000 / https://localhost:5001
 ```

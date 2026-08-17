@@ -4,6 +4,17 @@ EdgeGuard Hub is designed to run on **Windows Server with IIS** as its primary d
 
 > **Target environment:** Windows Server 2019 / 2022 + IIS 10 + ASP.NET Core Hosting Bundle + PostgreSQL 16.
 
+> **There is an installer.** Everything in the *IIS Deployment* section below is
+> automated by `setup/hub/install.ps1`, which also verifies the parts that fail
+> silently when done by hand — a package published without the SPA, an ephemeral
+> Data Protection key ring, a database role lacking `CREATE`. Prefer it, and
+> keep this guide for understanding what it does and for troubleshooting.
+> See [setup/hub/README.md](../../setup/hub/README.md).
+>
+> Note that the installer configures **HTTP only** and runs the app pool as
+> `LocalSystem`; both are deliberate deployment choices and both differ from the
+> production checklist at the end of this guide.
+
 ---
 
 ## Table of Contents
@@ -160,12 +171,28 @@ Configuration precedence (highest first):
 ```powershell
 $pool = "IIS:\AppPools\EdgeGuardHub"
 Set-ItemProperty $pool -Name "environmentVariables" -Value @(
-    @{ name = "HUB_DB_CONNECTION_STRING"; value = "Host=db.your-org.local;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=...;SSL Mode=Require" },
-    @{ name = "Jwt__Secret";    value = "<at-least-32-char-random-secret>" },
-    @{ name = "Jwt__Issuer";    value = "https://hub.your-org.local" },
-    @{ name = "Jwt__Audience";  value = "edgeguard-clients" }
+    @{ name = "EDGEGUARD_HUB_CONNECTIONSTRING"; value = "Host=db.your-org.local;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=...;SSL Mode=Require" },
+    @{ name = "Jwt__SecretKey";          value = "<at-least-32-char-random-secret>" },
+    @{ name = "Jwt__Issuer";             value = "https://hub.your-org.local" },
+    @{ name = "DataProtection__KeyPath"; value = "C:\inetpub\edgeguard\dp-keys" }
 )
 ```
+
+> **Names matter.** These are the names the code actually reads — see
+> `HubApiConstants.ConnectionStringEnvVar`, `JwtTokenServiceOptions.SecretKey`
+> and `SecurityServiceCollectionExtensions`.
+>
+> Revisions of this guide before 2026-08 listed two names that do not exist in
+> the code: `HUB_DB_` + `CONNECTION_STRING`, and `Jwt__` + `Secret` (without the
+> `Key` suffix). Both are silently ignored — the Hub then starts with no
+> connection string and no signing key. If an existing deployment uses them,
+> rename the app-pool variables.
+
+> **`DataProtection__KeyPath` is not optional in practice.** Without it the key
+> ring is ephemeral and only a `LogWarning` is emitted. On the next app-pool
+> recycle every node's `SigningSecret` becomes undecryptable, and the Hub falls
+> back to sending unsigned pushes. Point it at a directory **outside** the
+> deployment folder — a publish overwrites that folder on every upgrade.
 
 **Option B — `appsettings.Production.json`** (safer for non-secret settings):
 
@@ -269,11 +296,12 @@ New-NetFirewallRule `
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `HUB_DB_CONNECTION_STRING` | Yes | — | PostgreSQL connection string |
+| `EDGEGUARD_HUB_CONNECTIONSTRING` | Yes | — | PostgreSQL connection string |
 | `ASPNETCORE_ENVIRONMENT` | Yes | `Production` | ASP.NET Core environment name |
-| `Jwt__Secret` | Yes | — | JWT signing secret (min 32 chars) |
+| `Jwt__SecretKey` | Yes | — | JWT signing secret (min 32 chars, else startup fails) |
 | `Jwt__Issuer` | Yes | — | JWT issuer claim |
-| `Jwt__Audience` | Yes | — | JWT audience claim |
+| `DataProtection__KeyPath` | Yes | — | Key ring directory. Must be **outside** the deployment folder |
+| `Jwt__Audience` | No | from `appsettings.json` | JWT audience claim |
 | `Jwt__ExpiryMinutes` | No | `60` | Access token expiry |
 | `Cors__AllowedOrigins__0` | Yes | — | First allowed CORS origin (index-based) |
 | `Diagnostics__Redaction__Mode` | No | `Relaxed` | `Strict` (PHI redacted) or `Relaxed` |
@@ -344,7 +372,7 @@ For controlled production deployments (e.g. ITSM-gated change windows), see [dat
 - [ ] `Application Initialization` configured to preload `/health`
 - [ ] TLS certificate bound to port 443 (TLS 1.2+)
 - [ ] WebSockets feature installed and enabled at site level
-- [ ] `Jwt__Secret` is ≥32 chars, randomly generated, stored as App Pool env var (not in `appsettings.json`)
+- [ ] `Jwt__SecretKey` is ≥32 chars, randomly generated, stored as App Pool env var (not in `appsettings.json`)
 - [ ] `Cors:AllowedOrigins` restricted to your actual SPA domain
 - [ ] `Diagnostics__Redaction__Mode=Strict`
 - [ ] PostgreSQL user has `CONNECT`, `CREATE`, schema ownership only (no superuser)
@@ -389,10 +417,10 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     environment:
-      HUB_DB_CONNECTION_STRING: "Host=postgres;Database=edgeguard_hub;Username=edgeguard;Password=${POSTGRES_PASSWORD}"
+      EDGEGUARD_HUB_CONNECTIONSTRING: "Host=postgres;Database=edgeguard_hub;Username=edgeguard;Password=${POSTGRES_PASSWORD}"
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:5000"
-      Jwt__Secret: ${JWT_SECRET}
+      Jwt__SecretKey: ${JWT_SECRET}
     ports:
       - "5000:5000"
       - "8001:8001"

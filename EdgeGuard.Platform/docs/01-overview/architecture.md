@@ -56,7 +56,7 @@ flowchart TB
         direction TB
         API["ASP.NET Core Web API<br/>(Clean Architecture)<br/>• REST endpoints<br/>• SignalR hub<br/>• HL7 MLLP listener :8001<br/>• JWT auth + Rate limiter"]
         SPA["Angular 19 SPA<br/>(standalone components)<br/>served from /wwwroot"]
-        PG[("PostgreSQL 16<br/>HUB_DB_CONNECTION_STRING")]
+        PG[("PostgreSQL 16<br/>EDGEGUARD_HUB_CONNECTIONSTRING")]
         API -- "serves" --> SPA
         API -- "reads / writes" --> PG
     end

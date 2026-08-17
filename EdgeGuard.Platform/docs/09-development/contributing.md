@@ -146,8 +146,8 @@ cp .env.example .env.local
 
 Edit `.env.local`:
 ```env
-HUB_DB_CONNECTION_STRING=Host=localhost;Port=5432;Database=edgeguard_dev;Username=edgeguard;Password=devpassword
-Jwt__Secret=dev_secret_key_at_least_32_chars_long
+EDGEGUARD_HUB_CONNECTIONSTRING=Host=localhost;Port=5432;Database=edgeguard_dev;Username=edgeguard;Password=devpassword
+Jwt__SecretKey=dev_secret_key_at_least_32_chars_long
 ASPNETCORE_ENVIRONMENT=Development
 ```
 
