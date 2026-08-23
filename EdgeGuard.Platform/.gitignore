@@ -400,3 +400,20 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .idea/
+
+# ── Instalador del Hub ───────────────────────────────────────────────────────
+# setup/hub/bin y setup/hub/log chocan con las reglas [Bb]in/ y [Ll]og/ de arriba,
+# que excluyen cualquier carpeta con esos nombres. Hay que re-incluir el
+# directorio ANTES que su contenido: git no desciende a un directorio excluido,
+# de modo que negar solo los archivos no bastaria.
+!setup/hub/bin/
+!setup/hub/bin/**
+!setup/hub/log/
+
+# Artefactos binarios, logs de ejecucion y configuracion con secretos.
+setup/hub/data/*
+!setup/hub/data/.gitkeep
+!setup/hub/data/README.md
+setup/hub/log/*
+!setup/hub/log/.gitkeep
+setup/hub/hub-install.psd1

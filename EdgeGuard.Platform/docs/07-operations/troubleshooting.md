@@ -42,7 +42,7 @@ This guide covers the most common operational issues with EdgeGuard Platform. Ea
 
 **Cause**
 
-The most common cause is a missing or invalid `HUB_DB_CONNECTION_STRING` environment variable on the IIS App Pool.
+The most common cause is a missing or invalid `EDGEGUARD_HUB_CONNECTIONSTRING` environment variable on the IIS App Pool.
 
 **Diagnosis (Windows — primary)**
 
@@ -62,7 +62,7 @@ Get-ChildItem "C:\inetpub\logs\FailedReqLogFiles\W3SVC*"
 
 Look for:
 ```
-[FTL] Critical startup error: HUB_DB_CONNECTION_STRING is not set or empty.
+[FTL] Critical startup error: EDGEGUARD_HUB_CONNECTIONSTRING is not set or empty.
 ```
 or:
 ```
@@ -85,7 +85,7 @@ Test-NetConnection -ComputerName localhost -Port 5432
 3. Set the variable and recycle the App Pool:
 ```powershell
 $pool = "IIS:\AppPools\EdgeGuardHub"
-$envColl = @{ name = "HUB_DB_CONNECTION_STRING"; value = "Host=localhost;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=..." }
+$envColl = @{ name = "EDGEGUARD_HUB_CONNECTIONSTRING"; value = "Host=localhost;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=..." }
 Add-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" `
     -Filter "system.applicationHost/applicationPools/add[@name='EdgeGuardHub']/environmentVariables" `
     -Name "." -Value $envColl
@@ -97,7 +97,7 @@ Restart-WebAppPool -Name EdgeGuardHub
 
 ```bash
 sudo journalctl -u edgeguard-hub -n 50 --no-pager
-sudo cat /etc/edgeguard/hub.env | grep HUB_DB_CONNECTION_STRING
+sudo cat /etc/edgeguard/hub.env | grep EDGEGUARD_HUB_CONNECTIONSTRING
 pg_isready -h localhost -p 5432 -U edgeguard -d edgeguard_hub
 docker compose ps; docker compose logs postgres   # if using Docker
 sudo systemctl restart edgeguard-hub

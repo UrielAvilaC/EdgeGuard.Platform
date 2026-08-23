@@ -176,7 +176,7 @@ Before running the quickstart guides, confirm:
 - [ ] ASP.NET Core 10 Hosting Bundle installed
 - [ ] TLS certificate available (CA-issued) bound to port 443
 - [ ] PostgreSQL 16 reachable; database and user created
-- [ ] `HUB_DB_CONNECTION_STRING` ready to set on the App Pool
+- [ ] `EDGEGUARD_HUB_CONNECTIONSTRING` ready to set on the App Pool
 - [ ] Port 8001 open in Windows Firewall scoped to HIS/RIS subnet
 
 ### Edge Node host (Windows Service)

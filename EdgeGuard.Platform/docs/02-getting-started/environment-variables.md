@@ -2,7 +2,7 @@
 
 This reference covers every configuration key recognized by EdgeGuard Platform components. Keys can be supplied as:
 
-1. **Environment variables** — highest precedence. Use double-underscore (`__`) as a section separator on Linux/macOS (e.g., `Jwt__Secret`). On Windows, both `__` and `:` work.
+1. **Environment variables** — highest precedence. Use double-underscore (`__`) as a section separator on Linux/macOS (e.g., `Jwt__SecretKey`). On Windows, both `__` and `:` work.
 2. **`appsettings.Production.json`** — merged at startup, overrides `appsettings.json`.
 3. **`appsettings.json`** — baseline defaults shipped with the application.
 
@@ -20,8 +20,8 @@ This reference covers every configuration key recognized by EdgeGuard Platform c
 
 | Key | Default | Required | Description |
 |-----|---------|----------|-------------|
-| `HUB_DB_CONNECTION_STRING` | *(none)* | **Yes** | PostgreSQL connection string. Environment variable form; takes highest precedence over all appsettings values. Example: `Host=localhost;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=secret` |
-| `ConnectionStrings:HubDatabase` | *(none)* | Fallback | Fallback PostgreSQL connection string in appsettings. Used when `HUB_DB_CONNECTION_STRING` is not set. **Deprecated** — prefer the environment variable form. |
+| `EDGEGUARD_HUB_CONNECTIONSTRING` | *(none)* | **Yes** | PostgreSQL connection string. Environment variable form; takes highest precedence over all appsettings values. Example: `Host=localhost;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=secret` |
+| `ConnectionStrings:HubDatabase` | *(none)* | Fallback | Fallback PostgreSQL connection string in appsettings. Used when `EDGEGUARD_HUB_CONNECTIONSTRING` is not set. **Deprecated** — prefer the environment variable form. |
 
 ### HL7 Listener
 
@@ -138,8 +138,8 @@ This reference covers every configuration key recognized by EdgeGuard Platform c
 Import-Module WebAdministration
 $pool = "EdgeGuardHub"
 $vars = @{
-    "HUB_DB_CONNECTION_STRING"   = "Host=pg.internal;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=<redacted>"
-    "Jwt__Secret"                = "<64-character-random-string>"
+    "EDGEGUARD_HUB_CONNECTIONSTRING"   = "Host=pg.internal;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=<redacted>"
+    "Jwt__SecretKey"                = "<64-character-random-string>"
     "Diagnostics__InstanceId"    = "HUB-PROD-01"
     "Cors__AllowedOrigins__0"    = "https://edgeguard.hospital.internal"
     "NodeRegistration__Secret"   = "<shared-node-secret>"
@@ -155,8 +155,8 @@ Restart-WebAppPool -Name $pool
 **Bash (Linux, alternative):**
 
 ```bash
-export HUB_DB_CONNECTION_STRING="Host=pg.internal;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=<redacted>"
-export Jwt__Secret="<64-character-random-string>"
+export EDGEGUARD_HUB_CONNECTIONSTRING="Host=pg.internal;Port=5432;Database=edgeguard_hub;Username=edgeguard;Password=<redacted>"
+export Jwt__SecretKey="<64-character-random-string>"
 export Diagnostics__InstanceId="HUB-PROD-01"
 export Cors__AllowedOrigins__0="https://edgeguard.hospital.internal"
 export NodeRegistration__Secret="<shared-node-secret>"
