@@ -1,129 +1,133 @@
-<div class="p-6 w-[600px] max-w-full">
-  <!-- Header -->
-  <div class="flex items-start justify-between mb-6">
-    <div class="flex items-center gap-3">
-      <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
-        <fa-icon [icon]="faRoute" class="text-azure-600 dark:text-azure-400" />
-      </div>
-      <div>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ isEdit ? 'Editar Regla DICOM' : 'Nueva Regla DICOM' }}
-        </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          PACS destino: <span class="font-mono font-medium text-gray-800 dark:text-gray-200">{{ data.destinationAeTitle }}</span>
-        </p>
-      </div>
-    </div>
-    <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar" (clicked)="onCancel()" />
-  </div>
+<form (ngSubmit)="onSubmit()">
+  <ui-dialog width="600px">
 
-  <form (ngSubmit)="onSubmit()" class="space-y-5">
-    <!-- Name + Priority -->
-    <div class="grid grid-cols-3 gap-4">
-      <div class="col-span-2">
+    <div uiDialogHeader class="flex items-start justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+          <fa-icon [icon]="faRoute" class="text-azure-600 dark:text-azure-400" />
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ isEdit ? 'Editar Regla DICOM' : 'Nueva Regla DICOM' }}
+          </h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            PACS destino: <span class="font-mono font-medium text-gray-800 dark:text-gray-200">{{ data.destinationAeTitle }}</span>
+          </p>
+        </div>
+      </div>
+      <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar" (clicked)="onCancel()" />
+    </div>
+
+    <div uiDialogBody class="space-y-5">
+      <!-- Name + Priority -->
+      <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+          <ui-input-text
+            label="Nombre de la regla"
+            placeholder="Ej: CT urgentes → PACS Central"
+            hint="Nombre descriptivo para identificar la regla."
+            [(ngModel)]="form.name"
+            name="name"
+            required
+          />
+        </div>
         <ui-input-text
-          label="Nombre de la regla"
-          placeholder="Ej: CT urgentes → PACS Central"
-          hint="Nombre descriptivo para identificar la regla."
-          [(ngModel)]="form.name"
-          name="name"
+          label="Prioridad"
+          type="number"
+          placeholder="100"
+          hint="Menor número = mayor prioridad."
+          [(ngModel)]="form.priority"
+          name="priority"
           required
         />
       </div>
-      <ui-input-text
-        label="Prioridad"
-        type="number"
-        placeholder="100"
-        hint="Menor número = mayor prioridad."
-        [(ngModel)]="form.priority"
-        name="priority"
-        required
-      />
+
+      <!-- Match conditions -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+            Condiciones de coincidencia
+          </h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Deje vacío para coincidir con cualquier valor. Todas las condiciones se evalúan en conjunto (AND).
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <ui-dropdown
+            label="Modalidad"
+            placeholder="Cualquier modalidad"
+            [options]="modalityOptions"
+            [(ngModel)]="form.matchModality"
+            name="matchModality"
+          />
+          <ui-input-text
+            label="AE Title origen"
+            placeholder="Ej: MODALITY_AE"
+            [(ngModel)]="form.matchSourceAeTitle"
+            name="matchSourceAeTitle"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <ui-input-text
+            label="Institución"
+            placeholder="Ej: Hospital Central"
+            [(ngModel)]="form.matchInstitution"
+            name="matchInstitution"
+          />
+          <ui-input-text
+            label="Descripción del estudio contiene"
+            placeholder="Ej: URGENTE"
+            [(ngModel)]="form.matchStudyDesc"
+            name="matchStudyDesc"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <ui-input-text
+            label="Instancias mínimas"
+            type="number"
+            placeholder="Sin límite"
+            [(ngModel)]="form.minInstanceCount"
+            name="minInstanceCount"
+          />
+          <ui-input-text
+            label="Instancias máximas"
+            type="number"
+            placeholder="Sin límite"
+            [(ngModel)]="form.maxInstanceCount"
+            name="maxInstanceCount"
+          />
+        </div>
+      </div>
+
+      <!-- Actions section -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/30">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Acciones al coincidir</h3>
+
+        <div class="flex flex-col gap-3">
+          <ui-slide-toggle label="Enviar al PACS destino" [(ngModel)]="form.sendToPacs" name="sendToPacs" />
+          <ui-slide-toggle label="Enviar al Hub" [(ngModel)]="form.sendToHub" name="sendToHub" />
+          <ui-slide-toggle label="Anonimizar antes de enviar" [(ngModel)]="form.anonymizeBeforeSend" name="anonymizeBeforeSend" />
+        </div>
+
+        @if (!form.sendToPacs && !form.sendToHub) {
+          <p class="text-xs text-amber-600 dark:text-amber-400">
+            Debe habilitar al menos un destino de envío.
+          </p>
+        }
+      </div>
+
+      <!-- Footer actions -->
     </div>
 
-    <!-- Match conditions -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
-      <div>
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
-          Condiciones de coincidencia
-        </h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-          Deje vacío para coincidir con cualquier valor. Todas las condiciones se evalúan en conjunto (AND).
-        </p>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <ui-dropdown
-          label="Modalidad"
-          placeholder="Cualquier modalidad"
-          [options]="modalityOptions"
-          [(ngModel)]="form.matchModality"
-          name="matchModality"
-        />
-        <ui-input-text
-          label="AE Title origen"
-          placeholder="Ej: MODALITY_AE"
-          [(ngModel)]="form.matchSourceAeTitle"
-          name="matchSourceAeTitle"
-        />
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <ui-input-text
-          label="Institución"
-          placeholder="Ej: Hospital Central"
-          [(ngModel)]="form.matchInstitution"
-          name="matchInstitution"
-        />
-        <ui-input-text
-          label="Descripción del estudio contiene"
-          placeholder="Ej: URGENTE"
-          [(ngModel)]="form.matchStudyDesc"
-          name="matchStudyDesc"
-        />
-      </div>
-
-      <div class="grid grid-cols-2 gap-4">
-        <ui-input-text
-          label="Instancias mínimas"
-          type="number"
-          placeholder="Sin límite"
-          [(ngModel)]="form.minInstanceCount"
-          name="minInstanceCount"
-        />
-        <ui-input-text
-          label="Instancias máximas"
-          type="number"
-          placeholder="Sin límite"
-          [(ngModel)]="form.maxInstanceCount"
-          name="maxInstanceCount"
-        />
-      </div>
-    </div>
-
-    <!-- Actions section -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/30">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Acciones al coincidir</h3>
-
-      <div class="flex flex-col gap-3">
-        <ui-slide-toggle label="Enviar al PACS destino" [(ngModel)]="form.sendToPacs" name="sendToPacs" />
-        <ui-slide-toggle label="Enviar al Hub" [(ngModel)]="form.sendToHub" name="sendToHub" />
-        <ui-slide-toggle label="Anonimizar antes de enviar" [(ngModel)]="form.anonymizeBeforeSend" name="anonymizeBeforeSend" />
-      </div>
-
-      @if (!form.sendToPacs && !form.sendToHub) {
-        <p class="text-xs text-amber-600 dark:text-amber-400">
-          Debe habilitar al menos un destino de envío.
-        </p>
-      }
-    </div>
-
-    <!-- Footer actions -->
-    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <div uiDialogFooter class="flex items-center gap-3">
       <ui-button variant="secondary" type="button" (clicked)="onCancel()">Cancelar</ui-button>
       <ui-button type="submit" [disabled]="!isFormValid">
         {{ isEdit ? 'Guardar cambios' : 'Crear regla' }}
       </ui-button>
     </div>
-  </form>
-</div>
+
+  </ui-dialog>
+</form>

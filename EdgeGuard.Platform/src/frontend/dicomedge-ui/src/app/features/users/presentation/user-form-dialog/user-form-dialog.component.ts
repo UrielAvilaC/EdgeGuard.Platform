@@ -9,11 +9,12 @@ import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-ic
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
 import { UiDropdown } from '../../../../shared/forms/dropdown/dropdown.component';
 import { ROLES, CreateUserRequest } from '../../models/users.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 @Component({
   selector: 'app-user-form-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, FontAwesomeModule, UiButton, UiIconButton, UiInputText, UiDropdown],
+  imports: [ReactiveFormsModule, FontAwesomeModule, UiButton, UiIconButton, UiInputText, UiDropdown, UiDialog],
   templateUrl: './user-form-dialog.component.html',
   styleUrl: './user-form-dialog.component.scss'
 })

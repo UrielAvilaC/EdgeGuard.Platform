@@ -6,6 +6,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faXmark, faFileLines, faPlus, faTrash, faGripVertical } from '@fortawesome/free-solid-svg-icons';
 
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
 import { UiDropdown, DropdownOption } from '../../../../shared/forms/dropdown/dropdown.component';
@@ -35,6 +36,7 @@ export type TemplateFormDialogResult = CreateWhatsAppTemplateRequest | UpdateWha
     CdkDragHandle,
     FontAwesomeModule,
     UiButton,
+    UiDialog,
     UiIconButton,
     UiInputText,
     UiDropdown,

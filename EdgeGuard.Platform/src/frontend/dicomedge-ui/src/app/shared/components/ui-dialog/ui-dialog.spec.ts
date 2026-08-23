@@ -1,0 +1,165 @@
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+
+import { UiDialog } from './ui-dialog.component';
+
+/**
+ * Guardarraíl del fix de scroll en diálogos.
+ *
+ * El bug original: los diálogos crecían sin límite, el overlay los centraba y
+ * lo que sobresalía del viewport quedaba recortado sin barra de scroll, así que
+ * los botones Cancelar/Guardar eran inalcanzables sin hacer zoom out.
+ *
+ * Estas pruebas revisan los fuentes de *todos* los diálogos, no solo los que
+ * alguien recuerde mirar.
+ */
+
+// Vite reemplaza import.meta.glob en build time: tanto el patrón como las
+// opciones tienen que ser literales en el sitio de la llamada.
+// Los .scss de componente quedan fuera a propósito: el plugin de Angular los
+// procesa aparte y devuelve vacío al pedirlos como texto, así que el layout
+// que este spec verifica tiene que vivir en el markup.
+type Fuentes = Record<string, string>;
+
+const htmlFiles = import.meta.glob('/src/app/**/*-dialog.component.html', { query: '?raw', import: 'default', eager: true }) as Fuentes;
+const tsFiles = import.meta.glob('/src/app/**/*-dialog.component.ts', { query: '?raw', import: 'default', eager: true }) as Fuentes;
+
+/**
+ * Diálogos que legítimamente no usan <ui-dialog>. Cualquier otro debe hacerlo.
+ * Agregar algo aquí requiere justificarlo: no es una vía de escape.
+ */
+const SIN_SHELL = new Map<string, string>([
+  [
+    'ui-confirm-dialog',
+    'Tarjeta de alerta centrada, sin barra de header; no encaja en los tres ' +
+      'slots del shell. Acota su altura y hace scroll del mensaje por su cuenta.',
+  ],
+  // Pendiente: migrar al shell. Ya cumplen el invariante con el patrón manual
+  // (flex-col + max-h + cuerpo con overflow), por eso no entraron en este fix.
+  ['hl7-message-detail-dialog', 'Patrón manual previo, pendiente de migrar.'],
+  ['node-pacs-routing-rules-dialog', 'Patrón manual previo, pendiente de migrar.'],
+  ['pacs-assign-dialog', 'Patrón manual previo, pendiente de migrar.'],
+  ['study-requeue-dialog', 'Patrón manual previo, pendiente de migrar.'],
+]);
+
+interface DialogSource {
+  /** Nombre del componente, p. ej. `template-form-dialog`. */
+  name: string;
+  /** Markup: el .html si existe, o el template inline del .ts. */
+  markup: string;
+}
+
+function nameOf(path: string): string {
+  return path.split('/').pop()!.replace(/\.component\.(ts|html)$/, '');
+}
+
+function collectDialogs(): DialogSource[] {
+  return Object.entries(tsFiles)
+    // El shell mismo no es un diálogo.
+    .filter(([path]) => nameOf(path) !== 'ui-dialog')
+    .map(([tsPath, ts]) => {
+      let markup = htmlFiles[tsPath.replace(/\.ts$/, '.html')];
+      if (markup === undefined) {
+        const inline = ts.match(/template:\s*`([\s\S]*?)`,?\s*\n\}\)/);
+        if (!inline) throw new Error(`Sin template ni .html: ${tsPath}`);
+        markup = inline[1];
+      }
+      return { name: nameOf(tsPath), markup };
+    });
+}
+
+const dialogs = collectDialogs();
+
+describe('diálogos', () => {
+  it('encuentra los diálogos del proyecto', () => {
+    // Si esto baja de golpe, el recolector dejó de encontrarlos y el resto de
+    // las pruebas estaría pasando en vacío.
+    expect(dialogs.length).toBeGreaterThanOrEqual(15);
+  });
+
+  describe.each(dialogs.map(d => [d.name, d] as const))('%s', (_name, dialog) => {
+    it('acota su altura y hace scroll del contenido', () => {
+      const usaShell = dialog.markup.includes('<ui-dialog');
+      const acotaAltura = /max-h-\[/.test(dialog.markup);
+      const scrollea = /overflow-y-auto|overflow-auto/.test(dialog.markup);
+
+      expect(
+        usaShell || (acotaAltura && scrollea),
+        'Un diálogo debe usar <ui-dialog>, o bien acotar su altura y dar scroll ' +
+          'a su cuerpo. Si no, al superar la pantalla sus botones quedan fuera ' +
+          'de alcance.',
+      ).toBe(true);
+    });
+
+    it('usa el shell compartido <ui-dialog>', () => {
+      if (SIN_SHELL.has(dialog.name)) {
+        expect(SIN_SHELL.get(dialog.name)).toBeTruthy();
+        return;
+      }
+      expect(
+        dialog.markup.includes('<ui-dialog'),
+        `${dialog.name} no usa <ui-dialog>. Los diálogos nuevos deben usarlo ` +
+          'para heredar header/footer fijos y cuerpo scrollable.',
+      ).toBe(true);
+    });
+
+    it('deja los botones de envío dentro del <form>', () => {
+      // Al partir el diálogo en tres secciones es fácil dejar el footer fuera
+      // del <form>: los type="submit" dejan de disparar ngSubmit y guardar
+      // falla en silencio. Un type="submit" sin <form> es igual de sospechoso:
+      // no envía nada y el botón depende de un (clicked) que puede no estar.
+      if (!dialog.markup.includes('type="submit"')) return;
+
+      const apertura = dialog.markup.indexOf('<form');
+      const submit = dialog.markup.indexOf('type="submit"');
+      const cierre = dialog.markup.indexOf('</form>');
+
+      expect(apertura, 'hay un type="submit" pero no hay <form>').toBeGreaterThanOrEqual(0);
+      expect(submit).toBeGreaterThan(apertura);
+      expect(submit).toBeLessThan(cierre);
+    });
+  });
+});
+
+describe('UiDialog', () => {
+  @Component({
+    imports: [UiDialog],
+    template: `
+      <ui-dialog width="480px">
+        <div uiDialogHeader>Título</div>
+        <div uiDialogBody>Contenido</div>
+        <div uiDialogFooter>Acciones</div>
+      </ui-dialog>
+    `,
+  })
+  class Host {}
+
+  function render() {
+    const fixture = TestBed.createComponent(Host);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  it('proyecta las tres secciones', () => {
+    const el = render();
+    expect(el.querySelector('[uiDialogHeader]')?.textContent).toContain('Título');
+    expect(el.querySelector('[uiDialogBody]')?.textContent).toContain('Contenido');
+    expect(el.querySelector('[uiDialogFooter]')?.textContent).toContain('Acciones');
+  });
+
+  it('acota la altura y solo hace scroll el cuerpo', () => {
+    const el = render();
+    const raiz = el.querySelector('ui-dialog > div') as HTMLElement;
+    expect(raiz.style.maxHeight).toBe('85dvh');
+    expect(raiz.style.width).toBe('480px');
+
+    const cuerpo = el.querySelector('[uiDialogBody]')!.parentElement!;
+    // min-h-0 es lo que permite que overflow-y-auto llegue a activarse.
+    expect(cuerpo.className).toContain('overflow-y-auto');
+    expect(cuerpo.className).toContain('min-h-0');
+
+    for (const fijo of ['[uiDialogHeader]', '[uiDialogFooter]']) {
+      expect(el.querySelector(fijo)!.parentElement!.className).toContain('shrink-0');
+    }
+  });
+});

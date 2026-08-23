@@ -1,86 +1,91 @@
-<div class="p-6 max-w-2xl max-h-[80vh] overflow-y-auto">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Detalle de auditoría</h2>
-        <button type="button" class="text-gray-400 hover:text-gray-600" (click)="dialogRef.close()" aria-label="Cerrar">
-          <fa-icon [icon]="faTimes" />
-        </button>
-      </div>
+<!-- El ancho lo fija el panel (640px) desde audit-page.component.ts. -->
+<ui-dialog width="100%" [bodyFocusable]="true">
 
-      <div class="space-y-4">
-        <!-- Header info -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <div class="text-xs text-gray-500 mb-1">Evento</div>
-            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ log.eventType }}</div>
-          </div>
-          <div>
-            <div class="text-xs text-gray-500 mb-1">Severidad</div>
-            <ui-chip [color]="getSeverityColor(log.severity)">{{ getSeverityLabel(log.severity) }}</ui-chip>
-          </div>
-          <div>
-            <div class="text-xs text-gray-500 mb-1">Acción</div>
-            <div class="text-sm text-gray-900 dark:text-white">{{ log.action }}</div>
-          </div>
-          <div>
-            <div class="text-xs text-gray-500 mb-1">Resultado</div>
-            <ui-chip [color]="log.isSuccess ? 'success' : 'danger'">
-              {{ log.isSuccess ? 'Exitoso' : 'Fallido' }}
-            </ui-chip>
-          </div>
-          <div>
-            <div class="text-xs text-gray-500 mb-1">Fecha</div>
-            <div class="text-sm text-gray-900 dark:text-white">{{ log.createdAt | relativeTime }}</div>
-          </div>
-          @if (log.userName) {
-            <div>
-              <div class="text-xs text-gray-500 mb-1">Usuario</div>
-              <div class="text-sm text-gray-900 dark:text-white">{{ log.userName }}</div>
-            </div>
-          }
-          @if (log.ipAddress) {
-            <div>
-              <div class="text-xs text-gray-500 mb-1">IP</div>
-              <div class="text-sm font-mono text-gray-700 dark:text-gray-300">{{ log.ipAddress }}</div>
-            </div>
-          }
-          @if (log.entityType) {
-            <div>
-              <div class="text-xs text-gray-500 mb-1">Entidad</div>
-              <div class="text-sm text-gray-900 dark:text-white">{{ log.entityType }} / {{ log.entityId }}</div>
-            </div>
-          }
+  <div uiDialogHeader class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Detalle de auditoría</h2>
+    <button type="button" class="text-gray-400 hover:text-gray-600" (click)="dialogRef.close()" aria-label="Cerrar">
+      <fa-icon [icon]="faTimes" />
+    </button>
+  </div>
+
+  <div uiDialogBody>
+    <div class="space-y-4">
+      <!-- Header info -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="text-xs text-gray-500 mb-1">Evento</div>
+          <div class="text-sm font-medium text-gray-900 dark:text-white">{{ log.eventType }}</div>
         </div>
-
-        @if (log.correlationId) {
+        <div>
+          <div class="text-xs text-gray-500 mb-1">Severidad</div>
+          <ui-chip [color]="getSeverityColor(log.severity)">{{ getSeverityLabel(log.severity) }}</ui-chip>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 mb-1">Acción</div>
+          <div class="text-sm text-gray-900 dark:text-white">{{ log.action }}</div>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 mb-1">Resultado</div>
+          <ui-chip [color]="log.isSuccess ? 'success' : 'danger'">
+            {{ log.isSuccess ? 'Exitoso' : 'Fallido' }}
+          </ui-chip>
+        </div>
+        <div>
+          <div class="text-xs text-gray-500 mb-1">Fecha</div>
+          <div class="text-sm text-gray-900 dark:text-white">{{ log.createdAt | relativeTime }}</div>
+        </div>
+        @if (log.userName) {
           <div>
-            <div class="text-xs text-gray-500 mb-1">Correlation ID</div>
-            <div class="flex items-center gap-2">
-              <code class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                {{ log.correlationId }}
-              </code>
-              <button type="button" class="text-gray-400 hover:text-gray-600 text-xs" (click)="copyCorrelation()" aria-label="Copiar">
-                <fa-icon [icon]="faCopy" />
-              </button>
-            </div>
+            <div class="text-xs text-gray-500 mb-1">Usuario</div>
+            <div class="text-sm text-gray-900 dark:text-white">{{ log.userName }}</div>
           </div>
         }
-
-        @if (log.errorMessage) {
-          <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
-            <div class="text-xs font-medium text-red-700 dark:text-red-400 mb-1">Error</div>
-            <div class="text-sm text-red-600 dark:text-red-300">{{ log.errorMessage }}</div>
+        @if (log.ipAddress) {
+          <div>
+            <div class="text-xs text-gray-500 mb-1">IP</div>
+            <div class="text-sm font-mono text-gray-700 dark:text-gray-300">{{ log.ipAddress }}</div>
           </div>
         }
-
-        @if (log.details) {
+        @if (log.entityType) {
           <div>
-            <div class="text-xs text-gray-500 mb-1">Detalles</div>
-            <pre class="text-xs p-3 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">{{ log.details }}</pre>
+            <div class="text-xs text-gray-500 mb-1">Entidad</div>
+            <div class="text-sm text-gray-900 dark:text-white">{{ log.entityType }} / {{ log.entityId }}</div>
           </div>
         }
       </div>
 
-      <div class="flex justify-end pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-        <ui-button variant="secondary" (clicked)="dialogRef.close()">Cerrar</ui-button>
-      </div>
+      @if (log.correlationId) {
+        <div>
+          <div class="text-xs text-gray-500 mb-1">Correlation ID</div>
+          <div class="flex items-center gap-2">
+            <code class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+              {{ log.correlationId }}
+            </code>
+            <button type="button" class="text-gray-400 hover:text-gray-600 text-xs" (click)="copyCorrelation()" aria-label="Copiar">
+              <fa-icon [icon]="faCopy" />
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (log.errorMessage) {
+        <div class="p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
+          <div class="text-xs font-medium text-red-700 dark:text-red-400 mb-1">Error</div>
+          <div class="text-sm text-red-600 dark:text-red-300">{{ log.errorMessage }}</div>
+        </div>
+      }
+
+      @if (log.details) {
+        <div>
+          <div class="text-xs text-gray-500 mb-1">Detalles</div>
+          <pre class="text-xs p-3 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre-wrap max-h-64 overflow-y-auto">{{ log.details }}</pre>
+        </div>
+      }
     </div>
+  </div>
+
+  <div uiDialogFooter>
+    <ui-button variant="secondary" (clicked)="dialogRef.close()">Cerrar</ui-button>
+  </div>
+
+</ui-dialog>

@@ -1,130 +1,133 @@
-<div class="p-6 w-[560px] max-w-full">
-      <!-- Header -->
-      <div class="flex items-start justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
-            <fa-icon [icon]="faServer" class="text-azure-600 dark:text-azure-400" />
-          </div>
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ isEdit ? 'Editar Nodo' : 'Nuevo Nodo Edge' }}
-            </h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ isEdit ? 'Modifica la configuración del nodo.' : 'Registra un nuevo nodo DICOM Edge en la plataforma.' }}
-            </p>
-          </div>
+<form #nodeForm="ngForm" (ngSubmit)="onSubmit()">
+  <ui-dialog width="560px">
+
+    <div uiDialogHeader class="flex items-start justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
+          <fa-icon [icon]="faServer" class="text-azure-600 dark:text-azure-400" />
         </div>
-        <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ isEdit ? 'Editar Nodo' : 'Nuevo Nodo Edge' }}
+          </h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ isEdit ? 'Modifica la configuración del nodo.' : 'Registra un nuevo nodo DICOM Edge en la plataforma.' }}
+          </p>
+        </div>
+      </div>
+      <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+    </div>
+
+    <div uiDialogBody class="space-y-5">
+      @if (!isEdit) {
+        <!-- DICOM identity section -->
+        <div class="space-y-4">
+          <ui-input-text
+            label="Nombre"
+            placeholder="Ej: Nodo Radiología Piso 2"
+            hint="Nombre descriptivo para identificar el nodo."
+            [(ngModel)]="createForm.name"
+            name="name"
+            required
+          />
+          <ui-input-text
+            label="AE Title"
+            placeholder="AE Title DICOM"
+            hint="Identificador DICOM único del nodo."
+            [(ngModel)]="createForm.aeTitle"
+            name="aeTitle"
+            required
+          />
+          <div class="grid grid-cols-2 gap-4">
+            <ui-input-text
+              label="Dirección IP"
+              placeholder="192.168.1.100"
+              [(ngModel)]="createForm.ipAddress"
+              name="ipAddress"
+              required
+            />
+            <ui-input-text
+              label="Puerto"
+              type="number"
+              placeholder="104"
+              [(ngModel)]="createForm.port"
+              name="port"
+              required
+            />
+          </div>
+          <ui-input-text
+            label="API Endpoint"
+            placeholder="https://node.example.com/api"
+            hint="Opcional. URL del API REST del nodo."
+            [(ngModel)]="createForm.apiEndpoint"
+            name="apiEndpoint"
+          />
+        </div>
+      }
+
+      <!-- Location section -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Ubicación e instalación</h3>
+        <ui-input-text
+          label="Ubicación"
+          placeholder="Sala 3, Piso 2"
+          [(ngModel)]="editForm.location"
+          name="location"
+        />
+        <ui-input-text
+          label="Facility"
+          placeholder="Hospital Central"
+          [(ngModel)]="editForm.facilityName"
+          name="facilityName"
+        />
       </div>
 
-      <form #nodeForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-5">
-        @if (!isEdit) {
-          <!-- DICOM identity section -->
-          <div class="space-y-4">
-            <ui-input-text
-              label="Nombre"
-              placeholder="Ej: Nodo Radiología Piso 2"
-              hint="Nombre descriptivo para identificar el nodo."
-              [(ngModel)]="createForm.name"
-              name="name"
-              required
-            />
-            <ui-input-text
-              label="AE Title"
-              placeholder="AE Title DICOM"
-              hint="Identificador DICOM único del nodo."
-              [(ngModel)]="createForm.aeTitle"
-              name="aeTitle"
-              required
-            />
-            <div class="grid grid-cols-2 gap-4">
-              <ui-input-text
-                label="Dirección IP"
-                placeholder="192.168.1.100"
-                [(ngModel)]="createForm.ipAddress"
-                name="ipAddress"
-                required
-              />
-              <ui-input-text
-                label="Puerto"
-                type="number"
-                placeholder="104"
-                [(ngModel)]="createForm.port"
-                name="port"
-                required
-              />
-            </div>
-            <ui-input-text
-              label="API Endpoint"
-              placeholder="https://node.example.com/api"
-              hint="Opcional. URL del API REST del nodo."
-              [(ngModel)]="createForm.apiEndpoint"
-              name="apiEndpoint"
-            />
-          </div>
-        }
-
-        <!-- Location section -->
+      <!-- Config section -->
+      @if (isEdit) {
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Ubicación e instalación</h3>
+          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Configuración avanzada</h3>
           <ui-input-text
-            label="Ubicación"
-            placeholder="Sala 3, Piso 2"
-            [(ngModel)]="editForm.location"
-            name="location"
+            label="Zona horaria"
+            placeholder="America/Mexico_City"
+            [(ngModel)]="editForm.timeZone"
+            name="timeZone"
           />
-          <ui-input-text
-            label="Facility"
-            placeholder="Hospital Central"
-            [(ngModel)]="editForm.facilityName"
-            name="facilityName"
-          />
-        </div>
-
-        <!-- Config section -->
-        @if (isEdit) {
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Configuración avanzada</h3>
+          <div class="grid grid-cols-2 gap-4">
             <ui-input-text
-              label="Zona horaria"
-              placeholder="America/Mexico_City"
-              [(ngModel)]="editForm.timeZone"
-              name="timeZone"
+              label="Max Storage (MB)"
+              type="number"
+              [(ngModel)]="editForm.maxStorageMb"
+              name="maxStorageMb"
             />
-            <div class="grid grid-cols-2 gap-4">
-              <ui-input-text
-                label="Max Storage (MB)"
-                type="number"
-                [(ngModel)]="editForm.maxStorageMb"
-                name="maxStorageMb"
-              />
-              <ui-input-text
-                label="Health Check (seg)"
-                type="number"
-                hint="Intervalo de verificación."
-                [(ngModel)]="editForm.healthCheckIntervalSeconds"
-                name="healthCheck"
-              />
-            </div>
+            <ui-input-text
+              label="Health Check (seg)"
+              type="number"
+              hint="Intervalo de verificación."
+              [(ngModel)]="editForm.healthCheckIntervalSeconds"
+              name="healthCheck"
+            />
           </div>
-        } @else {
-          <ui-input-text
-            label="Health Check Interval (seg)"
-            type="number"
-            placeholder="60"
-            hint="Cada cuántos segundos se verifica el estado del nodo."
-            [(ngModel)]="createForm.healthCheckIntervalSeconds"
-            name="healthCheck"
-          />
-        }
-
-        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <ui-button variant="secondary" type="button" (clicked)="onCancel()">
-            Cancelar
-          </ui-button>
-          <ui-button type="submit" [disabled]="!isFormValid">
-            {{ isEdit ? 'Guardar cambios' : 'Crear nodo' }}
-          </ui-button>
         </div>
-      </form>
+      } @else {
+        <ui-input-text
+          label="Health Check Interval (seg)"
+          type="number"
+          placeholder="60"
+          hint="Cada cuántos segundos se verifica el estado del nodo."
+          [(ngModel)]="createForm.healthCheckIntervalSeconds"
+          name="healthCheck"
+        />
+      }
     </div>
+
+    <div uiDialogFooter class="flex items-center gap-3">
+      <ui-button variant="secondary" type="button" (clicked)="onCancel()">
+        Cancelar
+      </ui-button>
+      <ui-button type="submit" [disabled]="!isFormValid">
+        {{ isEdit ? 'Guardar cambios' : 'Crear nodo' }}
+      </ui-button>
+    </div>
+
+  </ui-dialog>
+</form>

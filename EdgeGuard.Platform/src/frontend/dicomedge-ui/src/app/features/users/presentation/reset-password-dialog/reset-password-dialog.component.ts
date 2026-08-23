@@ -7,11 +7,12 @@ import { faTimes, faKey } from '@fortawesome/free-solid-svg-icons';
 import { UiButton } from '../../../../shared/components/ui-button/ui-button.component';
 import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 @Component({
   selector: 'app-reset-password-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, FontAwesomeModule, UiButton, UiIconButton, UiInputText],
+  imports: [ReactiveFormsModule, FontAwesomeModule, UiButton, UiIconButton, UiInputText, UiDialog],
   templateUrl: './reset-password-dialog.component.html',
   styleUrl: './reset-password-dialog.component.scss'
 })

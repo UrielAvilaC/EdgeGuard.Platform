@@ -6,6 +6,71 @@ All components are standalone, use `ChangeDetectionStrategy.OnPush`, and accept 
 
 ---
 
+## UiDialog
+
+The standard shell for every dialog: fixed header and footer, scrollable body.
+Only the body grows and overflows, so the action buttons stay reachable even when
+the content is taller than the screen.
+
+**Selector:** `<ui-dialog>`  
+**Location:** `src/app/shared/components/ui-dialog/`
+
+New dialogs must use it. A spec (`ui-dialog.spec.ts`) scans every
+`*-dialog.component` in the app and fails if one does not, or if it otherwise
+fails to bound its height and scroll its body.
+
+### Inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `width` | `string` | `'560px'` | Desired width; shrinks if it does not fit the viewport |
+| `maxHeight` | `string` | `'85dvh'` | Height cap. `dvh` keeps the mobile browser chrome from covering the footer |
+| `footerAlign` | `'end'` or `'between'` | `'end'` | `between` for footers that separate a destructive action from the rest |
+| `bodyFocusable` | `boolean` | `false` | Makes the body focusable so it can be scrolled with the keyboard. Only needed in read-only dialogs — when the body has form fields, tabbing through them already scrolls it |
+
+### Content Slots
+
+Project one element per slot, marked with the matching attribute:
+`uiDialogHeader`, `uiDialogBody`, `uiDialogFooter`.
+
+### Usage Example
+
+Dialogs with a form must wrap the whole component, **not** the body — otherwise
+the footer's `type="submit"` buttons fall outside the `<form>` and saving
+silently stops working:
+
+```html
+<form #templateForm="ngForm" (ngSubmit)="onSubmit()">
+  <ui-dialog width="560px">
+
+    <div uiDialogHeader class="flex items-start justify-between">
+      <h2 class="text-lg font-semibold">Edit template</h2>
+      <ui-icon-button [icon]="faXmark" ariaLabel="Close" (clicked)="onCancel()" />
+    </div>
+
+    <div uiDialogBody class="space-y-5">
+      <!-- form fields -->
+    </div>
+
+    <div uiDialogFooter class="flex items-center gap-3">
+      <ui-button variant="secondary" type="button" (clicked)="onCancel()">Cancel</ui-button>
+      <ui-button type="submit" [disabled]="!isFormValid">Save changes</ui-button>
+    </div>
+
+  </ui-dialog>
+</form>
+```
+
+### Notes
+
+- `MAT_DIALOG_DEFAULT_OPTIONS` in `app.config.ts` caps every dialog at
+  `90dvh` / `95vw` as a safety net, so a dialog that forgets the shell still
+  cannot grow past the viewport.
+- `UiConfirmDialog` does not use the shell: it is a centered alert card with no
+  header bar. It applies the same principle on its own.
+
+---
+
 ## UiIconButton
 
 A compact icon-only button with an optional tooltip and support for loading and disabled states. Used for action buttons in table rows, detail page toolbars, and card headers.
