@@ -187,3 +187,54 @@ describe('UiDialog footerAlign', () => {
     expect(proyectados[1].parentElement).toBe(footer);
   });
 });
+
+describe('UiDialog bodyLayout', () => {
+  @Component({
+    imports: [UiDialog],
+    template: `
+      <ui-dialog bodyLayout="flex">
+        <div uiDialogHeader>H</div>
+        <div uiDialogBody class="flex-1 min-h-0 flex flex-col">
+          <div class="shrink-0">Fijo</div>
+          <pre class="flex-1 min-h-[8rem] overflow-auto">Scrollea</pre>
+        </div>
+        <div uiDialogFooter>F</div>
+      </ui-dialog>
+    `,
+  })
+  class HostFlex {}
+
+  it('vuelve el cuerpo una columna flex sin perder su overflow de respaldo', () => {
+    const fixture = TestBed.createComponent(HostFlex);
+    fixture.detectChanges();
+    const cuerpo = (fixture.nativeElement as HTMLElement)
+      .querySelector('[uiDialogBody]')!.parentElement!;
+
+    expect(cuerpo.className).toContain('flex-col');
+    // El overflow se mantiene: si los min-height de los hijos no caben, el
+    // cuerpo scrollea en vez de recortarlos.
+    expect(cuerpo.className).toContain('overflow-y-auto');
+    expect(cuerpo.className).toContain('min-h-0');
+  });
+
+  it('no aplica la columna flex en el modo por defecto', () => {
+    @Component({
+      imports: [UiDialog],
+      template: `
+        <ui-dialog>
+          <div uiDialogHeader>H</div>
+          <div uiDialogBody>B</div>
+          <div uiDialogFooter>F</div>
+        </ui-dialog>
+      `,
+    })
+    class HostScroll {}
+
+    const fixture = TestBed.createComponent(HostScroll);
+    fixture.detectChanges();
+    const cuerpo = (fixture.nativeElement as HTMLElement)
+      .querySelector('[uiDialogBody]')!.parentElement!;
+
+    expect(cuerpo.className).not.toContain('flex-col');
+  });
+});
