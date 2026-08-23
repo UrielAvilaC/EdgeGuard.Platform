@@ -14,6 +14,7 @@ using Dicom.Edge.Node.Worklist;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Trace;
+using Dicom.Edge.Abstractions.Storage;
 
 namespace Dicom.Edge.Node.Persistence.Extensions;
 
@@ -115,6 +116,7 @@ public static class PersistenceExtensions
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddSingleton<INodeSettingsService, NodeSettingsService>();
+        services.AddSingleton<IStorageUsageProbe, StorageUsageProbe>();
         services.AddSingleton<IEdgeQueue<EdgeQueueItem>, SqliteEdgeQueue>();
         services.AddSingleton<INodeWorkQueue, SqliteNodeWorkQueue>();
         services.AddSingleton<IWorklistManager, SqliteWorklistManager>();
