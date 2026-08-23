@@ -14,6 +14,7 @@ import {
   CreateNodeDicomRoutingRuleRequest,
   DICOM_MODALITY_OPTIONS,
 } from '../../models/node-dicom-routing-rule.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface NodeDicomRuleFormDialogData {
   rule?: NodeDicomRoutingRule;
@@ -35,6 +36,7 @@ export type NodeDicomRuleFormDialogResult = CreateNodeDicomRoutingRuleRequest;
     UiInputText,
     UiDropdown,
     UiSlideToggle,
+    UiDialog,
   ],
   templateUrl: './node-dicom-rule-form-dialog.component.html',
 })

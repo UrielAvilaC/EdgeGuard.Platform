@@ -1,13 +1,17 @@
-<div class="confirm-dialog">
+<!-- No usa <ui-dialog>: es una tarjeta de alerta centrada, sin barra de header.
+     Aplica el mismo principio: el mensaje es lo único que scrollea y las
+     acciones nunca quedan fuera de pantalla. -->
+<div class="confirm-dialog flex flex-col max-h-[85dvh]">
       @if (data.icon) {
         <div class="dialog-icon" [class.dialog-icon-warn]="data.confirmColor === 'warn'">
           <fa-icon [icon]="data.icon" />
         </div>
       }
       <h2 class="dialog-title">{{ data.title }}</h2>
-      <p class="dialog-message">{{ data.message }}</p>
-      <div class="dialog-actions">
+      <p class="dialog-message flex-1 min-h-0 overflow-y-auto">{{ data.message }}</p>
+      <div class="dialog-actions shrink-0">
         <button
+          type="button"
           mat-stroked-button
           (click)="dialogRef.close(false)"
           class="dialog-btn-cancel"
@@ -15,6 +19,7 @@
           {{ data.cancelText || 'Cancelar' }}
         </button>
         <button
+          type="button"
           mat-flat-button
           [color]="data.confirmColor || 'primary'"
           (click)="dialogRef.close(true)"

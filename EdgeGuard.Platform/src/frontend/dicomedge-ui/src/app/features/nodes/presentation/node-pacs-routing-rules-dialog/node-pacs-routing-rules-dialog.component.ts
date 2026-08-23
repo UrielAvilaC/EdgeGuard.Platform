@@ -36,6 +36,7 @@ import {
   NodeDicomRuleFormDialogData,
   NodeDicomRuleFormDialogResult,
 } from '../node-dicom-rule-form-dialog/node-dicom-rule-form-dialog.component';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface NodePacsRoutingRulesDialogData {
   nodeId: string;
@@ -56,6 +57,7 @@ export interface NodePacsRoutingRulesDialogData {
     UiEmptyState,
     UiAlert,
     UiChip,
+    UiDialog,
   ],
   templateUrl: './node-pacs-routing-rules-dialog.component.html',
 })

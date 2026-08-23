@@ -15,6 +15,7 @@ import {
   UpdateWhatsAppAutoSendRuleRequest,
   STUDY_STATUS_OPTIONS,
 } from '../../models/whatsapp.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface RuleFormDialogData {
   rule?: WhatsAppAutoSendRule;
@@ -34,6 +35,7 @@ export type RuleFormDialogResult = CreateWhatsAppAutoSendRuleRequest | UpdateWha
     UiIconButton,
     UiDropdown,
     UiTextarea,
+    UiDialog,
   ],
   templateUrl: './rule-form-dialog.component.html',
   styleUrl: './rule-form-dialog.component.scss'

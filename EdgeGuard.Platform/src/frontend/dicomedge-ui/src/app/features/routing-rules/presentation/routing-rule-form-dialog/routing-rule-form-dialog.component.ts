@@ -9,6 +9,7 @@ import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-ic
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
 import { UiDropdown, DropdownOption } from '../../../../shared/forms/dropdown/dropdown.component';
 import { RoutingRule, CreateRoutingRuleRequest, UpdateRoutingRuleRequest } from '../../models/routing-rule.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface RoutingRuleFormDialogData {
   rule?: RoutingRule;
@@ -28,6 +29,7 @@ export type RoutingRuleFormDialogResult = CreateRoutingRuleRequest | UpdateRouti
     UiIconButton,
     UiInputText,
     UiDropdown,
+    UiDialog,
   ],
   templateUrl: './routing-rule-form-dialog.component.html',
   styleUrl: './routing-rule-form-dialog.component.scss',

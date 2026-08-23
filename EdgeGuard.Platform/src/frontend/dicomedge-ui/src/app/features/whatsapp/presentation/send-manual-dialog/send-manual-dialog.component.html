@@ -1,82 +1,85 @@
-<div class="p-6 w-[560px] max-w-full">
-      <!-- Header -->
-      <div class="flex items-start justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-            <fa-icon [icon]="faPaperPlane" class="text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Enviar WhatsApp</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Envía un mensaje manualmente a uno o más destinatarios.</p>
-          </div>
+<form #sendForm="ngForm" (ngSubmit)="onSubmit()">
+  <ui-dialog width="560px">
+
+    <div uiDialogHeader class="flex items-start justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+          <fa-icon [icon]="faPaperPlane" class="text-emerald-600 dark:text-emerald-400" />
         </div>
-        <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Enviar WhatsApp</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Envía un mensaje manualmente a uno o más destinatarios.</p>
+        </div>
+      </div>
+      <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+    </div>
+
+    <div uiDialogBody class="space-y-5">
+      <div class="space-y-4">
+        <ui-input-text
+          label="Estudio"
+          [ngModel]="data.studyId"
+          name="studyId"
+          [disabled]="true"
+        />
+
+        <ui-dropdown
+          label="Template"
+          hint="Selecciona el template de mensaje a enviar."
+          [options]="templateOptions"
+          [(ngModel)]="templateId"
+          name="templateId"
+          required
+        />
       </div>
 
-      <form #sendForm="ngForm" (ngSubmit)="onSubmit()" class="space-y-5">
-        <div class="space-y-4">
-          <ui-input-text
-            label="Estudio"
-            [ngModel]="data.studyId"
-            name="studyId"
-            [disabled]="true"
-          />
-
-          <ui-dropdown
-            label="Template"
-            hint="Selecciona el template de mensaje a enviar."
-            [options]="templateOptions"
-            [(ngModel)]="templateId"
-            name="templateId"
-            required
-          />
-        </div>
-
-        <!-- Recipients section -->
-        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/30">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Destinatarios</h3>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Agrega los números de teléfono con código de país.</p>
-            </div>
-            <ui-icon-button [icon]="faPlus" tooltip="Agregar destinatario" ariaLabel="Agregar destinatario" (clicked)="addRecipient()" />
+      <!-- Recipients section -->
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3 bg-gray-50/50 dark:bg-gray-800/30">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Destinatarios</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Agrega los números de teléfono con código de país.</p>
           </div>
-          @for (recipient of recipients; track $index) {
-            <div class="flex items-center gap-2">
-              <div class="flex-1">
-                <ui-input-text
-                  placeholder="+52 555 123 4567"
-                  [(ngModel)]="recipient.phoneNumber"
-                  [name]="'phone_' + $index"
-                  required
-                />
-              </div>
-              <div class="flex-1">
-                <ui-input-text
-                  placeholder="Nombre (opcional)"
-                  [(ngModel)]="recipient.name"
-                  [name]="'name_' + $index"
-                />
-              </div>
-              @if (recipients.length > 1) {
-                <ui-icon-button
-                  [icon]="faTrash"
-                  tooltip="Eliminar"
-                  ariaLabel="Eliminar destinatario"
-                  (clicked)="removeRecipient($index)"
-                />
-              }
+          <ui-icon-button [icon]="faPlus" tooltip="Agregar destinatario" ariaLabel="Agregar destinatario" (clicked)="addRecipient()" />
+        </div>
+        @for (recipient of recipients; track $index) {
+          <div class="flex items-center gap-2">
+            <div class="flex-1">
+              <ui-input-text
+                placeholder="+52 555 123 4567"
+                [(ngModel)]="recipient.phoneNumber"
+                [name]="'phone_' + $index"
+                required
+              />
             </div>
-          }
-        </div>
-
-        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <ui-button variant="secondary" type="button" (clicked)="onCancel()">
-            Cancelar
-          </ui-button>
-          <ui-button type="submit" [disabled]="!isFormValid">
-            Enviar mensaje
-          </ui-button>
-        </div>
-      </form>
+            <div class="flex-1">
+              <ui-input-text
+                placeholder="Nombre (opcional)"
+                [(ngModel)]="recipient.name"
+                [name]="'name_' + $index"
+              />
+            </div>
+            @if (recipients.length > 1) {
+              <ui-icon-button
+                [icon]="faTrash"
+                tooltip="Eliminar"
+                ariaLabel="Eliminar destinatario"
+                (clicked)="removeRecipient($index)"
+              />
+            }
+          </div>
+        }
+      </div>
     </div>
+
+    <div uiDialogFooter class="flex items-center gap-3">
+      <ui-button variant="secondary" type="button" (clicked)="onCancel()">
+        Cancelar
+      </ui-button>
+      <ui-button type="submit" [disabled]="!isFormValid">
+        Enviar mensaje
+      </ui-button>
+    </div>
+
+  </ui-dialog>
+</form>

@@ -1,0 +1,30 @@
+<div class="flex flex-col max-w-full" [style.width]="width()" [style.maxHeight]="maxHeight()">
+
+  <div class="shrink-0 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+    <ng-content select="[uiDialogHeader]" />
+  </div>
+
+  <!-- min-h-0 es obligatorio: sin él un hijo flex no baja de su altura de
+       contenido y overflow-y-auto nunca llega a activarse.
+       En modo `flex` el cuerpo además es columna, para que un hijo pueda
+       reclamar el alto restante y scrollear por su cuenta. El overflow del
+       cuerpo se mantiene como red: si los min-height de esos hijos no caben,
+       scrollea el cuerpo entero en vez de recortarlos. -->
+  <div
+    class="flex-1 min-h-0 overflow-y-auto px-6 py-5"
+    [class.flex]="bodyLayout() === 'flex'"
+    [class.flex-col]="bodyLayout() === 'flex'"
+    [attr.tabindex]="bodyFocusable() ? 0 : null"
+  >
+    <ng-content select="[uiDialogBody]" />
+  </div>
+
+  <div
+    class="shrink-0 flex items-center gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-2xl"
+    [class.justify-end]="footerAlign() === 'end'"
+    [class.justify-between]="footerAlign() === 'between'"
+  >
+    <ng-content select="[uiDialogFooter]" />
+  </div>
+
+</div>

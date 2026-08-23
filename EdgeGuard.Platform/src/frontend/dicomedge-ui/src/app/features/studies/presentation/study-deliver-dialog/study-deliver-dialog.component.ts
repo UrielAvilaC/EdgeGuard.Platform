@@ -15,6 +15,7 @@ import { UiDropdown, DropdownOption } from '../../../../shared/forms/dropdown/dr
 import { ToastService } from '../../../../core/services/toast.service';
 import { NotificationChannelsService } from '../../../../core/services/notification-channels.service';
 import { StudiesApiService, DeliveryHistory } from '../../infrastructure/studies-api.service';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface StudyDeliverDialogData {
   studyId: string;
@@ -45,177 +46,181 @@ const PHONE_RE = /^\+[1-9]\d{7,14}$/;
     UiIconButton,
     UiSlideToggle,
     UiDropdown,
+    UiDialog,
   ],
   template: `
-    <div class="p-6 w-[560px] max-w-full">
-      <!-- Header -->
-      <div class="flex items-start justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <fa-icon [icon]="faPaperPlane" class="text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Entregar resultados</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              Envía el reporte y las ligas de imágenes al paciente.
-            </p>
-          </div>
-        </div>
-        <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
-      </div>
+    <form (ngSubmit)="send()">
+      <ui-dialog width="560px">
 
-      <form class="space-y-5" (ngSubmit)="send()">
-        <!-- Email channel -->
-        @if (channels.emailEnabled()) {
-          <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+        <div uiDialogHeader class="flex items-start justify-between">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+              <fa-icon [icon]="faPaperPlane" class="text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Entregar resultados</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Envía el reporte y las ligas de imágenes al paciente.
+              </p>
+            </div>
+          </div>
+          <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
+        </div>
+
+        <div uiDialogBody class="space-y-5">
+          <!-- Email channel -->
+          @if (channels.emailEnabled()) {
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+              <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                <fa-icon [icon]="faEnvelope" class="text-gray-400" /> Email
+              </h3>
+              <ui-dropdown
+                label="Plantilla de email"
+                placeholder="— seleccionar —"
+                [options]="emailTemplateOptions()"
+                [(ngModel)]="emailTemplateId"
+                name="emailTemplateId"
+              />
+              <div>
+                <mat-form-field appearance="outline" class="w-full">
+                  <mat-label>Destinatarios (email)</mat-label>
+                  <mat-chip-grid #emailChips aria-label="Destinatarios de email">
+                    @for (email of emails(); track email) {
+                      <mat-chip-row (removed)="removeEmail(email)">
+                        {{ email }}
+                        <button matChipRemove [attr.aria-label]="'Quitar ' + email">
+                          <fa-icon [icon]="faXmark" />
+                        </button>
+                      </mat-chip-row>
+                    }
+                    <input
+                      placeholder="paciente@correo.com"
+                      [matChipInputFor]="emailChips"
+                      [matChipInputSeparatorKeyCodes]="separatorKeys"
+                      [matChipInputAddOnBlur]="true"
+                      (matChipInputTokenEnd)="addEmail($event)"
+                    />
+                  </mat-chip-grid>
+                  <mat-hint>Enter o Tab para agregar cada correo.</mat-hint>
+                </mat-form-field>
+                @if (emailError()) {
+                  <p class="mt-1 text-xs text-red-500">{{ emailError() }}</p>
+                }
+              </div>
+              @if (data.hasPdf) {
+                <ui-slide-toggle label="Adjuntar PDF" [(ngModel)]="attachPdf" name="attachPdf" />
+              }
+            </div>
+          }
+
+          <!-- WhatsApp channel -->
+          <div
+            class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30"
+            [class.opacity-60]="!channels.whatsAppEnabled()"
+          >
             <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-              <fa-icon [icon]="faEnvelope" class="text-gray-400" /> Email
+              <fa-icon [icon]="faCommentSms" class="text-gray-400" /> WhatsApp
+              @if (!channels.whatsAppEnabled()) {
+                <span class="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                  No disponible
+                </span>
+              }
             </h3>
             <ui-dropdown
-              label="Plantilla de email"
+              label="Plantilla de WhatsApp"
               placeholder="— seleccionar —"
-              [options]="emailTemplateOptions()"
-              [(ngModel)]="emailTemplateId"
-              name="emailTemplateId"
+              [options]="whatsAppTemplateOptions()"
+              [(ngModel)]="whatsAppTemplateId"
+              name="whatsAppTemplateId"
+              [disabled]="!channels.whatsAppEnabled()"
             />
             <div>
               <mat-form-field appearance="outline" class="w-full">
-                <mat-label>Destinatarios (email)</mat-label>
-                <mat-chip-grid #emailChips aria-label="Destinatarios de email">
-                  @for (email of emails(); track email) {
-                    <mat-chip-row (removed)="removeEmail(email)">
-                      {{ email }}
-                      <button matChipRemove [attr.aria-label]="'Quitar ' + email">
+                <mat-label>Números (con código de país)</mat-label>
+                <mat-chip-grid #phoneChips [disabled]="!channels.whatsAppEnabled()" aria-label="Números de WhatsApp">
+                  @for (phone of phones(); track phone) {
+                    <mat-chip-row (removed)="removePhone(phone)">
+                      {{ phone }}
+                      <button matChipRemove [attr.aria-label]="'Quitar ' + phone">
                         <fa-icon [icon]="faXmark" />
                       </button>
                     </mat-chip-row>
                   }
                   <input
-                    placeholder="paciente@correo.com"
-                    [matChipInputFor]="emailChips"
+                    placeholder="+52155..."
+                    [matChipInputFor]="phoneChips"
                     [matChipInputSeparatorKeyCodes]="separatorKeys"
                     [matChipInputAddOnBlur]="true"
-                    (matChipInputTokenEnd)="addEmail($event)"
+                    [disabled]="!channels.whatsAppEnabled()"
+                    (matChipInputTokenEnd)="addPhone($event)"
                   />
                 </mat-chip-grid>
-                <mat-hint>Enter o Tab para agregar cada correo.</mat-hint>
+                <mat-hint>
+                  @if (channels.whatsAppEnabled()) {
+                    Enter o Tab para agregar cada número.
+                  } @else {
+                    Canal de WhatsApp no disponible.
+                  }
+                </mat-hint>
               </mat-form-field>
-              @if (emailError()) {
-                <p class="mt-1 text-xs text-red-500">{{ emailError() }}</p>
+              @if (phoneError()) {
+                <p class="mt-1 text-xs text-red-500">{{ phoneError() }}</p>
               }
             </div>
-            @if (data.hasPdf) {
-              <ui-slide-toggle label="Adjuntar PDF" [(ngModel)]="attachPdf" name="attachPdf" />
-            }
           </div>
-        }
 
-        <!-- WhatsApp channel -->
-        <div
-          class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30"
-          [class.opacity-60]="!channels.whatsAppEnabled()"
-        >
-          <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-            <fa-icon [icon]="faCommentSms" class="text-gray-400" /> WhatsApp
-            @if (!channels.whatsAppEnabled()) {
-              <span class="ml-auto text-xs font-medium px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                No disponible
-              </span>
-            }
-          </h3>
-          <ui-dropdown
-            label="Plantilla de WhatsApp"
-            placeholder="— seleccionar —"
-            [options]="whatsAppTemplateOptions()"
-            [(ngModel)]="whatsAppTemplateId"
-            name="whatsAppTemplateId"
-            [disabled]="!channels.whatsAppEnabled()"
-          />
-          <div>
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Números (con código de país)</mat-label>
-              <mat-chip-grid #phoneChips [disabled]="!channels.whatsAppEnabled()" aria-label="Números de WhatsApp">
-                @for (phone of phones(); track phone) {
-                  <mat-chip-row (removed)="removePhone(phone)">
-                    {{ phone }}
-                    <button matChipRemove [attr.aria-label]="'Quitar ' + phone">
-                      <fa-icon [icon]="faXmark" />
-                    </button>
-                  </mat-chip-row>
+          @if (!channels.anyEnabled()) {
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              No hay canales de entrega activos.
+            </p>
+          }
+
+          <!-- Delivery history -->
+          @if (deliveries().length > 0) {
+            <div class="space-y-1.5 pt-1">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Historial de entregas
+                </div>
+                @if (hiddenDeliveryCount() > 0) {
+                  <button
+                    type="button"
+                    class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                    (click)="toggleDeliveries()"
+                  >
+                    @if (showAllDeliveries()) {
+                      Ver menos
+                    } @else {
+                      Ver más ({{ hiddenDeliveryCount() }})
+                    }
+                  </button>
                 }
-                <input
-                  placeholder="+52155..."
-                  [matChipInputFor]="phoneChips"
-                  [matChipInputSeparatorKeyCodes]="separatorKeys"
-                  [matChipInputAddOnBlur]="true"
-                  [disabled]="!channels.whatsAppEnabled()"
-                  (matChipInputTokenEnd)="addPhone($event)"
-                />
-              </mat-chip-grid>
-              <mat-hint>
-                @if (channels.whatsAppEnabled()) {
-                  Enter o Tab para agregar cada número.
-                } @else {
-                  Canal de WhatsApp no disponible.
+              </div>
+              <div [class.max-h-40]="showAllDeliveries()" [class.overflow-y-auto]="showAllDeliveries()" class="space-y-1.5 pr-1">
+                @for (d of visibleDeliveries(); track d.id) {
+                  <div class="text-xs flex items-center gap-2">
+                    <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700">{{ d.channel }}</span>
+                    <span class="text-gray-600 dark:text-gray-300 truncate flex-1">{{ d.to }}</span>
+                    <span
+                      [class.text-emerald-600]="d.status === 'Sent'"
+                      [class.text-red-500]="d.status === 'Failed'"
+                    >{{ d.status }}</span>
+                  </div>
                 }
-              </mat-hint>
-            </mat-form-field>
-            @if (phoneError()) {
-              <p class="mt-1 text-xs text-red-500">{{ phoneError() }}</p>
-            }
-          </div>
+              </div>
+            </div>
+          }
         </div>
 
-        @if (!channels.anyEnabled()) {
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            No hay canales de entrega activos.
-          </p>
-        }
-
-        <!-- Delivery history -->
-        @if (deliveries().length > 0) {
-          <div class="space-y-1.5 pt-1">
-            <div class="flex items-center justify-between">
-              <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Historial de entregas
-              </div>
-              @if (hiddenDeliveryCount() > 0) {
-                <button
-                  type="button"
-                  class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                  (click)="toggleDeliveries()"
-                >
-                  @if (showAllDeliveries()) {
-                    Ver menos
-                  } @else {
-                    Ver más ({{ hiddenDeliveryCount() }})
-                  }
-                </button>
-              }
-            </div>
-            <div [class.max-h-40]="showAllDeliveries()" [class.overflow-y-auto]="showAllDeliveries()" class="space-y-1.5 pr-1">
-              @for (d of visibleDeliveries(); track d.id) {
-                <div class="text-xs flex items-center gap-2">
-                  <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700">{{ d.channel }}</span>
-                  <span class="text-gray-600 dark:text-gray-300 truncate flex-1">{{ d.to }}</span>
-                  <span
-                    [class.text-emerald-600]="d.status === 'Sent'"
-                    [class.text-red-500]="d.status === 'Failed'"
-                  >{{ d.status }}</span>
-                </div>
-              }
-            </div>
-          </div>
-        }
-
-        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div uiDialogFooter class="flex items-center gap-3">
           <ui-button variant="secondary" type="button" (clicked)="onCancel()">Cerrar</ui-button>
           <ui-button type="submit" [icon]="faPaperPlane" [disabled]="sending() || !channels.anyEnabled()">
             Enviar
           </ui-button>
         </div>
-      </form>
-    </div>
+
+      </ui-dialog>
+    </form>
   `,
 })
 export class StudyDeliverDialog {

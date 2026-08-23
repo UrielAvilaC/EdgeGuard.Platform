@@ -10,6 +10,7 @@ import { UiInputText } from '../../../../shared/forms/input-text/input-text.comp
 import { UiDatepicker } from '../../../../shared/forms/datepicker/datepicker.component';
 import { UiDropdown } from '../../../../shared/forms/dropdown/dropdown.component';
 import { Patient, UpdatePatientRequest, SEX_OPTIONS } from '../../models/patient.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface PatientFormDialogData {
   patient: Patient;
@@ -27,6 +28,7 @@ export interface PatientFormDialogData {
     UiInputText,
     UiDatepicker,
     UiDropdown,
+    UiDialog,
   ],
   templateUrl: './patient-form-dialog.component.html',
   styleUrl: './patient-form-dialog.component.scss'

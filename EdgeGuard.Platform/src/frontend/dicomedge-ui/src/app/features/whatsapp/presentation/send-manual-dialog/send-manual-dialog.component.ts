@@ -13,6 +13,7 @@ import {
   WhatsAppRecipient,
   SendWhatsAppManualRequest,
 } from '../../models/whatsapp.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface SendManualDialogData {
   studyId: string;
@@ -30,6 +31,7 @@ export interface SendManualDialogData {
     UiIconButton,
     UiInputText,
     UiDropdown,
+    UiDialog,
   ],
   templateUrl: './send-manual-dialog.component.html',
   styleUrl: './send-manual-dialog.component.scss'

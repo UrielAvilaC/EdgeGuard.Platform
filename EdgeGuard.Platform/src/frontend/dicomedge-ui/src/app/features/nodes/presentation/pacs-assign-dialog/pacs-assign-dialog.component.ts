@@ -30,6 +30,7 @@ import { PacsServer } from '../../../pacs/models/pacs.models';
 import { PacsApiService } from '../../../pacs/infrastructure/pacs-api.service';
 import { NodesApiService } from '../../infrastructure/nodes-api.service';
 import { NodePacsAssignment } from '../../models/node.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface PacsAssignDialogData {
   nodeId: string;
@@ -58,6 +59,7 @@ interface PacsRowState {
     UiEmptyState,
     UiChip,
     UiAlert,
+    UiDialog,
   ],
   templateUrl: './pacs-assign-dialog.component.html',
   styleUrl: './pacs-assign-dialog.component.scss',

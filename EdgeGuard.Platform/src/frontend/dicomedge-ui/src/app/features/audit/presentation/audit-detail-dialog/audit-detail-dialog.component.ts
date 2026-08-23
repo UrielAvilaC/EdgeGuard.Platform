@@ -8,11 +8,12 @@ import { UiButton } from '../../../../shared/components/ui-button/ui-button.comp
 import { UiChip } from '../../../../shared/components/ui-chip/ui-chip.component';
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { AuditLogDto, getSeverityColor, getSeverityLabel } from '../../models/audit.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 @Component({
   selector: 'app-audit-detail-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FontAwesomeModule, UiButton, UiChip, RelativeTimePipe],
+  imports: [FontAwesomeModule, UiButton, UiChip, RelativeTimePipe, UiDialog],
   templateUrl: './audit-detail-dialog.component.html',
   styleUrl: './audit-detail-dialog.component.scss'
 })

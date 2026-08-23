@@ -8,6 +8,7 @@ import { UiButton } from '../../../../shared/components/ui-button/ui-button.comp
 import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-icon-button.component';
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
 import { Node, CreateNodeRequest, UpdateNodeRequest } from '../../models/node.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface NodeFormDialogData {
   node?: Node;
@@ -25,6 +26,7 @@ export type NodeFormDialogResult = CreateNodeRequest | UpdateNodeRequest;
     UiButton,
     UiIconButton,
     UiInputText,
+    UiDialog,
   ],
   templateUrl: './node-form-dialog.component.html',
   styleUrl: './node-form-dialog.component.scss'

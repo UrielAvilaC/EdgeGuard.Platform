@@ -13,6 +13,7 @@ import {
   NodeEquipment,
   CreateNodeEquipmentRequest,
 } from '../../models/equipment.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface EquipmentFormDialogData {
   equipment?: NodeEquipment;
@@ -33,6 +34,7 @@ export type EquipmentFormDialogResult = CreateNodeEquipmentRequest;
     UiIconButton,
     UiInputText,
     UiDropdown,
+    UiDialog,
   ],
   templateUrl: './equipment-form-dialog.component.html',
 })

@@ -10,6 +10,7 @@ import { UiInputText } from '../../../../shared/forms/input-text/input-text.comp
 import { UiDropdown, DropdownOption } from '../../../../shared/forms/dropdown/dropdown.component';
 import { RoutingRule, CreateRoutingRuleRequest, UpdateRoutingRuleRequest } from '../../models/hl7.models';
 import { Node } from '../../../nodes/models/node.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface RoutingRuleFormDialogData {
   rule?: RoutingRule;
@@ -29,6 +30,7 @@ export type RoutingRuleFormDialogResult = CreateRoutingRuleRequest | UpdateRouti
     UiIconButton,
     UiInputText,
     UiDropdown,
+    UiDialog,
   ],
   templateUrl: './routing-rule-form-dialog.component.html',
   styleUrl: './routing-rule-form-dialog.component.scss'

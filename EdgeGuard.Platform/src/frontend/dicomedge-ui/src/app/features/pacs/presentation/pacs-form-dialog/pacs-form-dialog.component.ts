@@ -9,6 +9,7 @@ import { UiIconButton } from '../../../../shared/components/ui-icon-button/ui-ic
 import { UiInputText } from '../../../../shared/forms/input-text/input-text.component';
 import { UiSlideToggle } from '../../../../shared/forms/slide-toggle/slide-toggle.component';
 import { PacsServer, CreatePacsServerRequest, UpdatePacsServerRequest } from '../../models/pacs.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface PacsFormDialogData {
   server?: PacsServer;
@@ -27,6 +28,7 @@ export type PacsFormDialogResult = CreatePacsServerRequest | UpdatePacsServerReq
     UiIconButton,
     UiInputText,
     UiSlideToggle,
+    UiDialog,
   ],
   templateUrl: './pacs-form-dialog.component.html',
   styleUrl: './pacs-form-dialog.component.scss'

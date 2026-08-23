@@ -12,6 +12,7 @@ import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.compone
 import { NodesApiService } from '../../../nodes/infrastructure/nodes-api.service';
 import { PacsApiService } from '../../../pacs/infrastructure/pacs-api.service';
 import { PacsServer } from '../../../pacs/models/pacs.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface StudyRequeueDialogData {
   studyId: string;
@@ -35,6 +36,7 @@ interface PacsRowState {
     UiLoadingSpinner,
     UiEmptyState,
     UiAlert,
+    UiDialog,
   ],
   templateUrl: './study-requeue-dialog.component.html',
   styleUrl: './study-requeue-dialog.component.scss',

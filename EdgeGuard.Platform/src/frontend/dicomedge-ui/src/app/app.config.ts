@@ -4,6 +4,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideNativeDateAdapter } from '@angular/material/core';
 import { MatPaginatorIntl } from '@angular/material/paginator';
+import { MAT_DIALOG_DEFAULT_OPTIONS } from '@angular/material/dialog';
 
 import { SpanishPaginatorIntl } from './shared/services/spanish-paginator-intl';
 import { routes } from './app.routes';
@@ -36,6 +37,12 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideNativeDateAdapter(),
     { provide: MatPaginatorIntl, useClass: SpanishPaginatorIntl },
+    // Red de seguridad: aunque un diálogo olvide usar <ui-dialog>, nunca puede
+    // crecer más allá del viewport y dejar sus botones fuera de alcance.
+    {
+      provide: MAT_DIALOG_DEFAULT_OPTIONS,
+      useValue: { maxHeight: '90dvh', maxWidth: '95vw' },
+    },
     { provide: ENVIRONMENT, useValue: environment },
   ],
 };

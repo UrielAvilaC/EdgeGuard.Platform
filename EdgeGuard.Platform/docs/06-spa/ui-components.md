@@ -6,6 +6,101 @@ All components are standalone, use `ChangeDetectionStrategy.OnPush`, and accept 
 
 ---
 
+## UiDialog
+
+The standard shell for every dialog: fixed header and footer, scrollable body.
+Only the body grows and overflows, so the action buttons stay reachable even when
+the content is taller than the screen.
+
+**Selector:** `<ui-dialog>`  
+**Location:** `src/app/shared/components/ui-dialog/`
+
+New dialogs must use it. A spec (`ui-dialog.spec.ts`) scans every
+`*-dialog.component` in the app and fails if one does not, or if it otherwise
+fails to bound its height and scroll its body.
+
+### Inputs
+
+| Input | Type | Default | Description |
+|-------|------|---------|-------------|
+| `width` | `string` | `'560px'` | Desired width; shrinks if it does not fit the viewport |
+| `maxHeight` | `string` | `'85dvh'` | Height cap. `dvh` keeps the mobile browser chrome from covering the footer |
+| `bodyLayout` | `'scroll'` or `'flex'` | `'scroll'` | `flex` turns the body into a flex column so the content can decide what stays pinned and what scrolls (see below) |
+| `footerAlign` | `'end'` or `'between'` | `'end'` | `between` for footers that separate a destructive action from the rest |
+| `bodyFocusable` | `boolean` | `false` | Makes the body focusable so it can be scrolled with the keyboard. Only applies in `scroll` mode, and only needed in read-only dialogs — when the body has form fields, tabbing through them already scrolls it |
+
+### Content Slots
+
+Project one element per slot, marked with the matching attribute:
+`uiDialogHeader`, `uiDialogBody`, `uiDialogFooter`.
+
+### Usage Example
+
+Dialogs with a form must wrap the whole component, **not** the body — otherwise
+the footer's `type="submit"` buttons fall outside the `<form>` and saving
+silently stops working:
+
+```html
+<form #templateForm="ngForm" (ngSubmit)="onSubmit()">
+  <ui-dialog width="560px">
+
+    <div uiDialogHeader class="flex items-start justify-between">
+      <h2 class="text-lg font-semibold">Edit template</h2>
+      <ui-icon-button [icon]="faXmark" ariaLabel="Close" (clicked)="onCancel()" />
+    </div>
+
+    <div uiDialogBody class="space-y-5">
+      <!-- form fields -->
+    </div>
+
+    <div uiDialogFooter class="flex items-center gap-3">
+      <ui-button variant="secondary" type="button" (clicked)="onCancel()">Cancel</ui-button>
+      <ui-button type="submit" [disabled]="!isFormValid">Save changes</ui-button>
+    </div>
+
+  </ui-dialog>
+</form>
+```
+
+### Pinning part of the body (`bodyLayout="flex"`)
+
+By default the whole body scrolls. Set `bodyLayout="flex"` when part of the
+body should stay pinned while an inner region scrolls on its own — for
+example metadata above a payload viewer. The projected body element becomes
+the flex column:
+
+```html
+<ui-dialog width="640px" bodyLayout="flex">
+  <div uiDialogBody class="flex-1 min-h-0 flex flex-col">
+    <div class="grid grid-cols-2 gap-3 mb-4 shrink-0"><!-- metadata pinned --></div>
+    <pre tabindex="0" class="flex-1 min-h-[8rem] overflow-auto"><!-- scrolls --></pre>
+  </div>
+</ui-dialog>
+```
+
+Three rules make it behave:
+
+- Mark everything that stays pinned as `shrink-0`, or it gets squeezed.
+- Give the scrolling child a `min-h`. Without it, pinned content eats the
+  available height and the scroller collapses to a line or two on short
+  screens — measured at 1280x420, an 8rem floor is the difference between a
+  usable viewer and 32px of it.
+- Put `tabindex="0"` on the scrolling child, not on the body. In this mode the
+  body is not what scrolls, so `bodyFocusable` would only add a dead focus stop.
+
+The body keeps its own `overflow-y-auto` as a backstop: if those `min-h`
+floors do not fit, the body scrolls instead of clipping them.
+
+### Notes
+
+- `MAT_DIALOG_DEFAULT_OPTIONS` in `app.config.ts` caps every dialog at
+  `90dvh` / `95vw` as a safety net, so a dialog that forgets the shell still
+  cannot grow past the viewport.
+- `UiConfirmDialog` does not use the shell: it is a centered alert card with no
+  header bar. It applies the same principle on its own.
+
+---
+
 ## UiIconButton
 
 A compact icon-only button with an optional tooltip and support for loading and disabled states. Used for action buttons in table rows, detail page toolbars, and card headers.

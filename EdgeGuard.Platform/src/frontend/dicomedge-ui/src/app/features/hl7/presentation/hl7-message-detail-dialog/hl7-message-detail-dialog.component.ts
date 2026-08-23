@@ -10,6 +10,7 @@ import { UiChip } from '../../../../shared/components/ui-chip/ui-chip.component'
 import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { ChipColor } from '../../../../shared/components/ui-chip/ui-chip.component';
 import { Hl7MessageDetail, MESSAGE_STATUS_OPTIONS } from '../../models/hl7.models';
+import { UiDialog } from '../../../../shared/components/ui-dialog/ui-dialog.component';
 
 export interface Hl7MessageDetailDialogData {
   message: Hl7MessageDetail;
@@ -25,6 +26,7 @@ export interface Hl7MessageDetailDialogData {
     UiIconButton,
     UiChip,
     RelativeTimePipe,
+    UiDialog,
   ],
   templateUrl: './hl7-message-detail-dialog.component.html',
   styleUrl: './hl7-message-detail-dialog.component.scss'
