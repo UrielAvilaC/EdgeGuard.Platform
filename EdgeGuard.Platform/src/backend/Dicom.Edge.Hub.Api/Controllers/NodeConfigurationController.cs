@@ -1,5 +1,6 @@
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
+using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Security.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,13 +19,16 @@ public class NodeConfigurationController : ControllerBase
 {
     private readonly INodeConfigurationService _configService;
     private readonly INodeConfigPushService _pushService;
+    private readonly INodeRepository _nodeRepository;
 
     public NodeConfigurationController(
         INodeConfigurationService configService,
-        INodeConfigPushService pushService)
+        INodeConfigPushService pushService,
+        INodeRepository nodeRepository)
     {
         _configService = configService;
         _pushService = pushService;
+        _nodeRepository = nodeRepository;
     }
 
     /// <summary>
@@ -126,6 +130,19 @@ public class NodeConfigurationController : ControllerBase
     public async Task<IActionResult> GetVersion(string nodeId, CancellationToken ct)
     {
         var version = await _configService.ComputeConfigVersionAsync(nodeId, ct);
-        return Ok(new { configVersion = version });
+        var node = await _nodeRepository.GetByIdAsync(nodeId, ct);
+
+        // Se devuelven las dos versiones y no un booleano de éxito, porque
+        // aplicar la configuración no es un instante sino un estado: el push
+        // inmediato puede fallar y el nodo recibirla igual por el reintento del
+        // outbox o por su propio pull. Comparar versiones dice la verdad sin
+        // importar por cuál de los tres caminos llegó.
+        return Ok(new
+        {
+            configVersion = version,
+            appliedVersion = node?.ConfigAppliedVersion,
+            appliedAt = node?.ConfigAppliedAt,
+            isApplied = node?.ConfigAppliedVersion == version,
+        });
     }
 }
