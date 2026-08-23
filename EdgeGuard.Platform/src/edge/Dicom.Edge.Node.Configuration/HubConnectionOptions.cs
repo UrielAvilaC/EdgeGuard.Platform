@@ -22,6 +22,14 @@ public sealed class HubConnectionOptions
     public string BootstrapToken { get; set; } = string.Empty;
     public int HeartbeatIntervalSeconds { get; set; } = 60;
     public int ConfigPullIntervalSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// Cadencia del reporte de salud, deliberadamente separada del latido. El
+    /// latido es barato y va cada minuto; medir el almacenamiento implica un
+    /// agregado sobre la base y, cada tantas vueltas, un recorrido del árbol de
+    /// archivos. Atarlos degradaría el nodo justo cuando está más lleno.
+    /// </summary>
+    public int HealthReportIntervalSeconds { get; set; } = 300;
     public int TimeoutSeconds { get; set; } = 30;
     public bool RegisterOnStartup { get; set; } = true;
     public int MaxReconnectAttempts { get; set; } = 10;

@@ -18,6 +18,12 @@ public interface IHubSyncClient
     /// <summary>Sends a periodic telemetry snapshot to the Hub.</summary>
     Task<bool> SendTelemetryAsync(NodeTelemetryRequest request, CancellationToken ct = default);
 
+    /// <summary>
+    /// Envía la medición de almacenamiento y las métricas de salud. Es el canal
+    /// del que el Hub obtiene el consumo del nodo: el latido solo prueba vida.
+    /// </summary>
+    Task<bool> SendHealthReportAsync(NodeHealthReportRequest request, CancellationToken ct = default);
+
     /// <summary>Notifies the Hub that a study has completed so it appears in the SPA.</summary>
     Task<bool> NotifyStudyAsync(StudyNotifyRequest request, CancellationToken ct = default);
 
