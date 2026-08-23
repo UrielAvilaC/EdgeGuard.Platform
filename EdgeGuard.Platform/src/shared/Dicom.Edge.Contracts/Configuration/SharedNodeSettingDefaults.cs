@@ -90,7 +90,6 @@ public static class SharedNodeSettingDefaults
 
             // ── Storage ─────────────────────────────────────────────────────
             E(K.Storage.RootPath,    "./data",    C.Storage, "DICOM Storage Root Path", V.String),
-            E(K.Storage.ArchivePath, "./archive", C.Storage, "Archive Root Path",        V.String),
 
             // ── PACS Sender ─────────────────────────────────────────────────
             E(K.PacsSender.Enabled,                   "true",     C.PacsSender, "PACS Sender Enabled",       V.Bool),
@@ -196,7 +195,6 @@ public static class SharedNodeSettingDefaults
         public static class Storage
         {
             public const string RootPath    = SharedNodeSettingKeys.Storage.RootPath;
-            public const string ArchivePath = SharedNodeSettingKeys.Storage.ArchivePath;
         }
         public static class PacsSender
         {

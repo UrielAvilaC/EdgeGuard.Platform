@@ -41,6 +41,18 @@ try
         : builder.Configuration.GetConnectionString(NodeConstants.ConnectionStringName)
           ?? NodeConstants.DefaultConnectionString;
 
+    // ── Las rutas de base y de DICOM no pueden solaparse ──────────────────
+    var dicomRootPath = builder.Configuration.GetValue<string>("NodeStorage:RootPath");
+    if (StoragePathGuard.Validate(sqliteConnectionString, dicomRootPath ?? string.Empty) is { } pathError)
+    {
+        // En desarrollo se avisa y se sigue; en producción es motivo de no arrancar,
+        // porque el daño (purga de estudios) es silencioso y acumulativo.
+        if (builder.Environment.IsProduction())
+            throw new InvalidOperationException(pathError);
+
+        Console.Error.WriteLine("ADVERTENCIA: " + pathError);
+    }
+
     // ── Load operational settings from SQLite database ────────────────────
     builder.Configuration.AddNodeDatabaseConfiguration(sqliteConnectionString, builder.Services);
 

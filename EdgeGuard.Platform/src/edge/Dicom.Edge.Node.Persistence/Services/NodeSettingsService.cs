@@ -316,8 +316,7 @@ public sealed class NodeSettingsService(
     {
         var d = await GetCategoryAsync(NodeSettingCategories.Storage, ct);
         return new StorageConfig(
-            RootPath:    S(d, NodeSettingKeys.Storage.RootPath,    "./data"),
-            ArchivePath: S(d, NodeSettingKeys.Storage.ArchivePath, "./archive"));
+            RootPath: S(d, NodeSettingKeys.Storage.RootPath, "./data"));
     }
 
     public async Task<SecurityConfig> GetSecurityConfigAsync(CancellationToken ct = default)

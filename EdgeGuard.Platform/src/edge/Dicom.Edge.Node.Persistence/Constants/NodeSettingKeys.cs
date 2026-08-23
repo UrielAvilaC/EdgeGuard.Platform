@@ -104,7 +104,6 @@ public static class NodeSettingKeys
     public static class Storage
     {
         public const string RootPath    = SharedNodeSettingKeys.Storage.RootPath;
-        public const string ArchivePath = SharedNodeSettingKeys.Storage.ArchivePath;
     }
 
     // ── PACS Sender ──────────────────────────────────────────────────────────────

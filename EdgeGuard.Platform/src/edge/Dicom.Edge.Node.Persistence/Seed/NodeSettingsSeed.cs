@@ -124,7 +124,6 @@ internal static class NodeSettingsSeed
 
         // ── Storage ──────────────────────────────────────────────────────────
         Row(NodeSettingKeys.Storage.RootPath,    "./data",      Cat.Storage, "DICOM Storage Root Path", VT.String),
-        Row(NodeSettingKeys.Storage.ArchivePath, "./workspace", Cat.Storage, "Archive Root Path",        VT.String),
 
         // ── PACS Sender ──────────────────────────────────────────────────────
         Row(NodeSettingKeys.PacsSender.Enabled,                   "true",      Cat.PacsSender, "PACS Sender Enabled",               VT.Bool),

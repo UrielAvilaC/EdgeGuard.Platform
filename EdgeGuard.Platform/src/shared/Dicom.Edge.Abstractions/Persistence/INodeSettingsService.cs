@@ -123,8 +123,7 @@ public sealed record TransferConfig(
 
 /// <summary>Physical storage paths.</summary>
 public sealed record StorageConfig(
-    string RootPath,
-    string ArchivePath);
+    string RootPath);
 
 /// <summary>Security and audit retention settings.</summary>
 public sealed record SecurityConfig(

@@ -45,24 +45,28 @@ If missing, download the **.NET Runtime** (not the SDK, not the ASP.NET Core Hos
 
 ## Data Directory Structure
 
-The Node uses a predictable directory layout under its installation path. **Recommended root:** `C:\EdgeGuard\Node\`.
+The Node separates **binaries** from **mutable data**. Binaries go under the installation path (**recommended:** `C:\EdgeGuard\Node\`); the database, DICOM files, and logs live under `C:\ProgramData\EdgeGuard\Node\`. Keeping them apart means an upgrade can replace the installation folder wholesale without touching state — the same rule the Hub installer enforces for its Data Protection key ring.
 
 ```
-C:\EdgeGuard\Node\
+C:\EdgeGuard\Node\                   # Binaries — replaced on upgrade
   ├── Dicom.Edge.Node.exe          # Service host
   ├── Dicom.Edge.Node.dll          # Application
   ├── appsettings.json             # Base configuration (committed-in defaults)
-  ├── appsettings.Production.json  # Site-specific overrides (NOT committed)
+  └── appsettings.Production.json  # Site-specific overrides (NOT committed)
+
+C:\ProgramData\EdgeGuard\Node\       # State — survives upgrades
   ├── persistence\
   │   └── edge-node.db             # SQLite DB (routing rules, queue, settings)
   ├── logs\
   │   ├── node-20260517.log        # Daily rolling log files
   │   └── node-20260518.log
-  └── data\
+  └── data\                        # DICOM storage root
       └── <StudyInstanceUid>\      # Temp DICOM files in transit (auto-cleaned)
           └── <SeriesInstanceUid>\
               └── <SopInstanceUid>.dcm
 ```
+
+> **The database must stay outside `data\`.** The Node measures its workspace by walking the DICOM root; if the SQLite file lives inside it, that measurement counts the database as purgeable DICOM load, and emergency cleanup deletes studies to relieve pressure it cannot relieve — SQLite does not return pages to the OS without a `VACUUM`. The Node validates this at startup and refuses to boot in Production if the two paths overlap.
 
 > **Cleanup behaviour:** files under `data\` are removed after successful forwarding to the PACS. This directory can be cleared while the service is stopped — in-flight studies will need to be re-sent from the modality.
 
@@ -162,15 +166,15 @@ dotnet publish src\edge\Dicom.Edge.Node `
 ### 2. Pre-create data folders with correct permissions
 
 ```powershell
-New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\logs        | Out-Null
-New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\persistence | Out-Null
-New-Item -ItemType Directory -Force -Path C:\EdgeGuard\Node\data        | Out-Null
+New-Item -ItemType Directory -Force -Path C:\ProgramData\EdgeGuard\Node\logs        | Out-Null
+New-Item -ItemType Directory -Force -Path C:\ProgramData\EdgeGuard\Node\persistence | Out-Null
+New-Item -ItemType Directory -Force -Path C:\ProgramData\EdgeGuard\Node\data        | Out-Null
 
 # Grant the service account Modify rights on the writable folders.
 # Replace NT AUTHORITY\NetworkService with your dedicated service account if applicable.
-icacls C:\EdgeGuard\Node\logs        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
-icacls C:\EdgeGuard\Node\persistence /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
-icacls C:\EdgeGuard\Node\data        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+icacls C:\ProgramData\EdgeGuard\Node\logs        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+icacls C:\ProgramData\EdgeGuard\Node\persistence /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
+icacls C:\ProgramData\EdgeGuard\Node\data        /grant "NT AUTHORITY\NetworkService:(OI)(CI)M" /T
 ```
 
 ### 3. Create and start the service
@@ -213,7 +217,7 @@ Get-Service EdgeGuardNode
 ### 6. Tail the log
 
 ```powershell
-Get-Content "C:\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" -Wait -Tail 50
+Get-Content "C:\ProgramData\EdgeGuard\Node\logs\node-$(Get-Date -Format yyyyMMdd).log" -Wait -Tail 50
 ```
 
 Expected first-run lines:
@@ -346,7 +350,7 @@ Stop-Service EdgeGuardNode
 
 # 2. Optional — back up the SQLite database
 $stamp = Get-Date -Format yyyyMMdd-HHmmss
-Copy-Item C:\EdgeGuard\Node\persistence\edge-node.db `
+Copy-Item C:\ProgramData\EdgeGuard\Node\persistence\edge-node.db `
           C:\EdgeGuard\Backups\edge-node.$stamp.db
 
 # 3. Publish the new version over the existing directory.

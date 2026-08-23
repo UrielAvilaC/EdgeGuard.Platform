@@ -107,7 +107,6 @@ public static class SharedNodeSettingKeys
     public static class Storage
     {
         public const string RootPath    = "storage.root_path";
-        public const string ArchivePath = "storage.archive_path";
     }
 
     // ── PACS Sender ──────────────────────────────────────────────────────────────
