@@ -28,4 +28,10 @@
     <PackageReference Include="MailKit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- CollectDegradedReasons es una función pura y se prueba directamente. Se
+         mantiene internal para no ampliar la superficie pública por una prueba. -->
+    <InternalsVisibleTo Include="Dicom.Edge.Hub.Tests" />
+  </ItemGroup>
+
 </Project>
