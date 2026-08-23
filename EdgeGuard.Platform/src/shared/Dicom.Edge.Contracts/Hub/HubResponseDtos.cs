@@ -35,8 +35,21 @@ public sealed record NodeDto
     public bool IsEnabled { get; init; }
     public DateTime? LastHeartbeatAt { get; init; }
     public int HealthCheckIntervalSeconds { get; init; }
-    public long MaxStorageMb { get; init; }
-    public long AvailableStorageMb { get; init; }
+    /// <summary>Cuota administrada desde el Hub. null = sin límite, no se pinta barra.</summary>
+    public long? StorageLimitMb { get; init; }
+
+    /// <summary>Medición del nodo. null = nunca reportó, que no es lo mismo que cero.</summary>
+    public long? StorageDicomMb { get; init; }
+    public long? StorageDatabaseMb { get; init; }
+    public long? StorageVolumeFreeMb { get; init; }
+    public long? StorageVolumeTotalMb { get; init; }
+    public DateTime? StorageMeasuredAt { get; init; }
+
+    /// <summary>Límite que el nodo confirmó: si difiere del administrado, el push no ha llegado.</summary>
+    public long? StorageLimitAppliedMb { get; init; }
+
+    public string? ConfigAppliedVersion { get; init; }
+    public DateTime? ConfigAppliedAt { get; init; }
     public int TotalStudiesReceived { get; init; }
     public int TotalStudiesSent { get; init; }
     public int ErrorsLast24Hours { get; init; }

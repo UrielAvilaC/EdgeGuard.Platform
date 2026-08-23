@@ -82,7 +82,6 @@ public static class SharedNodeSettingKeys
         public const string RetainDays         = "cleanup.retain_days";
         public const string RetainSentDays     = "cleanup.retain_sent_days";
         public const string RetainFailedDays   = "cleanup.retain_failed_days";
-        public const string MaxStorageGb       = "cleanup.max_storage_gb";
         public const string RunIntervalMinutes = "cleanup.run_interval_minutes";
         public const string DeleteArchived     = "cleanup.delete_archived";
     }
@@ -106,7 +105,14 @@ public static class SharedNodeSettingKeys
     // ── Storage ───────────────────────────────────────────────────────────────────
     public static class Storage
     {
-        public const string RootPath    = "storage.root_path";
+        public const string RootPath = "storage.root_path";
+
+        /// <summary>
+        /// Cuota que el nodo se autoimpone sobre su workspace. La administra el
+        /// Hub y viaja al nodo en el sync de configuración; el nodo la aplica en
+        /// la limpieza y la devuelve en su reporte de salud.
+        /// </summary>
+        public const string LimitMb  = "storage.limit_mb";
     }
 
     // ── PACS Sender ──────────────────────────────────────────────────────────────

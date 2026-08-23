@@ -79,7 +79,6 @@ public static class NodeSettingKeys
         public const string RetainDays         = SharedNodeSettingKeys.Cleanup.RetainDays;
         public const string RetainSentDays     = SharedNodeSettingKeys.Cleanup.RetainSentDays;
         public const string RetainFailedDays   = SharedNodeSettingKeys.Cleanup.RetainFailedDays;
-        public const string MaxStorageGb       = SharedNodeSettingKeys.Cleanup.MaxStorageGb;
         public const string RunIntervalMinutes = SharedNodeSettingKeys.Cleanup.RunIntervalMinutes;
         public const string DeleteArchived     = SharedNodeSettingKeys.Cleanup.DeleteArchived;
     }
@@ -103,7 +102,8 @@ public static class NodeSettingKeys
     // ── Storage ───────────────────────────────────────────────────────────────────
     public static class Storage
     {
-        public const string RootPath    = SharedNodeSettingKeys.Storage.RootPath;
+        public const string RootPath = SharedNodeSettingKeys.Storage.RootPath;
+        public const string LimitMb  = SharedNodeSettingKeys.Storage.LimitMb;
     }
 
     // ── PACS Sender ──────────────────────────────────────────────────────────────

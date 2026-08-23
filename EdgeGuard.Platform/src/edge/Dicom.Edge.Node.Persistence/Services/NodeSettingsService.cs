@@ -297,7 +297,6 @@ public sealed class NodeSettingsService(
             RetainDays:         I(d, NodeSettingKeys.Cleanup.RetainDays,         30),
             RetainSentDays:     I(d, NodeSettingKeys.Cleanup.RetainSentDays,     7),
             RetainFailedDays:   I(d, NodeSettingKeys.Cleanup.RetainFailedDays,   90),
-            MaxStorageGb:       I(d, NodeSettingKeys.Cleanup.MaxStorageGb,       100),
             RunIntervalMinutes: I(d, NodeSettingKeys.Cleanup.RunIntervalMinutes, 60),
             DeleteArchived:     B(d, NodeSettingKeys.Cleanup.DeleteArchived,     true));
     }
@@ -316,7 +315,8 @@ public sealed class NodeSettingsService(
     {
         var d = await GetCategoryAsync(NodeSettingCategories.Storage, ct);
         return new StorageConfig(
-            RootPath: S(d, NodeSettingKeys.Storage.RootPath, "./data"));
+            RootPath: S(d, NodeSettingKeys.Storage.RootPath, "./data"),
+            LimitMb:  I(d, NodeSettingKeys.Storage.LimitMb,  102_400));
     }
 
     public async Task<SecurityConfig> GetSecurityConfigAsync(CancellationToken ct = default)

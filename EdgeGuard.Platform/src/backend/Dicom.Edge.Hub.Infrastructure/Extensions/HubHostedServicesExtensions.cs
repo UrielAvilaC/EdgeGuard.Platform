@@ -16,6 +16,9 @@ public static class HubHostedServicesExtensions
         services.Configure<HubBackgroundJobsOptions>(
             configuration.GetSection(HubBackgroundJobsOptions.SectionName));
 
+        services.Configure<NodeHealthThresholds>(
+            configuration.GetSection(NodeHealthThresholds.SectionName));
+
         services.Configure<MessageQueueOptions>(
             configuration.GetSection(MessageQueueOptions.SectionName));
 

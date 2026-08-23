@@ -270,13 +270,14 @@ public sealed class StudyCleanupService(
         var rootDir = new DirectoryInfo(storage.RootPath);
         var usedBytes = rootDir.EnumerateFiles("*", SearchOption.AllDirectories)
             .Sum(f => f.Length);
-        var usedGb = usedBytes / (1024.0 * 1024.0 * 1024.0);
+        var usedMb = usedBytes / (1024L * 1024L);
 
-        if (usedGb <= cfg.MaxStorageGb) return;
+        // 0 = sin límite. Un nodo sin cuota nunca entra en purga de emergencia.
+        if (storage.LimitMb <= 0 || usedMb <= storage.LimitMb) return;
 
         logger.LogWarning(
-            "Storage pressure: {Used:F1} GB used, threshold is {Max} GB — triggering emergency cleanup",
-            usedGb, cfg.MaxStorageGb);
+            "Storage pressure: {UsedMb} MB used, limit is {LimitMb} MB — triggering emergency cleanup",
+            usedMb, storage.LimitMb);
 
         // Soft-delete oldest SentToPacs studies until under threshold
         await using var ctx = await factory.CreateDbContextAsync(ct);
