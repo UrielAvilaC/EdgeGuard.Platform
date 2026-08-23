@@ -1,6 +1,6 @@
-<div class="w-[620px] max-w-full flex flex-col max-h-[80vh]">
-  <!-- Header -->
-  <div class="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
+<ui-dialog width="620px" footerAlign="between">
+
+  <div uiDialogHeader class="flex items-start justify-between">
     <div class="flex items-center gap-3">
       <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
         <fa-icon [icon]="faServer" class="text-azure-600 dark:text-azure-400" />
@@ -13,8 +13,7 @@
     <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar diálogo" (clicked)="onCancel()" />
   </div>
 
-  <!-- Body -->
-  <div class="flex-1 overflow-y-auto p-6 space-y-4">
+  <div uiDialogBody class="space-y-4">
     @if (loadingServers()) {
       <div class="flex justify-center py-10">
         <ui-loading-spinner [diameter]="40" />
@@ -140,31 +139,30 @@
     }
   </div>
 
-  <!-- Footer -->
-  <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
-    <p class="text-sm text-gray-500 dark:text-gray-400">
-      @if (pendingChanges() > 0) {
-        <span class="font-medium text-azure-600 dark:text-azure-400">
-          {{ pendingChanges() }} cambio(s) pendiente(s)
-        </span>
-      } @else {
-        Sin cambios
-      }
-    </p>
-    <div class="flex items-center gap-3">
-      <ui-button variant="ghost" size="sm" (clicked)="onCancel()" [disabled]="saving()">
-        Cancelar
-      </ui-button>
-      <ui-button
-        variant="primary"
-        size="sm"
-        [loading]="saving()"
-        [disabled]="saving() || pendingChanges() === 0"
-        (clicked)="onSave()"
-        type="button"
-      >
-        Guardar cambios
-      </ui-button>
-    </div>
+  <p uiDialogFooter class="text-sm text-gray-500 dark:text-gray-400">
+    @if (pendingChanges() > 0) {
+      <span class="font-medium text-azure-600 dark:text-azure-400">
+        {{ pendingChanges() }} cambio(s) pendiente(s)
+      </span>
+    } @else {
+      Sin cambios
+    }
+  </p>
+
+  <div uiDialogFooter class="flex items-center gap-3">
+    <ui-button variant="ghost" size="sm" (clicked)="onCancel()" [disabled]="saving()">
+      Cancelar
+    </ui-button>
+    <ui-button
+      variant="primary"
+      size="sm"
+      [loading]="saving()"
+      [disabled]="saving() || pendingChanges() === 0"
+      (clicked)="onSave()"
+      type="button"
+    >
+      Guardar cambios
+    </ui-button>
   </div>
-</div>
+
+</ui-dialog>

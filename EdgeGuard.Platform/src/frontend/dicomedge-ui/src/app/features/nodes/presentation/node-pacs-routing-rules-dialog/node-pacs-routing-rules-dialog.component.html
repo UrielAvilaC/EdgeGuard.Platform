@@ -1,6 +1,6 @@
-<div class="flex flex-col w-[680px] max-w-full max-h-[85vh]">
-  <!-- Header -->
-  <div class="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
+<ui-dialog width="680px" footerAlign="between">
+
+  <div uiDialogHeader class="flex items-start justify-between">
     <div class="flex items-center gap-3">
       <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-azure-100 dark:bg-azure-900/30">
         <fa-icon [icon]="faRoute" class="text-azure-600 dark:text-azure-400" />
@@ -18,9 +18,7 @@
     <ui-icon-button [icon]="faXmark" tooltip="Cerrar" ariaLabel="Cerrar" (clicked)="onClose()" />
   </div>
 
-  <!-- Body -->
-  <div class="flex-1 overflow-y-auto p-6 space-y-4">
-
+  <div uiDialogBody class="space-y-4">
     @if (loading()) {
       <div class="flex justify-center py-8">
         <ui-loading-spinner [diameter]="36" />
@@ -146,11 +144,10 @@
     }
   </div>
 
-  <!-- Footer -->
-  <div class="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 shrink-0">
-    <ui-button variant="secondary" (clicked)="onClose()">Cerrar</ui-button>
-    <ui-button [icon]="faPlus" (clicked)="openCreateDialog()" [disabled]="loading()">
-      Nueva regla
-    </ui-button>
-  </div>
-</div>
+  <ui-button uiDialogFooter variant="secondary" (clicked)="onClose()">Cerrar</ui-button>
+
+  <ui-button uiDialogFooter [icon]="faPlus" (clicked)="openCreateDialog()" [disabled]="loading()">
+    Nueva regla
+  </ui-button>
+
+</ui-dialog>

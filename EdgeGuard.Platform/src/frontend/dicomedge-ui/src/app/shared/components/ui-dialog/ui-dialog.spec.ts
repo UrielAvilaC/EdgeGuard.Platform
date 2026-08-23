@@ -34,12 +34,6 @@ const SIN_SHELL = new Map<string, string>([
     'Tarjeta de alerta centrada, sin barra de header; no encaja en los tres ' +
       'slots del shell. Acota su altura y hace scroll del mensaje por su cuenta.',
   ],
-  // Pendiente: migrar al shell. Ya cumplen el invariante con el patrón manual
-  // (flex-col + max-h + cuerpo con overflow), por eso no entraron en este fix.
-  ['hl7-message-detail-dialog', 'Patrón manual previo, pendiente de migrar.'],
-  ['node-pacs-routing-rules-dialog', 'Patrón manual previo, pendiente de migrar.'],
-  ['pacs-assign-dialog', 'Patrón manual previo, pendiente de migrar.'],
-  ['study-requeue-dialog', 'Patrón manual previo, pendiente de migrar.'],
 ]);
 
 interface DialogSource {
@@ -161,5 +155,35 @@ describe('UiDialog', () => {
     for (const fijo of ['[uiDialogHeader]', '[uiDialogFooter]']) {
       expect(el.querySelector(fijo)!.parentElement!.className).toContain('shrink-0');
     }
+  });
+});
+
+describe('UiDialog footerAlign', () => {
+  @Component({
+    imports: [UiDialog],
+    template: `
+      <ui-dialog footerAlign="between">
+        <div uiDialogHeader>H</div>
+        <div uiDialogBody>B</div>
+        <p uiDialogFooter>Izquierda</p>
+        <div uiDialogFooter>Derecha</div>
+      </ui-dialog>
+    `,
+  })
+  class HostBetween {}
+
+  it('separa los extremos y proyecta varios elementos al footer', () => {
+    const fixture = TestBed.createComponent(HostBetween);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const proyectados = el.querySelectorAll('[uiDialogFooter]');
+    expect(proyectados.length).toBe(2);
+
+    const footer = proyectados[0].parentElement!;
+    expect(footer.className).toContain('justify-between');
+    expect(footer.className).not.toContain('justify-end');
+    // Ambos comparten contenedor: es el justify-between el que los separa.
+    expect(proyectados[1].parentElement).toBe(footer);
   });
 });
