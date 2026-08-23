@@ -97,6 +97,24 @@ describe('diálogos', () => {
       ).toBe(true);
     });
 
+    it('no deja <button> sin type dentro de un <form>', () => {
+      // Dentro de un <form>, un <button> sin atributo type es submit por
+      // defecto en HTML. Envolver el diálogo entero en el <form> metió los
+      // botones de ícono del header y del cuerpo dentro de ese alcance: un
+      // clic en "quitar variable" llegaba a guardar el registro completo.
+      if (!dialog.markup.includes('<form')) return;
+
+      const sinType = [...dialog.markup.matchAll(/<button[^>]*>/g)]
+        .map(m => m[0])
+        .filter(tag => !/stypes*=|[type]/.test(tag));
+
+      expect(
+        sinType,
+        `${dialog.name} tiene <button> sin type dentro de un <form>: ` +
+          'sería submit por defecto. Poné type="button" explícito.',
+      ).toEqual([]);
+    });
+
     it('deja los botones de envío dentro del <form>', () => {
       // Al partir el diálogo en tres secciones es fácil dejar el footer fuera
       // del <form>: los type="submit" dejan de disparar ngSubmit y guardar
@@ -236,5 +254,37 @@ describe('UiDialog bodyLayout', () => {
       .querySelector('[uiDialogBody]')!.parentElement!;
 
     expect(cuerpo.className).not.toContain('flex-col');
+  });
+});
+
+/**
+ * El bug que motivó esto no estaba en los diálogos sino en un componente
+ * compartido: `ui-icon-button` renderizaba un `<button>` sin `type`. Fuera de
+ * un formulario da igual, pero al envolver los diálogos en `<form>` esos
+ * botones pasaron a ser submit por defecto, y quitar una variable guardaba el
+ * registro entero sin que nadie tocara Guardar.
+ */
+describe('botones de los componentes compartidos', () => {
+  const plantillas = import.meta.glob('/src/app/shared/components/**/*.component.html', { query: '?raw', import: 'default', eager: true }) as Fuentes;
+
+  const conBotones = Object.entries(plantillas)
+    .map(([ruta, html]) => [ruta.split('/').pop()!, html] as const)
+    .filter(([, html]) => html.includes('<button'));
+
+  it('encuentra los componentes con botones', () => {
+    expect(conBotones.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(conBotones)('%s declara el type de cada <button>', (_nombre, html) => {
+    const sinType = [...html.matchAll(/<button\b[^>]*>/g)]
+      .map(m => m[0])
+      .filter(tag => !/\stype\s*=|\[type\]/.test(tag));
+
+    expect(
+      sinType.length,
+      'Un <button> sin type es submit por defecto dentro de un <form>. ' +
+        'Estos componentes se usan dentro de diálogos con formulario, así que ' +
+        'el type tiene que ser explícito.',
+    ).toBe(0);
   });
 });
