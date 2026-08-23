@@ -35,8 +35,18 @@ export interface Node {
   isEnabled: boolean;
   lastHeartbeatAt: string | null;
   healthCheckIntervalSeconds: number;
-  maxStorageMb: number;
-  availableStorageMb: number;
+  /** Cuota administrada desde el Hub. null = sin límite, no se pinta barra. */
+  storageLimitMb: number | null;
+  /** Medición del nodo. null = nunca reportó. */
+  storageDicomMb: number | null;
+  storageDatabaseMb: number | null;
+  storageVolumeFreeMb: number | null;
+  storageVolumeTotalMb: number | null;
+  storageMeasuredAt: string | null;
+  /** Límite que el nodo confirmó: si difiere del administrado, el push no llegó. */
+  storageLimitAppliedMb: number | null;
+  configAppliedVersion: string | null;
+  configAppliedAt: string | null;
   totalStudiesReceived: number;
   totalStudiesSent: number;
   errorsLast24Hours: number;
@@ -59,6 +69,7 @@ export interface CreateNodeRequest {
   location?: string;
   facilityName?: string;
   healthCheckIntervalSeconds?: number;
+  storageLimitMb?: number | null;
 }
 
 export interface UpdateNodeRequest {
@@ -66,7 +77,7 @@ export interface UpdateNodeRequest {
   facilityName?: string;
   timeZone?: string;
   healthCheckIntervalSeconds?: number;
-  maxStorageMb?: number;
+  storageLimitMb?: number | null;
 }
 
 export const NODE_STATUS_OPTIONS: { value: NodeStatus; label: string }[] = [

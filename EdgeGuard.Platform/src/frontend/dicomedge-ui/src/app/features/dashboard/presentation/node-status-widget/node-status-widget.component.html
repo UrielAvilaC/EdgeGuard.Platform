@@ -29,16 +29,24 @@
                 </div>
               </div>
 
+              <!-- La barra solo aparece si hay cuota contra la cual medir. Sin
+                   ella se muestran los MB, que sí significan algo por sí solos. -->
               <div class="node-storage">
-                <div class="storage-bar-container">
-                  <div
-                    class="storage-bar-fill"
-                    [style.width.%]="storagePercent(node)"
-                    [class.storage-warning]="storagePercent(node) > 80"
-                    [class.storage-danger]="storagePercent(node) > 95"
-                  ></div>
-                </div>
-                <span class="storage-label">{{ storagePercent(node) }}%</span>
+                @if (storage(node).percent !== null) {
+                  <div class="storage-bar-container">
+                    <div
+                      class="storage-bar-fill"
+                      [style.width.%]="storage(node).percent"
+                      [class.storage-warning]="storage(node).percent! > 80"
+                      [class.storage-danger]="storage(node).percent! > 95"
+                    ></div>
+                  </div>
+                  <span class="storage-label">{{ storage(node).percent }}%</span>
+                } @else if (storage(node).hasData) {
+                  <span class="storage-label">{{ format(storage(node).usedMb) }}</span>
+                } @else {
+                  <span class="storage-label storage-nodata">Sin datos</span>
+                }
               </div>
             </div>
           }
