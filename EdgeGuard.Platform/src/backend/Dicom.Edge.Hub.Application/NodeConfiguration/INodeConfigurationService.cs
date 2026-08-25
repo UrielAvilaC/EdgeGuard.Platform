@@ -37,8 +37,25 @@ public interface INodeConfigurationService
     Task<int> ResetCategoryAsync(
         string nodeId, string category, CancellationToken ct = default);
 
-    /// <summary>Initializes default configuration profiles for a node (idempotent).</summary>
-    Task InitializeNodeDefaultsAsync(string nodeId, CancellationToken ct = default);
+    /// <summary>
+    /// Initializes default configuration profiles for a node (idempotent).
+    /// <paramref name="seedOverrides"/> reemplaza el valor por defecto de las claves que
+    /// indique, para sembrar de entrada lo que el nodo reportó en vez de un genérico:
+    /// el caso que motivó esto es el AE title, donde el default "EDGE_NODE" se acababa
+    /// empujando de vuelta al nodo y borrando el suyo.
+    /// </summary>
+    Task InitializeNodeDefaultsAsync(
+        string nodeId,
+        IReadOnlyDictionary<string, string>? seedOverrides = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Lee el valor de una sola clave, o null si el nodo no tiene esa fila. A diferencia
+    /// de <see cref="GetNodeConfigAsync"/> NO dispara la inicialización perezosa de
+    /// defaults: sirve para inspeccionar el estado real sin crearlo de paso.
+    /// </summary>
+    Task<string?> GetSettingValueAsync(
+        string nodeId, string settingKey, CancellationToken ct = default);
 
     /// <summary>Computes a SHA-256 version hash from the node's current config.</summary>
     Task<string> ComputeConfigVersionAsync(string nodeId, CancellationToken ct = default);

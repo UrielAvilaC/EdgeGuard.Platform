@@ -135,6 +135,12 @@ public sealed class HubConfigSyncHostedService(
 
             // ── General / identity ────────────────────────────────────────────
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.NodeName,     Opts.NodeName,     ct);
+            // El AE canónico se siembra vacío para que appsettings (DicomServer:AeTitle)
+            // pueda fijarlo al desplegar. Opts.AeTitle ya es el valor efectivo — el
+            // PostConfigure de HubConnectionOptions lo toma de esa misma clave — así que
+            // esto persiste lo que el nodo realmente está usando. Corre antes del registro
+            // y del primer pull, de modo que el nodo se registra ya con su AE definitivo.
+            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Dicom.AeTitle,        Opts.AeTitle,      ct);
             // Opts.AeTitle is DERIVED from DicomServer:AeTitle (single source of truth),
             // so node.ae_title mirrors the canonical AE for display purposes only.
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.AeTitle,      Opts.AeTitle,      ct);

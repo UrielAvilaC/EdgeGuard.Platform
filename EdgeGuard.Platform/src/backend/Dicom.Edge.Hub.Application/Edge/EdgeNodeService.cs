@@ -1,3 +1,4 @@
+using Dicom.Edge.Abstractions.Configuration;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Contracts.Hub;
@@ -104,6 +105,8 @@ public sealed class EdgeNodeService(
             await nodeRepository.UpdateAsync(existing, ct);
             await unitOfWork.SaveChangesAsync(ct);
 
+            await ReconcileAeTitleAsync(existing.Id, request.AeTitle, ct);
+
             // Re-registration: do NOT return API key again
             return new NodeRegistrationResponse
             {
@@ -134,8 +137,19 @@ public sealed class EdgeNodeService(
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("Node registered: {NodeId} {Name} at {Ip}:{Port} (API key issued)",
-            node.Id, request.Name, request.IpAddress, request.Port);
+        // Los perfiles se crean aquí y no de forma perezosa al abrir la pantalla: sembrados
+        // tarde, el AE nacía con el default genérico y el primer pull se lo empujaba de
+        // vuelta al nodo, pisando el suyo. Sembrado en el alta, arranca siendo la verdad.
+        await configService.InitializeNodeDefaultsAsync(
+            node.Id,
+            new Dictionary<string, string>
+            {
+                [SharedNodeSettingKeys.Dicom.AeTitle] = request.AeTitle
+            },
+            ct);
+
+        logger.LogInformation("Node registered: {NodeId} {Name} at {Ip}:{Port} AE={AeTitle} (API key issued)",
+            node.Id, request.Name, request.IpAddress, request.Port, request.AeTitle);
 
         // First registration: return API key (one time only)
         return new NodeRegistrationResponse
@@ -145,6 +159,58 @@ public sealed class EdgeNodeService(
             Message = "Registered successfully. Store the API key securely — it will not be shown again.",
             ApiKey = rawApiKey
         };
+    }
+
+    /// <summary>
+    /// Concilia el AE que el nodo acaba de reportar con el que el Hub tiene configurado
+    /// en <c>dicom.ae_title</c>, que es la única fuente de verdad del AE del nodo.
+    /// </summary>
+    /// <remarks>
+    /// Cuando los dos difieren y el Hub tiene un valor explícito, <b>gana el Hub</b>: es
+    /// configuración deseada, igual que el resto de los settings, y el nodo se corrige en
+    /// el siguiente pull. Se registra en warning porque la divergencia casi siempre
+    /// significa que alguien tocó el AE directamente en el nodo, y eso conviene verlo.
+    /// El caso contrario — perfil todavía en el default genérico — sí adopta lo del nodo:
+    /// es lo que repara las instalaciones que hoy tienen "EDGE_NODE" sembrado de más.
+    /// </remarks>
+    private async Task ReconcileAeTitleAsync(
+        string nodeId, string reportedAeTitle, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(reportedAeTitle))
+            return;
+
+        // Idempotente: si el nodo todavía no tiene perfiles, nacen ya con el AE reportado
+        // en vez del default genérico. Si ya los tiene, no hace nada.
+        await configService.InitializeNodeDefaultsAsync(
+            nodeId,
+            new Dictionary<string, string>
+            {
+                [SharedNodeSettingKeys.Dicom.AeTitle] = reportedAeTitle
+            },
+            ct);
+
+        var configured = await configService.GetSettingValueAsync(
+            nodeId, SharedNodeSettingKeys.Dicom.AeTitle, ct);
+
+        if (string.Equals(configured, reportedAeTitle, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (string.IsNullOrWhiteSpace(configured)
+            || string.Equals(configured, NodeAeTitle.Default, StringComparison.OrdinalIgnoreCase))
+        {
+            await configService.UpdateSettingAsync(
+                nodeId, SharedNodeSettingKeys.Dicom.AeTitle, reportedAeTitle, ct);
+
+            logger.LogInformation(
+                "Node {NodeId} AE adopted from registration: {AeTitle} (profile held '{Previous}')",
+                nodeId, reportedAeTitle, configured);
+            return;
+        }
+
+        logger.LogWarning(
+            "Node {NodeId} re-registered reporting AE '{Reported}' but the Hub has '{Configured}' "
+            + "configured — the Hub value wins and will be pushed on the next config sync",
+            nodeId, reportedAeTitle, configured);
     }
 
     public async Task<EdgeOperationResult?> ProcessHeartbeatAsync(

@@ -57,6 +57,13 @@ public sealed class NodeConfigurationService(
         return true;
     }
 
+    public async Task<string?> GetSettingValueAsync(
+        string nodeId, string settingKey, CancellationToken ct = default)
+    {
+        var profile = await repository.GetByNodeAndKeyAsync(nodeId, settingKey, ct);
+        return profile?.Value;
+    }
+
     public async Task<IReadOnlyList<string>> GetCategoriesAsync(
         string nodeId, CancellationToken ct = default)
     {
@@ -171,7 +178,10 @@ public sealed class NodeConfigurationService(
         return true;
     }
 
-    public async Task InitializeNodeDefaultsAsync(string nodeId, CancellationToken ct = default)
+    public async Task InitializeNodeDefaultsAsync(
+        string nodeId,
+        IReadOnlyDictionary<string, string>? seedOverrides = null,
+        CancellationToken ct = default)
     {
         if (await repository.ExistsForNodeAsync(nodeId, ct))
         {
@@ -181,7 +191,7 @@ public sealed class NodeConfigurationService(
 
         var profiles = SharedNodeSettingDefaults.All
             .Select(d => NodeConfigurationProfile.CreateDefault(
-                nodeId, d.Key, d.DefaultValue, d.Category, d.DisplayName, d.ValueType))
+                nodeId, d.Key, SeedValueFor(d, seedOverrides), d.Category, d.DisplayName, d.ValueType))
             .ToList();
 
         await repository.AddRangeAsync(profiles, ct);
@@ -245,8 +255,22 @@ public sealed class NodeConfigurationService(
     private async Task EnsureInitializedAsync(string nodeId, CancellationToken ct)
     {
         if (!await repository.ExistsForNodeAsync(nodeId, ct))
-            await InitializeNodeDefaultsAsync(nodeId, ct);
+            await InitializeNodeDefaultsAsync(nodeId, seedOverrides: null, ct);
     }
+
+    /// <summary>
+    /// Valor con el que nace un perfil: el override si la clave trae uno no vacío, si no
+    /// el default compartido. Un override vacío se ignora a propósito — significa que el
+    /// nodo todavía no tiene el dato, y sembrar vacío dejaría la pantalla en blanco.
+    /// </summary>
+    private static string SeedValueFor(
+        NodeSettingDefaultEntry entry,
+        IReadOnlyDictionary<string, string>? seedOverrides) =>
+        seedOverrides is not null
+        && seedOverrides.TryGetValue(entry.Key, out var seeded)
+        && !string.IsNullOrWhiteSpace(seeded)
+            ? seeded
+            : entry.DefaultValue;
 
     private static string ComputeHash(
         IReadOnlyList<NodeConfigurationProfile> profiles, string storageLimitMb)

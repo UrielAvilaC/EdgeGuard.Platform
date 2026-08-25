@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/backend/Dicom.Edge.Hub.Application/Dicom.Edge.Hub.Application.csproj" />
     <ProjectReference Include="../../src/backend/Dicom.Edge.Hub.Domain/Dicom.Edge.Hub.Domain.csproj" />
     <ProjectReference Include="../../src/backend/Dicom.Edge.Hub.Infrastructure/Dicom.Edge.Hub.Infrastructure.csproj" />
   </ItemGroup>

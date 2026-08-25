@@ -94,7 +94,12 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Dicom.AeTitleAliases,            "[]",        Cat.Dicom, "AE Title Aliases (JSON)",           VT.Json),
         Row(NodeSettingKeys.Dicom.MaxAssociations,           "50",        Cat.Dicom, "Max Concurrent Associations",       VT.Int),
         Row(NodeSettingKeys.Dicom.Port,                      "11112",     Cat.Dicom, "DICOM Listen Port",                 VT.Int),
-        Row(NodeSettingKeys.Dicom.AeTitle,                   "EDGE_NODE", Cat.Dicom, "DICOM AE Title",                    VT.String),
+        // Se siembra vacío a propósito, igual que node.name: una fila no vacía gana
+        // sobre appsettings en NodeDatabaseConfigurationProvider.Map, así que sembrar
+        // "EDGE_NODE" dejaba sin efecto el DicomServer:AeTitle del despliegue. Vacía,
+        // manda appsettings, y HubConfigSyncHostedService la rellena en el primer
+        // arranque con el valor efectivo para que la pantalla no muestre un AE en blanco.
+        Row(NodeSettingKeys.Dicom.AeTitle,                   "",          Cat.Dicom, "DICOM AE Title",                    VT.String),
         Row(NodeSettingKeys.Dicom.StudyCompletionTimeoutSec, "30",        Cat.Dicom, "Study Completion Timeout (sec)",    VT.Int),
         Row(NodeSettingKeys.Dicom.AssociationTimeoutSec,     "30",        Cat.Dicom, "Association Timeout (sec)",         VT.Int),
         Row(NodeSettingKeys.Dicom.DimseTimeoutSec,           "600",       Cat.Dicom, "DIMSE Timeout (sec)",               VT.Int),
