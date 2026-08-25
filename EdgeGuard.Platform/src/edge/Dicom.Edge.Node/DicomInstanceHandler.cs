@@ -76,6 +76,15 @@ internal sealed class DicomInstanceHandler(
         await using var scope = scopeFactory.CreateAsyncScope();
         var ctx = scope.ServiceProvider.GetRequiredService<EdgeNodeDbContext>();
 
+        // Determine early whether this SOP instance is genuinely new or a retransmit/
+        // duplicate of one we already have. Everything below that mutates study/series
+        // counters or reopens a terminal study to Receiving must be gated on this —
+        // otherwise a retransmitted instance (network retry, modality re-send) inflates
+        // counts and spuriously re-triggers a full study resend to PACS.
+        var existingInstance = await ctx.Instances
+            .FirstOrDefaultAsync(i => i.SopInstanceUid == sopUid, ct);
+        var isNewInstance = existingInstance is null;
+
         // ── Upsert Patient ───────────────────────────────────────────────
         var patientId   = dataset.GetSingleValueOrDefault(DicomTag.PatientID,   NodeConstants.DefaultPatientId);
         var patientName = dataset.GetSingleValueOrDefault(DicomTag.PatientName, string.Empty);
@@ -156,7 +165,7 @@ internal sealed class DicomInstanceHandler(
 
             ctx.Studies.Add(study);
         }
-        else
+        else if (isNewInstance)
         {
             study.InstanceCount++;
             study.LastImageReceivedAt = now;
@@ -178,6 +187,16 @@ internal sealed class DicomInstanceHandler(
                 study.DeletedAt = null;
             }
         }
+        else
+        {
+            // Retransmit of an instance we already have (same SOPInstanceUID) — the file on
+            // disk was refreshed above, but counters/status must stay untouched so a duplicate
+            // C-STORE doesn't inflate InstanceCount or reopen an already-completed study, which
+            // would otherwise re-trigger a full resend of the study to PACS.
+            logger.LogDebug(
+                "Study {StudyUid} received a retransmit of already-stored SOP {SopUid} — skipping counters/status update",
+                studyUid, sopUid);
+        }
 
         // ── Upsert Series ────────────────────────────────────────────────
         if (!string.IsNullOrWhiteSpace(seriesUid))
@@ -197,17 +216,14 @@ internal sealed class DicomInstanceHandler(
 
                 ctx.Series.Add(series);
             }
-            else
+            else if (isNewInstance)
             {
                 series.InstanceCount++;
             }
         }
 
         // ── Insert Instance ──────────────────────────────────────────────
-        var existing = await ctx.Instances
-            .FirstOrDefaultAsync(i => i.SopInstanceUid == sopUid, ct);
-
-        if (existing is null)
+        if (existingInstance is null)
         {
             var instance = new DicomInstance
             {
@@ -228,8 +244,8 @@ internal sealed class DicomInstanceHandler(
         else
         {
             // Duplicate SOP — update file path (overwritten on disk)
-            existing.FilePath = filePath;
-            ctx.Entry(existing).Property(NodeConstants.ShadowPropertyFileSizeBytes).CurrentValue = fileSize;
+            existingInstance.FilePath = filePath;
+            ctx.Entry(existingInstance).Property(NodeConstants.ShadowPropertyFileSizeBytes).CurrentValue = fileSize;
         }
 
         await ctx.SaveChangesAsync(ct);
@@ -239,7 +255,9 @@ internal sealed class DicomInstanceHandler(
             sopUid, studyUid, study.InstanceCount);
 
         // ── Notify Hub of receiving progress (throttled: first + every 5th) ─
-        if (study.InstanceCount == 1 || study.InstanceCount % 5 == 0)
+        // Gated on isNewInstance too — a retransmit leaves InstanceCount unchanged, so without
+        // this guard the same progress snapshot would be renotified on every duplicate C-STORE.
+        if (isNewInstance && (study.InstanceCount == 1 || study.InstanceCount % 5 == 0))
         {
             var generalCfg = await settings.GetGeneralConfigAsync(ct);
             var seriesCount = await ctx.Series.CountAsync(s => s.StudyInstanceUid == studyUid, ct);
