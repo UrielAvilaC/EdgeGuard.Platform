@@ -24,7 +24,6 @@ export class PacsFacade {
   readonly filter = this.store.filter;
   readonly hasData = this.store.hasData;
   readonly activeFilterCount = this.store.activeFilterCount;
-  readonly reachableCount = this.store.reachableCount;
 
   // ── Actions ──
   loadServers(): void {

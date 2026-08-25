@@ -9,7 +9,6 @@ import {
   faToggleOn,
   faToggleOff,
   faTrash,
-  faWifi,
   faFilter,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
@@ -23,7 +22,6 @@ import { UiAlert } from '../../../../shared/components/ui-alert/ui-alert.compone
 import { UiSearchBar } from '../../../../shared/components/ui-search-bar/ui-search-bar.component';
 import { UiSlideToggle } from '../../../../shared/forms/slide-toggle/slide-toggle.component';
 import { UiConfirmDialog, ConfirmDialogData } from '../../../../shared/components/ui-confirm-dialog/ui-confirm-dialog.component';
-import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { TableColumn } from '../../../../shared/models/table.model';
 import { PacsServer, CreatePacsServerRequest, UpdatePacsServerRequest, PacsServerFilter } from '../../models/pacs.models';
 import { PacsStore } from '../../services/pacs.store';
@@ -46,7 +44,6 @@ import { PacsFormDialog, PacsFormDialogData } from '../pacs-form-dialog/pacs-for
     UiAlert,
     UiSearchBar,
     UiSlideToggle,
-    RelativeTimePipe,
   ],
   templateUrl: './pacs-page.component.html',
   styleUrl: './pacs-page.component.scss'
@@ -61,20 +58,17 @@ export default class PacsPage {
   protected readonly faToggleOn = faToggleOn;
   protected readonly faToggleOff = faToggleOff;
   protected readonly faTrash = faTrash;
-  protected readonly faWifi = faWifi;
   protected readonly faFilter = faFilter;
   protected readonly faXmark = faXmark;
 
   protected filtersExpanded = false;
 
   protected readonly columns: TableColumn<PacsServer>[] = [
-    { key: 'name', header: 'Nombre', sortable: true, width: '18%' },
-    { key: 'aeTitle', header: 'AE Title', sortable: true, width: '12%' },
-    { key: 'hostName', header: 'Host:Puerto', sortable: true, width: '16%' },
-    { key: 'isReachable', header: 'Conectividad', width: '14%' },
-    { key: 'lastCEchoAt', header: 'Último C-ECHO', sortable: true, width: '14%' },
-    { key: 'maxConcurrentAssociations', header: 'Max Asoc.', width: '8%', align: 'center' },
-    { key: 'actions', header: '', width: '12%' },
+    { key: 'name', header: 'Nombre', sortable: true, width: '28%' },
+    { key: 'aeTitle', header: 'AE Title', sortable: true, width: '18%' },
+    { key: 'hostName', header: 'Host:Puerto', sortable: true, width: '24%' },
+    { key: 'maxConcurrentAssociations', header: 'Max Asoc.', width: '10%', align: 'center' },
+    { key: 'actions', header: '', width: '20%' },
   ];
 
   constructor() {
