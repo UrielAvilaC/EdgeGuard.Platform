@@ -34,10 +34,6 @@ export class PacsStore {
     return count;
   });
 
-  readonly reachableCount = computed(() =>
-    this._servers().filter(s => s.isReachable).length,
-  );
-
   // ── Mutations ──
   setServers(servers: PacsServer[], page: number, pageSize: number, total: number): void {
     this._servers.set(servers);

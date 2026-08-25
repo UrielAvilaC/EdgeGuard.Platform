@@ -85,31 +85,6 @@
           </div>
         </ng-template>
 
-        <ng-template [uiCellDef]="'isReachable'" let-row>
-          <div class="flex items-center gap-2">
-            <fa-icon
-              [icon]="faWifi"
-              [class]="row.isReachable ? 'text-emerald-500' : 'text-red-500'"
-            />
-            <span class="text-sm" [class]="row.isReachable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-              {{ row.isReachable ? 'Alcanzable' : 'No alcanzable' }}
-            </span>
-          </div>
-        </ng-template>
-
-        <ng-template [uiCellDef]="'lastCEchoAt'" let-row>
-          @if (row.lastCEchoAt) {
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full"
-                    [class]="row.lastCEchoSuccess ? 'bg-emerald-500' : 'bg-red-500'">
-              </span>
-              {{ row.lastCEchoAt | relativeTime }}
-            </div>
-          } @else {
-            <span class="text-gray-400">—</span>
-          }
-        </ng-template>
-
         <ng-template [uiCellDef]="'actions'" let-row>
           <div class="flex items-center gap-1" (click)="$event.stopPropagation()">
             <ui-icon-button
