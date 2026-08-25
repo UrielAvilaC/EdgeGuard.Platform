@@ -108,7 +108,6 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Cleanup.RetainDays,         "30",    Cat.Cleanup, "Retain All Studies (days)",     VT.Int),
         Row(NodeSettingKeys.Cleanup.RetainSentDays,     "7",     Cat.Cleanup, "Retain Sent Studies (days)",    VT.Int),
         Row(NodeSettingKeys.Cleanup.RetainFailedDays,   "90",    Cat.Cleanup, "Retain Failed Studies (days)",  VT.Int),
-        Row(NodeSettingKeys.Cleanup.MaxStorageGb,       "100",   Cat.Cleanup, "Max Storage Threshold (GB)",    VT.Int),
         Row(NodeSettingKeys.Cleanup.RunIntervalMinutes, "60",    Cat.Cleanup, "Cleanup Run Interval (min)",    VT.Int),
         Row(NodeSettingKeys.Cleanup.DeleteArchived,     "true",  Cat.Cleanup, "Delete Archived Studies",       VT.Bool),
 
@@ -123,8 +122,8 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Security.AuditRetentionDays, "365",   Cat.Security, "Audit Log Retention (days)",      VT.Int),
 
         // ── Storage ──────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Storage.RootPath,    "./data",      Cat.Storage, "DICOM Storage Root Path", VT.String),
-        Row(NodeSettingKeys.Storage.ArchivePath, "./workspace", Cat.Storage, "Archive Root Path",        VT.String),
+        Row(NodeSettingKeys.Storage.RootPath, "./data", Cat.Storage, "DICOM Storage Root Path", VT.String),
+        Row(NodeSettingKeys.Storage.LimitMb,  "102400", Cat.Storage, "Storage Limit (MB, 0 = sin límite)", VT.Int),
 
         // ── PACS Sender ──────────────────────────────────────────────────────
         Row(NodeSettingKeys.PacsSender.Enabled,                   "true",      Cat.PacsSender, "PACS Sender Enabled",               VT.Bool),

@@ -50,9 +50,37 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
     /// </summary>
     public int HealthCheckIntervalSeconds { get; private set; }
 
-    // Storage
-    public long MaxStorageMb { get; private set; }
-    public long AvailableStorageMb { get; private set; }
+    // ── Almacenamiento ────────────────────────────────────────────────────
+    // Todo lo mide y reporta el nodo, salvo el límite, que el Hub administra y
+    // le envía. Son nullable a propósito: null es "nunca reportado", que no es
+    // lo mismo que cero. Confundirlos fue el bug original — un 0% verde se lee
+    // como "hay espacio de sobra" cuando en realidad no sabemos nada.
+
+    /// <summary>Cuota administrada desde el Hub. null = sin límite.</summary>
+    public long? StorageLimitMb { get; private set; }
+
+    /// <summary>Peso de los estudios vivos en el workspace del nodo.</summary>
+    public long? StorageDicomMb { get; private set; }
+
+    /// <summary>Peso de la base del nodo. Aparte porque purgar no la reduce.</summary>
+    public long? StorageDatabaseMb { get; private set; }
+
+    /// <summary>Libre y total del volumen: la máquina puede llenarse por causas ajenas al workspace.</summary>
+    public long? StorageVolumeFreeMb { get; private set; }
+    public long? StorageVolumeTotalMb { get; private set; }
+
+    /// <summary>Cuándo midió el nodo, que no es cuándo lo recibimos.</summary>
+    public DateTime? StorageMeasuredAt { get; private set; }
+
+    /// <summary>Límite que el nodo confirmó tener aplicado, para detectar divergencia.</summary>
+    public long? StorageLimitAppliedMb { get; private set; }
+
+    // ── Configuración aplicada ────────────────────────────────────────────
+    // La versión deseada se calcula al vuelo desde la configuración; aquí se
+    // guarda la que el nodo confirmó, para poder mostrar "pendiente" sin
+    // depender de que el push síncrono haya funcionado.
+    public string? ConfigAppliedVersion { get; private set; }
+    public DateTime? ConfigAppliedAt { get; private set; }
 
     // Metrics
     public int TotalStudiesReceived { get; private set; }
@@ -71,7 +99,8 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
         string? apiEndpoint = null,
         string? location = null,
         string? facilityName = null,
-        int healthCheckIntervalSeconds = 60)
+        int healthCheckIntervalSeconds = 60,
+        long? storageLimitMb = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Node name cannot be empty.", nameof(name));
@@ -93,6 +122,7 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
             Status = NodeStatus.Offline,
             IsEnabled = true,
             HealthCheckIntervalSeconds = healthCheckIntervalSeconds,
+            StorageLimitMb = storageLimitMb,
         };
 
         node.AddDomainEvent(new NodeRegisteredEvent(node.Id, name));
@@ -100,13 +130,11 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
     }
 
     public void UpdateHeartbeat(
-        long? availableStorageMb = null,
         int? totalStudiesReceived = null,
         int? totalStudiesSent = null,
         int? errorsLast24Hours = null)
     {
         LastHeartbeatAt = DateTime.UtcNow;
-        if (availableStorageMb.HasValue) AvailableStorageMb = availableStorageMb.Value;
         if (totalStudiesReceived.HasValue) TotalStudiesReceived = totalStudiesReceived.Value;
         if (totalStudiesSent.HasValue) TotalStudiesSent = totalStudiesSent.Value;
         if (errorsLast24Hours.HasValue) ErrorsLast24Hours = errorsLast24Hours.Value;
@@ -182,15 +210,59 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
         string? facilityName = null,
         string? timeZone = null,
         string? version = null,
-        int? healthCheckIntervalSeconds = null,
-        long? maxStorageMb = null)
+        int? healthCheckIntervalSeconds = null)
     {
         if (location is not null) Location = location.Trim();
         if (facilityName is not null) FacilityName = facilityName.Trim();
         if (timeZone is not null) TimeZone = timeZone.Trim();
         if (version is not null) Version = version.Trim();
         if (healthCheckIntervalSeconds.HasValue) HealthCheckIntervalSeconds = healthCheckIntervalSeconds.Value;
-        if (maxStorageMb.HasValue) MaxStorageMb = maxStorageMb.Value;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Fija la cuota de almacenamiento. Se separa de UpdateConfiguration porque
+    /// ahí null significa "no cambiar", y aquí tiene que poder significar "sin
+    /// límite": el formulario envía siempre el estado completo, incluido el vacío.
+    /// </summary>
+    public void SetStorageLimit(long? limitMb)
+    {
+        if (limitMb is < 0)
+            throw new ArgumentOutOfRangeException(nameof(limitMb), "El límite no puede ser negativo.");
+
+        StorageLimitMb = limitMb;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Registra la medición que reportó el nodo, junto con el límite que dice
+    /// tener aplicado. La divergencia entre ese eco y <see cref="StorageLimitMb"/>
+    /// es lo que delata que el push de configuración aún no llegó.
+    /// </summary>
+    public void UpdateStorage(
+        long? dicomMb,
+        long? databaseMb,
+        long? volumeFreeMb,
+        long? volumeTotalMb,
+        long? limitAppliedMb,
+        DateTime? measuredAt)
+    {
+        StorageDicomMb = dicomMb;
+        StorageDatabaseMb = databaseMb;
+        StorageVolumeFreeMb = volumeFreeMb;
+        StorageVolumeTotalMb = volumeTotalMb;
+        StorageLimitAppliedMb = limitAppliedMb;
+        StorageMeasuredAt = measuredAt ?? DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>Registra la versión de configuración que el nodo confirmó aplicar.</summary>
+    public void ConfirmConfigVersion(string? appliedVersion)
+    {
+        if (string.IsNullOrWhiteSpace(appliedVersion)) return;
+
+        ConfigAppliedVersion = appliedVersion.Trim();
+        ConfigAppliedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 

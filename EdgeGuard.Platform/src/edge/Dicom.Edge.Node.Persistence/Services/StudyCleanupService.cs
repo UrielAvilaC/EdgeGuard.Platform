@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Dicom.Edge.Abstractions.Metrics;
+using Dicom.Edge.Abstractions.Storage;
 using Dicom.Edge.Node.Persistence.Diagnostics;
 
 namespace Dicom.Edge.Node.Persistence.Services;
@@ -24,6 +25,7 @@ namespace Dicom.Edge.Node.Persistence.Services;
 public sealed class StudyCleanupService(
     IDbContextFactory<EdgeNodeDbContext> factory,
     INodeSettingsService settings,
+    IStorageUsageProbe usageProbe,
     IMetricsCollector metrics,
     ILogger<StudyCleanupService> logger) : BackgroundService
 {
@@ -260,23 +262,72 @@ public sealed class StudyCleanupService(
                 deleted, security.AuditRetentionDays);
     }
 
-    // ── Phase 6: Emergency storage pressure cleanup ───────────────────────────
+    // ── Reconciliación de deriva ──────────────────────────────────────────────
 
-    private async Task EmergencyStorageCleanupAsync(CleanupConfig cfg, CancellationToken ct)
+    /// <summary>
+    /// Contrasta el contador de la base contra lo que hay realmente en disco.
+    ///
+    /// <para>El contador por estudio se mantiene al vuelo conforme llegan las
+    /// instancias, y por eso es barato de consultar. Pero puede desviarse:
+    /// estudios abortados a medio recibir, purgas que fallaron después de borrar
+    /// filas, archivos que alguien movió a mano. Este recorrido es lo único que
+    /// lo detecta, y por eso corre en la cadencia del cleanup y no en la del
+    /// reporte.</para>
+    ///
+    /// <para>Detecta y avisa, pero no corrige. Corregir automáticamente un número
+    /// que alimenta una decisión de purga merece más cuidado que una primera
+    /// pasada: el recorrido compite con las instancias que están entrando, así
+    /// que una diferencia puede ser deriva real o simplemente un estudio a medio
+    /// escribir.</para>
+    /// </summary>
+    private async Task ReconcileStorageDriftAsync(StorageUsage usage, CancellationToken ct)
     {
         var storage = await settings.GetStorageConfigAsync(ct);
         if (!Directory.Exists(storage.RootPath)) return;
 
-        var rootDir = new DirectoryInfo(storage.RootPath);
-        var usedBytes = rootDir.EnumerateFiles("*", SearchOption.AllDirectories)
-            .Sum(f => f.Length);
-        var usedGb = usedBytes / (1024.0 * 1024.0 * 1024.0);
+        long onDiskBytes;
+        try
+        {
+            onDiskBytes = new DirectoryInfo(storage.RootPath)
+                .EnumerateFiles("*", SearchOption.AllDirectories)
+                .Sum(file => file.Length);
+        }
+        catch (IOException ex)
+        {
+            logger.LogDebug(ex, "Storage drift check skipped — could not walk {Root}", storage.RootPath);
+            return;
+        }
 
-        if (usedGb <= cfg.MaxStorageGb) return;
+        var onDiskMb = onDiskBytes / (1024L * 1024L);
+        var driftMb = Math.Abs(onDiskMb - usage.DicomMb);
+
+        // Un umbral relativo evita ruido en nodos grandes y sigue siendo
+        // sensible en los chicos.
+        var toleranceMb = Math.Max(64, usage.DicomMb / 20);
+        if (driftMb <= toleranceMb) return;
 
         logger.LogWarning(
-            "Storage pressure: {Used:F1} GB used, threshold is {Max} GB — triggering emergency cleanup",
-            usedGb, cfg.MaxStorageGb);
+            "Storage drift: disco reporta {OnDiskMb} MB bajo {Root} pero el contador de " +
+            "estudios suma {CounterMb} MB (diferencia {DriftMb} MB). Puede haber archivos " +
+            "huérfanos de estudios abortados o purgas incompletas.",
+            onDiskMb, storage.RootPath, usage.DicomMb, driftMb);
+    }
+
+    // ── Phase 6: Emergency storage pressure cleanup ───────────────────────────
+
+    private async Task EmergencyStorageCleanupAsync(CleanupConfig cfg, CancellationToken ct)
+    {
+        var usage = await usageProbe.MeasureAsync(ct);
+
+        await ReconcileStorageDriftAsync(usage, ct);
+
+        // 0 = sin límite. Un nodo sin cuota nunca entra en purga de emergencia.
+        if (usage.LimitMb <= 0 || usage.TotalUsedMb <= usage.LimitMb) return;
+
+        logger.LogWarning(
+            "Storage pressure: {UsedMb} MB used ({DicomMb} DICOM + {DbMb} DB), limit is " +
+            "{LimitMb} MB — triggering emergency cleanup",
+            usage.TotalUsedMb, usage.DicomMb, usage.DatabaseMb, usage.LimitMb);
 
         // Soft-delete oldest SentToPacs studies until under threshold
         await using var ctx = await factory.CreateDbContextAsync(ct);

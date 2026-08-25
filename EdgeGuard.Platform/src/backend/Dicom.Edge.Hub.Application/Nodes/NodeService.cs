@@ -33,7 +33,8 @@ public sealed class NodeService(
             request.ApiEndpoint,
             request.Location,
             request.FacilityName,
-            request.HealthCheckIntervalSeconds);
+            request.HealthCheckIntervalSeconds,
+            request.StorageLimitMb);
 
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
@@ -52,8 +53,11 @@ public sealed class NodeService(
             request.FacilityName,
             request.TimeZone,
             version: null,
-            request.HealthCheckIntervalSeconds,
-            request.MaxStorageMb);
+            request.HealthCheckIntervalSeconds);
+
+        // Va aparte porque el formulario envía siempre el estado completo: aquí
+        // null significa "sin límite", no "no cambiar".
+        node.SetStorageLimit(request.StorageLimitMb);
 
         await nodeRepository.UpdateAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);

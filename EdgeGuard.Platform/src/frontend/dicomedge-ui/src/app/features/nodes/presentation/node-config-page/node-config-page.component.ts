@@ -24,7 +24,8 @@ import { UiLoadingSpinner } from '../../../../shared/components/ui-loading-spinn
 import { UiEmptyState } from '../../../../shared/components/ui-empty-state/ui-empty-state.component';
 import { ToastService } from '../../../../core/services/toast.service';
 import { NodesApiService } from '../../infrastructure/nodes-api.service';
-import { NodeConfigApiService } from '../../../settings/infrastructure/node-config-api.service';
+import { NodeConfigApiService, NodeConfigVersionState } from '../../../settings/infrastructure/node-config-api.service';
+import { RelativeTimePipe } from '../../../../shared/pipes/relative-time.pipe';
 import { NodeConfigurationProfileDto } from '../../../settings/models/settings.models';
 import { NodeConfigCategoryPanel } from '../node-config-category-panel/node-config-category-panel.component';
 
@@ -53,6 +54,7 @@ const CATEGORY_LABELS: Record<string, string> = {
     UiLoadingSpinner,
     UiEmptyState,
     NodeConfigCategoryPanel,
+    RelativeTimePipe,
   ],
   templateUrl: './node-config-page.component.html',
 })
@@ -75,6 +77,7 @@ export default class NodeConfigPage {
   protected readonly nodeName = signal<string>('');
   protected readonly configs = signal<NodeConfigurationProfileDto[]>([]);
   protected readonly configVersion = signal<string | null>(null);
+  protected readonly configState = signal<NodeConfigVersionState | null>(null);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly pushing = signal(false);
@@ -250,7 +253,10 @@ export default class NodeConfigPage {
       .getVersion(this.nodeId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (res) => this.configVersion.set(res.configVersion),
+        next: (res) => {
+          this.configVersion.set(res.configVersion);
+          this.configState.set(res);
+        },
         error: () => {},
       });
   }
@@ -263,22 +269,20 @@ export default class NodeConfigPage {
       .subscribe({
         next: (result) => {
           this.pushing.set(false);
-          // Guard against 204 No Content (result === null) — treat as success
+
+          // Un push fallido no es un error: la configuración quedó guardada y el
+          // nodo la recibirá por el reintento del outbox o por su propio pull.
+          // Antes esto pintaba un toast rojo mientras el cambio sí se aplicaba.
           if (!result || result.success) {
             this.toast.success('Configuración aplicada al nodo');
           } else {
-            this.toast.error(
-              result.message
-                ? `Configuración guardada. El nodo respondió: ${result.message}`
-                : 'Configuración guardada en el servidor, pero no se pudo confirmar la aplicación al nodo.',
-            );
+            this.toast.info('Configuración guardada. Se aplicará en el próximo ciclo de sincronización.');
           }
           this.loadConfig();
         },
         error: () => {
           this.pushing.set(false);
-          // Config was already saved — push notification to node failed
-          this.toast.error('Configuración guardada en el servidor. No se pudo notificar al nodo en este momento.');
+          this.toast.info('Configuración guardada. Se aplicará en el próximo ciclo de sincronización.');
           this.loadConfig();
         },
       });

@@ -188,7 +188,7 @@ public class HubDbContext : DbContext
     /// Converts a PascalCase or camelCase identifier to snake_case.
     /// Handles consecutive uppercase letters (abbreviations) correctly:
     /// <c>CEchoInterval</c> → <c>c_echo_interval</c>,
-    /// <c>MaxStorageMb</c> → <c>max_storage_mb</c>,
+    /// <c>StorageLimitMb</c> → <c>storage_limit_mb</c>,
     /// <c>Hl7Version</c> → <c>hl7_version</c>.
     /// </summary>
     private static string ToSnakeCase(string input)

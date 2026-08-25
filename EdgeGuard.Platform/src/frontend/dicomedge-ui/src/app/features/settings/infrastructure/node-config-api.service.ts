@@ -2,6 +2,22 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+/**
+ * Estado de aplicación de la configuración de un nodo.
+ *
+ * Son dos versiones y no un booleano de éxito porque aplicar configuración no es
+ * un evento sino un estado: el push inmediato puede fallar y el nodo recibirla
+ * igual por el reintento del outbox o por su propio pull.
+ */
+export interface NodeConfigVersionState {
+  /** La que el Hub quiere que tenga. */
+  configVersion: string;
+  /** La que el nodo confirmó tener. null = nunca confirmó. */
+  appliedVersion: string | null;
+  appliedAt: string | null;
+  isApplied: boolean;
+}
+
 import { environment } from '../../../../environments/environment';
 import { API_ROUTES } from '../../../core/api/api-routes';
 import {
@@ -45,7 +61,7 @@ export class NodeConfigApiService {
     return this.http.post<ConfigPushResultDto>(`${this.base}${API_ROUTES.NODE_CONFIGURATION.PUSH(nodeId)}`, {});
   }
 
-  getVersion(nodeId: string): Observable<{ configVersion: string }> {
-    return this.http.get<{ configVersion: string }>(`${this.base}${API_ROUTES.NODE_CONFIGURATION.VERSION(nodeId)}`);
+  getVersion(nodeId: string): Observable<NodeConfigVersionState> {
+    return this.http.get<NodeConfigVersionState>(`${this.base}${API_ROUTES.NODE_CONFIGURATION.VERSION(nodeId)}`);
   }
 }

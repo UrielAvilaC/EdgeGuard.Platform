@@ -94,10 +94,11 @@
           />
           <div class="grid grid-cols-2 gap-4">
             <ui-input-text
-              label="Max Storage (MB)"
+              label="Límite de almacenamiento (MB)"
               type="number"
-              [(ngModel)]="editForm.maxStorageMb"
-              name="maxStorageMb"
+              hint="Vacío = sin límite. El nodo purga estudios al superarlo."
+              [(ngModel)]="editForm.storageLimitMb"
+              name="storageLimitMb"
             />
             <ui-input-text
               label="Health Check (seg)"

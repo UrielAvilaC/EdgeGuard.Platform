@@ -1,9 +1,11 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
+using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Application.NodeConfiguration;
@@ -15,6 +17,7 @@ namespace Dicom.Edge.Hub.Application.NodeConfiguration;
 /// </summary>
 public sealed class NodeConfigurationService(
     INodeConfigurationProfileRepository repository,
+    INodeRepository nodeRepository,
     IUnitOfWork unitOfWork,
     ILogger<NodeConfigurationService> logger) : INodeConfigurationService
 {
@@ -193,7 +196,18 @@ public sealed class NodeConfigurationService(
         string nodeId, CancellationToken ct = default)
     {
         var profiles = await repository.GetByNodeIdAsync(nodeId, ct);
-        return ComputeHash(profiles);
+        return ComputeHash(profiles, await ReadStorageLimitAsync(nodeId, ct));
+    }
+
+    /// <summary>
+    /// Lee el límite tal como se serializa en el payload de sync. Vive en el
+    /// agregado Node y no en los perfiles, así que las dos rutas que calculan la
+    /// versión tienen que obtenerlo por aquí para no producir hashes distintos.
+    /// </summary>
+    private async Task<string> ReadStorageLimitAsync(string nodeId, CancellationToken ct)
+    {
+        var node = await nodeRepository.GetByIdAsync(nodeId, ct);
+        return (node?.StorageLimitMb ?? 0).ToString(CultureInfo.InvariantCulture);
     }
 
     public async Task<NodeConfigSyncDto> BuildSyncPayloadAsync(
@@ -206,7 +220,16 @@ public sealed class NodeConfigurationService(
         var settings = profiles
             .Where(p => !p.SettingKey.Equals(SharedNodeSettingKeys.Hub.ApiKey, StringComparison.OrdinalIgnoreCase))
             .ToDictionary(p => p.SettingKey, p => p.Value);
-        var version = ComputeHash(profiles);
+
+        // El límite de almacenamiento se administra en el agregado Node, no como
+        // una fila de perfil, y se inyecta aquí al bajarlo. Tenerlo en los dos
+        // lados sería tener dos verdades sobre el mismo número, y la del perfil
+        // podría contradecir la que muestra la pantalla. Un solo escritor, un
+        // solo lector, y el nodo lo devuelve en su reporte para confirmarlo.
+        var storageLimitMb = await ReadStorageLimitAsync(nodeId, ct);
+        settings[SharedNodeSettingKeys.Storage.LimitMb] = storageLimitMb;
+
+        var version = ComputeHash(profiles, storageLimitMb);
 
         return new NodeConfigSyncDto
         {
@@ -225,13 +248,17 @@ public sealed class NodeConfigurationService(
             await InitializeNodeDefaultsAsync(nodeId, ct);
     }
 
-    private static string ComputeHash(IReadOnlyList<NodeConfigurationProfile> profiles)
+    private static string ComputeHash(
+        IReadOnlyList<NodeConfigurationProfile> profiles, string storageLimitMb)
     {
         var sorted = profiles
             .OrderBy(p => p.SettingKey, StringComparer.OrdinalIgnoreCase)
             .Select(p => $"{p.SettingKey}={p.Value}");
 
-        var payload = string.Join('\n', sorted);
+        // El límite entra en el hash aunque no sea una fila de perfil: si no, el
+        // nodo recibiría una versión idéntica tras cambiarlo y se creería al día.
+        var payload = string.Join('\n', sorted.Append(
+            $"{SharedNodeSettingKeys.Storage.LimitMb}={storageLimitMb}"));
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
         return Convert.ToHexStringLower(hash);
     }

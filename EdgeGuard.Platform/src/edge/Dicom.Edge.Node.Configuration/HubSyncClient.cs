@@ -206,6 +206,27 @@ public sealed class HubSyncClient(
         }
     }
 
+    public async Task<bool> SendHealthReportAsync(NodeHealthReportRequest request, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(_registeredNodeId)) { logger.LogDebug("Skipping health report -- node not yet registered"); return false; }
+        var url = $"{ConnectionOptions.HubBaseUrl.TrimEnd('/')}{HubApiRoutes.HealthReport}";
+        try
+        {
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+            httpRequest.Content = JsonContent.Create(request);
+            ApplyApiKeyHeader(httpRequest);
+            var response = await httpClient.SendAsync(httpRequest, ct);
+            if (!response.IsSuccessStatusCode)
+                logger.LogWarning("Health report failed -- StatusCode={StatusCode} NodeId={NodeId}", (int)response.StatusCode, _registeredNodeId);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Health report error -- NodeId={NodeId} Url={Url}", _registeredNodeId, url);
+            return false;
+        }
+    }
+
     public async Task<bool> NotifyStudyAsync(StudyNotifyRequest request, CancellationToken ct = default)
     {
         logger.LogInformation("Study notify requested -- StudyUid={StudyUid} PatientId={PatientId} PatientName={PatientName} AccessionNumber={AccessionNumber} InstanceCount={InstanceCount} TotalSizeBytes={TotalSizeBytes} NodeId={NodeId}",

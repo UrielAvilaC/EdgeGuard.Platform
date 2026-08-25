@@ -100,6 +100,7 @@ public class NodeRepository : INodeRepository
         ["lastHeartbeatAt"] = n => n.LastHeartbeatAt,
         ["ipAddress"] = n => n.IpAddress,
         ["isEnabled"] = n => n.IsEnabled,
-        ["availableStorageMb"] = n => n.AvailableStorageMb,
+        // El orden es por consumo total, que es la columna que ve el operador.
+        ["storageUsedMb"] = n => (n.StorageDicomMb ?? 0) + (n.StorageDatabaseMb ?? 0),
     };
 }

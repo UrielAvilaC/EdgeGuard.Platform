@@ -36,10 +36,33 @@
     </ui-button>
   </ui-page-header>
 
-  @if (configVersion(); as version) {
-    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+  @if (configState(); as state) {
+    <!-- Estado, no resultado. El push inmediato puede fallar y el nodo recibir
+         la configuración igual, por el reintento del outbox o por su propio
+         pull; comparar versiones dice la verdad sin importar el camino. -->
+    <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
       <fa-icon [icon]="faCodeBranch" aria-hidden="true" />
-      <span>Versión de config: <code class="font-mono">{{ version }}</code></span>
+      <span>Versión de config: <code class="font-mono">{{ state.configVersion }}</code></span>
+
+      @if (state.isApplied) {
+        <span class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium
+                     bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+          Aplicada
+        </span>
+        @if (state.appliedAt) {
+          <span>· confirmada {{ state.appliedAt | relativeTime }}</span>
+        }
+      } @else {
+        <span class="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium
+                     bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+          Pendiente de aplicar
+        </span>
+        @if (state.appliedVersion) {
+          <span>· el nodo tiene <code class="font-mono">{{ state.appliedVersion }}</code></span>
+        } @else {
+          <span>· el nodo aún no confirma ninguna versión</span>
+        }
+      }
     </div>
   }
 

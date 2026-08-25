@@ -77,8 +77,14 @@ export interface DashboardNode {
   isEnabled: boolean;
   lastHeartbeatAt: string | null;
   healthCheckIntervalSeconds: number;
-  maxStorageMb: number;
-  availableStorageMb: number;
+  /** Cuota administrada desde el Hub. null = sin límite, no se pinta barra. */
+  storageLimitMb: number | null;
+  /** Medición del nodo. null = nunca reportó. */
+  storageDicomMb: number | null;
+  storageDatabaseMb: number | null;
+  storageVolumeFreeMb: number | null;
+  storageVolumeTotalMb: number | null;
+  storageMeasuredAt: string | null;
   totalStudiesReceived: number;
   totalStudiesSent: number;
   errorsLast24Hours: number;

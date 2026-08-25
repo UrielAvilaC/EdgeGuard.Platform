@@ -48,6 +48,7 @@ export class NodeFormDialog {
     location: this.data.node?.location ?? undefined,
     facilityName: this.data.node?.facilityName ?? undefined,
     healthCheckIntervalSeconds: 60,
+    storageLimitMb: null,
   };
 
   protected editForm: UpdateNodeRequest = {
@@ -55,7 +56,7 @@ export class NodeFormDialog {
     facilityName: this.data.node?.facilityName ?? undefined,
     timeZone: undefined,
     healthCheckIntervalSeconds: this.data.node?.healthCheckIntervalSeconds,
-    maxStorageMb: this.data.node?.maxStorageMb,
+    storageLimitMb: this.data.node?.storageLimitMb ?? null,
   };
 
   protected get isFormValid(): boolean {

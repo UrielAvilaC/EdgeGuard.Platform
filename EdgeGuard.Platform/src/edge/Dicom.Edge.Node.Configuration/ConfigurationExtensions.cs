@@ -43,6 +43,7 @@ public static class ConfigurationExtensions
         services.AddSingleton<IStudyHubNotifier, StudyHubNotifier>();
         services.AddSingleton<IPacsEchoHubReporter, PacsEchoHubReporter>();
         services.AddHostedService<HubConfigSyncHostedService>();
+        services.AddHostedService<HubHealthReportHostedService>();
 
         // Equipment presence: report last-seen deltas to the Hub on a periodic interval.
         services.Configure<EquipmentPresenceOptions>(

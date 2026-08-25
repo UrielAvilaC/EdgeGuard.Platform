@@ -1,28 +1,74 @@
 @if (node(); as n) {
       <div class="space-y-4">
-        <!-- Storage -->
+        <!-- Almacenamiento -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-sm text-gray-500 dark:text-gray-400">
               <fa-icon [icon]="faHardDrive" class="mr-1" /> Almacenamiento
             </span>
-            <span class="text-sm font-semibold text-gray-900 dark:text-white">
-              {{ storageUsedFormatted() }} / {{ storageMaxFormatted() }}
-            </span>
+            @if (storage().hasData) {
+              <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                {{ format(storage().usedMb) }}@if (storage().limitMb !== null) { / {{ format(storage().limitMb) }} }
+              </span>
+            } @else {
+              <span class="text-sm text-gray-400 dark:text-gray-500 italic">Sin datos</span>
+            }
           </div>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-            <div
-              class="h-2.5 rounded-full transition-all duration-300"
-              [class]="storagePercent() > 90 ? 'bg-red-500' : storagePercent() > 70 ? 'bg-amber-500' : 'bg-emerald-500'"
-              [style.width.%]="storagePercent()"
-              role="progressbar"
-              [attr.aria-valuenow]="storagePercent()"
-              aria-valuemin="0"
-              aria-valuemax="100"
-              [attr.aria-label]="'Uso de almacenamiento: ' + storagePercent() + '%'"
-            ></div>
-          </div>
-          <p class="text-xs text-gray-400 mt-1">{{ availableFormatted() }} disponible</p>
+
+          @if (storage().hasData && storage().percent !== null) {
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div
+                class="h-2.5 rounded-full transition-all duration-300"
+                [class]="barClass(storage().percent)"
+                [style.width.%]="storage().percent"
+                role="progressbar"
+                [attr.aria-valuenow]="storage().percent"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-label]="'Uso de almacenamiento: ' + storage().percent + '%'"
+              ></div>
+            </div>
+          }
+
+          <!-- El desglose vive solo aquí: en la tabla basta el total, pero para
+               decidir qué hacer importa saber qué está creciendo. -->
+          @if (storage().hasData) {
+            <dl class="mt-2 space-y-1 text-xs">
+              <div class="flex items-center justify-between">
+                <dt class="text-gray-500 dark:text-gray-400">
+                  <fa-icon [icon]="faHardDrive" class="mr-1" /> Estudios DICOM
+                </dt>
+                <dd class="font-medium text-gray-700 dark:text-gray-300">{{ format(storage().dicomMb) }}</dd>
+              </div>
+              <div class="flex items-center justify-between">
+                <dt class="text-gray-500 dark:text-gray-400">
+                  <fa-icon [icon]="faDatabase" class="mr-1" /> Base de datos
+                </dt>
+                <dd class="font-medium text-gray-700 dark:text-gray-300">{{ format(storage().databaseMb) }}</dd>
+              </div>
+              @if (n.storageVolumeFreeMb !== null) {
+                <div class="flex items-center justify-between">
+                  <dt class="text-gray-500 dark:text-gray-400">
+                    <fa-icon [icon]="faServer" class="mr-1" /> Libre en el volumen
+                  </dt>
+                  <dd class="font-medium text-gray-700 dark:text-gray-300">
+                    {{ format(n.storageVolumeFreeMb) }}@if (volumeUsedPercent() !== null) { <span class="text-gray-400">({{ volumeUsedPercent() }}% usado)</span> }
+                  </dd>
+                </div>
+              }
+            </dl>
+
+            @if (storage().limitMb === null) {
+              <p class="text-xs text-gray-400 mt-1.5">Sin cuota configurada.</p>
+            }
+            @if (storage().measuredAt) {
+              <p class="text-xs text-gray-400 mt-1">Medido {{ storage().measuredAt | relativeTime }}</p>
+            }
+          } @else {
+            <p class="text-xs text-gray-400 mt-1">
+              El nodo aún no ha reportado su consumo de almacenamiento.
+            </p>
+          }
         </div>
 
         <!-- Stats -->

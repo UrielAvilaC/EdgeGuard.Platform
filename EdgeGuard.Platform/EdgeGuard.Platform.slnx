@@ -96,7 +96,8 @@
   </Folder>
   <Folder Name="/src/frontend/" />
   <Folder Name="/src/shared/">
-    <Project Path="src/shared/Dicom.Edge.Abstractions/Dicom.Edge.Abstractions.csproj" Id="544b9893-8e2b-4e0a-b17c-36bfb2f2d2a9" />
+    <Project Path="tests/Dicom.Edge.Hub.Tests/Dicom.Edge.Hub.Tests.csproj" />
+  <Project Path="src/shared/Dicom.Edge.Abstractions/Dicom.Edge.Abstractions.csproj" Id="544b9893-8e2b-4e0a-b17c-36bfb2f2d2a9" />
     <Project Path="src/shared/Dicom.Edge.Common/Dicom.Edge.Common.csproj" Id="03d317bb-0bc9-46c3-bb7c-ba5e097a8143" />
     <Project Path="src/shared/Dicom.Edge.Contracts/Dicom.Edge.Contracts.csproj" Id="8483406a-1634-4403-9a47-780390f08197" />
     <Project Path="src/shared/Dicom.Edge.Diagnostics/Dicom.Edge.Diagnostics.csproj" />

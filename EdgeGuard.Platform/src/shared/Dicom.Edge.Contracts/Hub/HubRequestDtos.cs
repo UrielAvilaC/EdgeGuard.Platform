@@ -49,9 +49,6 @@ public sealed class NodeHeartbeatRequest
     [Required, StringLength(36, MinimumLength = 1)]
     public required string NodeId { get; init; }
 
-    [Range(0, long.MaxValue)]
-    public long? AvailableStorageMb { get; init; }
-
     [Range(0, int.MaxValue)]
     public int? TotalStudiesReceived { get; init; }
 
@@ -197,8 +194,39 @@ public sealed class NodeHealthReportRequest
     [Required, StringLength(36, MinimumLength = 1)]
     public required string NodeId { get; init; }
 
+    /// <summary>Peso de los estudios vivos en el workspace.</summary>
     [Range(0, long.MaxValue)]
-    public long? AvailableStorageMb { get; init; }
+    public long? StorageDicomMb { get; init; }
+
+    /// <summary>
+    /// Peso de la base SQLite y sus archivos -wal y -shm. Va aparte porque
+    /// crece sola y purgar estudios no la reduce.
+    /// </summary>
+    [Range(0, long.MaxValue)]
+    public long? StorageDatabaseMb { get; init; }
+
+    /// <summary>Espacio libre del volumen que contiene la raíz DICOM.</summary>
+    [Range(0, long.MaxValue)]
+    public long? StorageVolumeFreeMb { get; init; }
+
+    /// <summary>Tamaño total de ese volumen.</summary>
+    [Range(0, long.MaxValue)]
+    public long? StorageVolumeTotalMb { get; init; }
+
+    /// <summary>
+    /// Límite vigente en el nodo. Es un eco de lo que el Hub administra: deja
+    /// ver si el push de configuración ya llegó o el nodo sigue aplicando el
+    /// valor anterior.
+    /// </summary>
+    [Range(0, long.MaxValue)]
+    public long? StorageLimitMb { get; init; }
+
+    /// <summary>Cuándo se tomó la medición, que no es cuándo se envió.</summary>
+    public DateTime? StorageMeasuredAt { get; init; }
+
+    /// <summary>Versión de configuración que el nodo tiene aplicada.</summary>
+    [StringLength(64)]
+    public string? AppliedConfigVersion { get; init; }
 
     [Range(0, 100)]
     public double? CpuPercent { get; init; }
@@ -237,6 +265,10 @@ public sealed class CreateNodeRequest
 
     [Range(10, 3600)]
     public int HealthCheckIntervalSeconds { get; init; } = 60;
+
+    /// <summary>Cuota del workspace del nodo. null = sin límite.</summary>
+    [Range(0, long.MaxValue)]
+    public long? StorageLimitMb { get; init; }
 }
 
 // ── PACS Servers ─────────────────────────────────────────────────────────────
@@ -331,8 +363,9 @@ public sealed class UpdateNodeRequest
     [Range(10, 3600)]
     public int? HealthCheckIntervalSeconds { get; init; }
 
+    /// <summary>Cuota del workspace del nodo. null o ausente = sin límite.</summary>
     [Range(0, long.MaxValue)]
-    public long? MaxStorageMb { get; init; }
+    public long? StorageLimitMb { get; init; }
 }
 
 // ── Update PACS Server ───────────────────────────────────────────────────────

@@ -74,7 +74,6 @@ public static class SharedNodeSettingDefaults
             E(K.Cleanup.RetainDays,         "30",    C.Cleanup, "Retain All Studies (days)",     V.Int),
             E(K.Cleanup.RetainSentDays,     "7",     C.Cleanup, "Retain Sent Studies (days)",    V.Int),
             E(K.Cleanup.RetainFailedDays,   "90",    C.Cleanup, "Retain Failed Studies (days)",  V.Int),
-            E(K.Cleanup.MaxStorageGb,       "100",   C.Cleanup, "Max Storage Threshold (GB)",    V.Int),
             E(K.Cleanup.RunIntervalMinutes, "60",    C.Cleanup, "Cleanup Run Interval (min)",    V.Int),
             E(K.Cleanup.DeleteArchived,     "true",  C.Cleanup, "Delete Archived Studies",       V.Bool),
 
@@ -89,8 +88,8 @@ public static class SharedNodeSettingDefaults
             E(K.Security.AuditRetentionDays, "365",   C.Security, "Audit Log Retention (days)",      V.Int),
 
             // ── Storage ─────────────────────────────────────────────────────
-            E(K.Storage.RootPath,    "./data",    C.Storage, "DICOM Storage Root Path", V.String),
-            E(K.Storage.ArchivePath, "./archive", C.Storage, "Archive Root Path",        V.String),
+            E(K.Storage.RootPath, "./data",  C.Storage, "DICOM Storage Root Path",     V.String),
+            E(K.Storage.LimitMb,  "102400",  C.Storage, "Storage Limit (MB, 0 = sin límite)", V.Int),
 
             // ── PACS Sender ─────────────────────────────────────────────────
             E(K.PacsSender.Enabled,                   "true",     C.PacsSender, "PACS Sender Enabled",       V.Bool),
@@ -177,7 +176,6 @@ public static class SharedNodeSettingDefaults
             public const string RetainDays         = SharedNodeSettingKeys.Cleanup.RetainDays;
             public const string RetainSentDays     = SharedNodeSettingKeys.Cleanup.RetainSentDays;
             public const string RetainFailedDays   = SharedNodeSettingKeys.Cleanup.RetainFailedDays;
-            public const string MaxStorageGb       = SharedNodeSettingKeys.Cleanup.MaxStorageGb;
             public const string RunIntervalMinutes = SharedNodeSettingKeys.Cleanup.RunIntervalMinutes;
             public const string DeleteArchived     = SharedNodeSettingKeys.Cleanup.DeleteArchived;
         }
@@ -195,8 +193,8 @@ public static class SharedNodeSettingDefaults
         }
         public static class Storage
         {
-            public const string RootPath    = SharedNodeSettingKeys.Storage.RootPath;
-            public const string ArchivePath = SharedNodeSettingKeys.Storage.ArchivePath;
+            public const string RootPath = SharedNodeSettingKeys.Storage.RootPath;
+            public const string LimitMb  = SharedNodeSettingKeys.Storage.LimitMb;
         }
         public static class PacsSender
         {

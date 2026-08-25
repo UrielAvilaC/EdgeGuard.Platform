@@ -18,7 +18,15 @@ public sealed class HealthCheckRecord : AggregateRoot<string>
     // System metrics
     public double? CpuUsagePercent { get; private set; }
     public long? MemoryUsageMb { get; private set; }
-    public long? DiskAvailableMb { get; private set; }
+    /// <summary>
+    /// Peso del workspace al momento de la medición: estudios vivos y base del
+    /// nodo por separado. Antes esto era espacio libre; se invirtió al modelo de
+    /// espacio usado porque el libre no significa nada sin conocer la capacidad.
+    /// </summary>
+    public long? StorageDicomMb { get; private set; }
+    public long? StorageDatabaseMb { get; private set; }
+    public long? StorageVolumeFreeMb { get; private set; }
+    public long? StorageLimitMb { get; private set; }
     public int? ActiveAssociations { get; private set; }
     public int? QueuedStudies { get; private set; }
     public long? UptimeSeconds { get; private set; }
@@ -36,7 +44,10 @@ public sealed class HealthCheckRecord : AggregateRoot<string>
         NodeStatus reportedStatus,
         double? cpuUsagePercent = null,
         long? memoryUsageMb = null,
-        long? diskAvailableMb = null,
+        long? storageDicomMb = null,
+        long? storageDatabaseMb = null,
+        long? storageVolumeFreeMb = null,
+        long? storageLimitMb = null,
         int? activeAssociations = null,
         int? queuedStudies = null,
         long? uptimeSeconds = null,
@@ -54,7 +65,10 @@ public sealed class HealthCheckRecord : AggregateRoot<string>
             ReportedNodeStatus = reportedStatus,
             CpuUsagePercent = cpuUsagePercent,
             MemoryUsageMb = memoryUsageMb,
-            DiskAvailableMb = diskAvailableMb,
+            StorageDicomMb = storageDicomMb,
+            StorageDatabaseMb = storageDatabaseMb,
+            StorageVolumeFreeMb = storageVolumeFreeMb,
+            StorageLimitMb = storageLimitMb,
             ActiveAssociations = activeAssociations,
             QueuedStudies = queuedStudies,
             UptimeSeconds = uptimeSeconds,

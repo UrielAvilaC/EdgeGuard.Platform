@@ -50,20 +50,31 @@
           {{ value ? (value | relativeTime) : '—' }}
         </ng-template>
 
-        <ng-template [uiCellDef]="'availableStorageMb'" let-row>
+        <ng-template [uiCellDef]="'storageUsedMb'" let-row>
           <div class="flex items-center gap-2">
             <fa-icon [icon]="faHardDrive" style="font-size: 0.75rem; color: var(--eg-text-muted)" />
-            <div class="flex-1">
-              <div class="w-full rounded-full h-1.5" style="background: var(--eg-border)">
-                <div
-                  class="h-1.5 rounded-full"
-                  [class]="storagePercent(row) > 90 ? 'bg-red-500' : storagePercent(row) > 70 ? 'bg-amber-500' : 'bg-emerald-500'"
-                  [style.width.%]="storagePercent(row)"
-                  style="transition: width 300ms ease"
-                ></div>
+
+            <!-- La barra necesita una cuota contra la cual medir. Sin ella se
+                 muestran los MB a secas, que sí significan algo por sí solos;
+                 pintar 0% cuando no se sabe nada se lee como "hay espacio". -->
+            @if (storage(row).percent !== null) {
+              <div class="flex-1">
+                <div class="w-full rounded-full h-1.5" style="background: var(--eg-border)">
+                  <div
+                    class="h-1.5 rounded-full"
+                    [class]="barClass(storage(row).percent)"
+                    [style.width.%]="storage(row).percent"
+                    style="transition: width 300ms ease"
+                  ></div>
+                </div>
               </div>
-            </div>
-            <span style="font-size: 0.75rem; color: var(--eg-text-muted); white-space: nowrap">{{ storagePercent(row) }}%</span>
+            }
+
+            <span
+              style="font-size: 0.75rem; white-space: nowrap"
+              [style.color]="storage(row).hasData ? 'var(--eg-text-secondary)' : 'var(--eg-text-muted)'"
+              [style.font-style]="storage(row).hasData ? 'normal' : 'italic'"
+            >{{ summary(storage(row)) }}</span>
           </div>
         </ng-template>
 

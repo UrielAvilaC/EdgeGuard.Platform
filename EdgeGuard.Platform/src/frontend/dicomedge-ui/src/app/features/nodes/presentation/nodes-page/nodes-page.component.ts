@@ -21,6 +21,12 @@ import { NodesStore } from '../../services/nodes.store';
 import { NodesFacade } from '../../services/nodes.facade';
 import { NodeFilters } from '../node-filters/node-filters.component';
 import { NodeFormDialog, NodeFormDialogData } from '../node-form-dialog/node-form-dialog.component';
+import {
+  StorageReading,
+  readStorage,
+  storageBarClass,
+  storageSummary,
+} from '../../../../shared/utils/storage-usage';
 
 @Component({
   selector: 'app-nodes-page',
@@ -56,7 +62,7 @@ export default class NodesPage {
     { key: 'ipAddress', header: 'IP:Puerto', sortable: true, width: '14%' },
     { key: 'status', header: 'Estado', sortable: true, width: '12%' },
     { key: 'lastHeartbeatAt', header: 'Último Heartbeat', sortable: true, width: '14%' },
-    { key: 'availableStorageMb', header: 'Storage', width: '16%' },
+    { key: 'storageUsedMb', header: 'Almacenamiento', width: '18%' },
     { key: 'errorsLast24Hours', header: 'Errores 24h', sortable: true, width: '10%', align: 'center' },
   ];
 
@@ -79,8 +85,10 @@ export default class NodesPage {
     });
   }
 
-  protected storagePercent(node: Node): number {
-    if (node.maxStorageMb === 0) return 0;
-    return Math.round(((node.maxStorageMb - node.availableStorageMb) / node.maxStorageMb) * 100);
+  protected storage(node: Node): StorageReading {
+    return readStorage(node);
   }
+
+  protected readonly barClass = storageBarClass;
+  protected readonly summary = storageSummary;
 }

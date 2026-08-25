@@ -154,7 +154,6 @@ public sealed class EdgeNodeService(
         if (node is null) return null;
 
         node.UpdateHeartbeat(
-            availableStorageMb: request.AvailableStorageMb,
             totalStudiesReceived: request.TotalStudiesReceived,
             totalStudiesSent: request.TotalStudiesSent,
             errorsLast24Hours: request.ErrorsLast24Hours);
@@ -364,15 +363,29 @@ public sealed class EdgeNodeService(
         var node = await nodeRepository.GetByIdAsync(request.NodeId, ct);
         if (node is null) return null;
 
-        // A health report is proof of life — refresh the heartbeat timestamp.
-        node.UpdateHeartbeat(availableStorageMb: request.AvailableStorageMb);
+        // Un reporte de salud también es prueba de vida.
+        node.UpdateHeartbeat();
+
+        node.UpdateStorage(
+            dicomMb: request.StorageDicomMb,
+            databaseMb: request.StorageDatabaseMb,
+            volumeFreeMb: request.StorageVolumeFreeMb,
+            volumeTotalMb: request.StorageVolumeTotalMb,
+            limitAppliedMb: request.StorageLimitMb,
+            measuredAt: request.StorageMeasuredAt);
+
+        node.ConfirmConfigVersion(request.AppliedConfigVersion);
+
         await nodeRepository.UpdateAsync(node, ct);
 
         var record = HealthCheckRecord.Create(
             request.NodeId,
             NodeStatus.Online,
             cpuUsagePercent: request.CpuPercent,
-            diskAvailableMb: request.AvailableStorageMb,
+            storageDicomMb: request.StorageDicomMb,
+            storageDatabaseMb: request.StorageDatabaseMb,
+            storageVolumeFreeMb: request.StorageVolumeFreeMb,
+            storageLimitMb: request.StorageLimitMb,
             memoryUsageMb: request.MemoryPercent is not null ? (long)request.MemoryPercent : null,
             queuedStudies: request.QueueDepth);
 
@@ -380,8 +393,11 @@ public sealed class EdgeNodeService(
         await unitOfWork.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Health report persisted from node {NodeId}: Storage={AvailMb}MB, CPU={Cpu}%, Mem={Mem}%",
-            request.NodeId, request.AvailableStorageMb, request.CpuPercent, request.MemoryPercent);
+            "Health report persisted from node {NodeId}: DICOM={DicomMb}MB, DB={DbMb}MB, " +
+            "limit={LimitMb}MB, volume free={FreeMb}MB, CPU={Cpu}%, Mem={Mem}%",
+            request.NodeId, request.StorageDicomMb, request.StorageDatabaseMb,
+            request.StorageLimitMb, request.StorageVolumeFreeMb,
+            request.CpuPercent, request.MemoryPercent);
 
         return new EdgeOperationResult(true, DateTime.UtcNow);
     }

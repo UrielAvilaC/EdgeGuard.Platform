@@ -92,6 +92,17 @@
   </ItemGroup>
 
   <!-- ── Integrations ───────────────────────────────────────────────────────── -->
+  <!--
+    ── Pruebas ───────────────────────────────────────────────────────────────────
+    Primer proyecto de pruebas de la solución. Nace acotado a propósito: cubre el
+    invariante que un renombre mecánico rompería sin que el compilador se entere.
+  -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageVersion Include="MailKit" Version="4.17.0" />
     <PackageVersion Include="QRCoder" Version="1.8.0" />

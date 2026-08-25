@@ -110,7 +110,9 @@ public sealed record CleanupConfig(
     int  RetainDays,
     int  RetainSentDays,
     int  RetainFailedDays,
-    int  MaxStorageGb,
+    // El umbral vive ahora en StorageConfig, en MB. Mantenerlo en GB aquí
+    // obligaba a convertir en la frontera con el Hub, que trabaja en MB.
+
     int  RunIntervalMinutes,
     bool DeleteArchived);
 
@@ -124,7 +126,8 @@ public sealed record TransferConfig(
 /// <summary>Physical storage paths.</summary>
 public sealed record StorageConfig(
     string RootPath,
-    string ArchivePath);
+    /// <summary>Cuota del workspace en MB. 0 = sin límite.</summary>
+    long LimitMb);
 
 /// <summary>Security and audit retention settings.</summary>
 public sealed record SecurityConfig(
