@@ -38,6 +38,24 @@
     DbUser                    = 'edgeguard'
     DbPassword                = 'CAMBIAR_ANTES_DE_INSTALAR'
 
+    # ── Administrador inicial ────────────────────────────────────────────────
+    # El Hub siembra esta cuenta en el primer arranque contra una base sin
+    # administrador. Sin AdminPassword NO se crea ninguna cuenta y no habrá
+    # forma de entrar al SPA: la única salida sería scripts\seed-admin.sql.
+    #
+    # La contraseña debe cumplir la política que aplica el propio Hub:
+    # 8 caracteres o más, con mayúscula, minúscula, dígito y un carácter
+    # especial. El instalador la valida antes de empezar.
+    #
+    # El usuario se normaliza a minúsculas, igual que hace el Hub.
+    #
+    # En Update/Repair de una instalación que ya tiene administrador se puede
+    # dejar AdminPassword vacía: el sembrado se omite y la cuenta existente no
+    # se toca. Cambiar la contraseña de un administrador YA CREADO no se hace
+    # desde aquí, sino desde el SPA.
+    AdminUsername             = 'admin'
+    AdminPassword             = $null
+
     # ── HL7 MLLP ─────────────────────────────────────────────────────────────
     # TCP crudo, sin TLS ni autenticación, transportando PHI. 'Any' expone el
     # puerto a toda la red que alcance al servidor; acotarlo a la subred del

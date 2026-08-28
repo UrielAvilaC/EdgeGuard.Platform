@@ -81,6 +81,28 @@ Precedencia, de mayor a menor:
 `hub-install.psd1` contiene la contraseña en texto plano. Está en `.gitignore`,
 pero **bórralo del servidor al terminar**.
 
+## Administrador inicial
+
+`AdminUsername` y `AdminPassword` del `.psd1` crean la cuenta con la que se entra
+al SPA. **Sin `AdminPassword` no se crea ninguna cuenta**, y en una instalación
+nueva eso significa un Hub sano al que nadie puede entrar.
+
+El paso 07 las escribe como variables del app pool; `AdminUserSeed` siembra la
+cuenta al arrancar; el paso 10 comprueba el resultado iniciando sesión de verdad
+contra `/api/auth/login` y, confirmada la cuenta, retira ambas variables del app
+pool antes de terminar.
+
+La contraseña debe cumplir la política del Hub —8 caracteres o más, con
+mayúscula, minúscula, dígito y carácter especial—, y el instalador la valida
+antes de empezar: el Hub, ante una que no la cumple, se limita a un `LogWarning`
+y no crea la cuenta.
+
+**El instalador no cambia la contraseña de una cuenta que ya existe.** Eso se
+hace desde el SPA; si se perdió, `scripts\seed-admin.sql`.
+
+No confundir con el **bootstrap token**, que sirve para registrar nodos y se
+emite bajo demanda desde `POST /api/nodes/bootstrap-tokens`.
+
 ## Configuración → variables de entorno
 
 Todo se escribe como variables de entorno del app pool.
@@ -92,6 +114,8 @@ en IIS y una actualización nunca tiene que fusionar archivos de configuración.
 | `DbHost`/`DbPort`/`DbName`/`DbUser` + contraseña | `EDGEGUARD_HUB_CONNECTIONSTRING` |
 | *(generada por el instalador)* | `Jwt__SecretKey` |
 | `HostHeader` | `Jwt__Issuer` |
+| `AdminUsername` | `EDGEGUARD_ADMIN_USERNAME` — retirada por el paso 10 |
+| `AdminPassword` | `EDGEGUARD_ADMIN_PASSWORD` — retirada por el paso 10 |
 | `DataProtectionKeyPath` | `DataProtection__KeyPath` |
 | `InstanceId` | `Diagnostics__InstanceId` |
 | `RedactionMode` | `Diagnostics__Redaction__Mode` |
@@ -118,7 +142,7 @@ llegan a la aplicación.
 | 07 | Variables de entorno del app pool |
 | 08 | `logs\`, `workspace\reports\` y el key ring |
 | 09 | Regla de firewall del listener MLLP |
-| 10 | Arranque, `/health`, Data Protection y bootstrap token |
+| 10 | Arranque, `/health`, Data Protection y administrador inicial |
 
 ## Cuando algo falla
 
@@ -151,8 +175,15 @@ variables del app pool y ejecuta `-Mode Repair`.
 común es una credencial de PostgreSQL incorrecta cuando el paso 04 no pudo
 validarla.
 
-**Se perdió el bootstrap token.** Aparece una sola vez. Usa
+**10 — «la cuenta de administrador no pudo iniciar sesión».** O la cuenta ya
+existía con otra contraseña —el instalador no la cambia—, o el Hub omitió el
+sembrado. El mensaje incluye el `Admin seed skipped` que el Hub escribió en su
+log, que dice la causa. Para una cuenta existente cuya contraseña se perdió, usa
 `scripts\seed-admin.sql`.
+
+**Se instaló sin `AdminPassword` y no hay con qué entrar.** El paso 10 lo avisa
+en vez de fallar. Rellena `AdminPassword` en el `.psd1` y ejecuta
+`.\install.ps1 -Mode Repair`.
 
 ## Reversión y desinstalación
 

@@ -76,6 +76,19 @@ function Build-HubEnvironment {
         'NodeAuth__Enforce'               = $Config.NodeAuthEnforce.ToString().ToLowerInvariant()
     }
 
+    # ── Administrador inicial ────────────────────────────────────────────────
+    # AdminUserSeed las lee EXCLUSIVAMENTE del entorno —nunca de archivos de
+    # configuración— y es idempotente: si la cuenta ya existe, no hace nada.
+    #
+    # Ambas se retiran del app pool en el paso 10, en cuanto se confirma que la
+    # cuenta quedó creada y puede iniciar sesión. Dejar la contraseña aquí de
+    # forma permanente la pondría en claro dentro de applicationHost.config,
+    # legible por cualquiera que pueda leer ese archivo, para siempre.
+    if (-not [string]::IsNullOrWhiteSpace([string]$Config.AdminPassword)) {
+        $env['EDGEGUARD_ADMIN_USERNAME'] = ([string]$Config.AdminUsername).Trim().ToLowerInvariant()
+        $env['EDGEGUARD_ADMIN_PASSWORD'] = [string]$Config.AdminPassword
+    }
+
     # Los arreglos de configuración se indexan: Cors__AllowedOrigins__0, __1, ...
     $i = 0
     foreach ($origin in @($Config.CorsAllowedOrigins)) {
@@ -118,6 +131,9 @@ function Step-SetAppPoolConfig {
     # ── Composición ──────────────────────────────────────────────────────────
     $environment = Build-HubEnvironment -Config $Config -JwtSecret $jwtSecret
     Register-SetupSecret $environment['EDGEGUARD_HUB_CONNECTIONSTRING']
+    if ($environment.Contains('EDGEGUARD_ADMIN_PASSWORD')) {
+        Register-SetupSecret $environment['EDGEGUARD_ADMIN_PASSWORD']
+    }
 
     foreach ($name in $environment.Keys) {
         Write-SetupLog "$name = $($environment[$name])" -Level Detail

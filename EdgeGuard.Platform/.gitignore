@@ -417,3 +417,6 @@ setup/hub/data/*
 setup/hub/log/*
 !setup/hub/log/.gitkeep
 setup/hub/hub-install.psd1
+
+# Paquete del instalador del Hub: >100 MB, excede el limite de GitHub.
+setup/hub/install.zip

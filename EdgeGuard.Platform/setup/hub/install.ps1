@@ -92,6 +92,9 @@ $Schema = [ordered]@{
     DbUser                     = @{ Type = 'string'; Default = 'edgeguard';      Prompt = 'PostgreSQL — usuario'; Required = $true }
     DbPassword                 = @{ Type = 'string'; Default = $null;            Prompt = 'PostgreSQL — contraseña'; Required = $true; Secret = $true }
 
+    AdminUsername              = @{ Type = 'string'; Default = 'admin';          Prompt = 'Administrador — usuario'; Required = $false }
+    AdminPassword              = @{ Type = 'string'; Default = $null;            Prompt = 'Administrador — contraseña'; Required = $false; Secret = $true }
+
     Hl7Enabled                 = @{ Type = 'bool';   Default = $true;            Prompt = 'Habilitar listener MLLP'; Required = $true }
     Hl7Port                    = @{ Type = 'int';    Default = 8001;             Prompt = 'HL7 — puerto MLLP';    Required = $true; Validate = { param($v) $v -ge 1 -and $v -le 65535 }; ValidateMessage = 'debe estar entre 1 y 65535' }
     Hl7RemoteAddress           = @{ Type = 'string'; Default = 'Any';            Prompt = 'HL7 — origen permitido'; Required = $true }
@@ -249,6 +252,36 @@ function Test-SetupConfig {
 
     if ($Config.DbPassword -eq 'CAMBIAR_ANTES_DE_INSTALAR') {
         $errors.Add("'DbPassword' sigue con el valor de ejemplo. Sustitúyelo por la contraseña real.")
+    }
+
+    # La política se replica de AdminUserSeed.ValidatePasswordPolicy. Duplicarla
+    # aquí es deliberado: el Hub, ante una contraseña que no la cumple, se limita
+    # a un LogWarning y NO crea la cuenta. El arranque parece correcto, /health
+    # responde y el operador solo descubre el problema al intentar entrar al SPA.
+    # Fallar aquí cuesta una corrección en el .psd1; fallar allá cuesta una
+    # sesión de diagnóstico.
+    $adminPassword = [string]$Config.AdminPassword
+    if (-not [string]::IsNullOrWhiteSpace($adminPassword)) {
+        $policy = @(
+            @{ Ok = ($adminPassword.Length -ge 8);                                  Message = 'al menos 8 caracteres' }
+            @{ Ok = ($adminPassword -cmatch '[A-Z]');                               Message = 'al menos una mayúscula' }
+            @{ Ok = ($adminPassword -cmatch '[a-z]');                               Message = 'al menos una minúscula' }
+            @{ Ok = ($adminPassword -match '\d');                                   Message = 'al menos un dígito' }
+            # El @() no es cosmético: bajo StrictMode, .Count sobre un pipeline
+            # que no devolvió nada lanza PropertyNotFoundStrict, y la validación
+            # entera moriría justo con las contraseñas que debe rechazar.
+            @{ Ok = (@($adminPassword.ToCharArray() | Where-Object { -not [char]::IsLetterOrDigit($_) }).Count -gt 0)
+               Message = 'al menos un carácter especial' }
+        )
+        $unmet = @($policy | Where-Object { -not $_.Ok } | ForEach-Object { $_.Message })
+        if ($unmet.Count -gt 0) {
+            $errors.Add("'AdminPassword' no cumple la política del Hub: falta $($unmet -join ', ').")
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$Config.AdminUsername) -and
+        -not [string]::IsNullOrWhiteSpace($adminPassword)) {
+        $errors.Add("'AdminUsername' no puede estar vacío cuando se indica 'AdminPassword'.")
     }
 
     $dpPath = [string]$Config.DataProtectionKeyPath
@@ -424,6 +457,9 @@ try {
     }
 
     Register-SetupSecret ([string]$config.DbPassword)
+    if (-not [string]::IsNullOrWhiteSpace([string]$config.AdminPassword)) {
+        Register-SetupSecret ([string]$config.AdminPassword)
+    }
 
     # ── Validación ───────────────────────────────────────────────────────────
     $errors = Test-SetupConfig -Config $config -FromFile $fromFile

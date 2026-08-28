@@ -23,7 +23,7 @@ EdgeGuard Hub is designed to run on **Windows Server with IIS** as its primary d
 2. [IIS Deployment (Production)](#iis-deployment-production)
 3. [HL7 MLLP Listener Considerations](#hl7-mllp-listener-considerations)
 4. [Environment Variables Reference](#environment-variables-reference)
-5. [First-Run Bootstrap](#first-run-bootstrap)
+5. [First-Run Admin Account](#first-run-admin-account)
 6. [Database Migrations (Auto-applied)](#database-migrations-auto-applied)
 7. [Production Checklist](#production-checklist)
 8. [Optional — Docker Compose](#optional--docker-compose)
@@ -310,43 +310,47 @@ New-NetFirewallRule `
 | `Hl7Listener__Port` | No | `8001` | MLLP listen port |
 | `Hl7Listener__ValidateBeforeAck` | No | `false` | **P0-5** — validate before ACK; enable after monitoring NACK rates |
 | `NodeAuth__Enforce` | No | `false` | **P0-1** — set to `true` once all Nodes have rolled out auth headers |
+| `EDGEGUARD_ADMIN_USERNAME` | No | `admin` | Username for the seeded super-administrator. Read **only** from the environment |
+| `EDGEGUARD_ADMIN_PASSWORD` | First run | — | Password for the seeded super-administrator. **Without it no account is created.** Remove it once the account exists |
 
 ---
 
-## First-Run Bootstrap
+## First-Run Admin Account
 
-On first startup with an empty database, the Hub generates a bootstrap admin token and logs it to stdout / the rolling log file:
+On first startup the Hub seeds a super-administrator through `AdminUserSeed`, which reads its credentials **exclusively from environment variables** — never from `appsettings.json` or User Secrets, so they cannot end up in source control:
+
+| Variable | Required | Default |
+|---|---|---|
+| `EDGEGUARD_ADMIN_USERNAME` | No | `admin` |
+| `EDGEGUARD_ADMIN_PASSWORD` | **Yes, on first run** | — |
+
+The password must satisfy the Hub's own policy: at least 8 characters, with an uppercase letter, a lowercase letter, a digit and a special character.
 
 ```
-[INF] ========================================================
-[INF] BOOTSTRAP TOKEN (one-time use):
-[INF] eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-[INF] Use this token to create the initial admin account.
-[INF] ========================================================
+[INF] Default super-administrator created (username: admin). Change the password after first login.
 ```
 
-Steps:
+> **The seed fails quietly.** If `EDGEGUARD_ADMIN_PASSWORD` is missing or the password breaks the policy, the Hub writes a `LogWarning` and **creates no account**. Startup looks healthy and `/health` returns `Healthy`; the problem only surfaces when someone tries to log in. Grep the startup log for `Admin seed skipped`.
 
-1. Copy the token from `C:\inetpub\EdgeGuard\Hub\logs\hub-<date>.log`.
-2. POST to `/api/auth/bootstrap`:
+Seeding is idempotent: if a user with that name already exists, the seed does nothing. **It never changes the password of an existing account** — do that from the SPA, or use `scripts/seed-admin.sql` if the password was lost.
 
-   ```powershell
-   $body = @{
-       username = "admin"
-       password = "StrongPassword123!"
-       email    = "admin@your-org.local"
-   } | ConvertTo-Json
+### Remove the password once the account exists
 
-   Invoke-RestMethod -Method Post `
-     -Uri https://hub.your-org.local/api/auth/bootstrap `
-     -Headers @{ Authorization = "Bearer <bootstrap_token>" } `
-     -ContentType "application/json" `
-     -Body $body
-   ```
+The variable has done its only job. Leaving it set keeps the administrator password in cleartext inside `applicationHost.config` (IIS) or the unit file (systemd) forever.
 
-3. The bootstrap token is invalidated after first use. Log in normally with the created credentials.
+```powershell
+# IIS — drop both seed variables from the app pool
+Import-Module WebAdministration
+$pool = "IIS:\AppPools\EdgeGuardHub"
+$kept = (Get-ItemProperty $pool -Name environmentVariables).Collection |
+        Where-Object { $_.name -notlike 'EDGEGUARD_ADMIN_*' } |
+        ForEach-Object { @{ name = $_.name; value = $_.value } }
+Set-ItemProperty $pool -Name environmentVariables -Value @($kept)
+```
 
-> **Warning:** The bootstrap token appears **only once**. If missed, drop and recreate the database (the Hub re-seeds on next start) or run the manual admin-seed script (`scripts/seed-admin.sql`).
+> The `setup\hub\install.ps1` installer does all of this for you: it takes `AdminUsername` / `AdminPassword` from `hub-install.psd1`, writes the variables in step 07, verifies the account in step 10 by performing a real login against `/api/auth/login`, and then removes both variables. See `setup/hub/README.md`.
+
+> **Not to be confused with the node bootstrap token.** That token registers Edge Nodes, is issued on demand from `POST /api/nodes/bootstrap-tokens` (or `POST /api/edge/token` for self-service), and has nothing to do with administrator accounts. There is no `/api/auth/bootstrap` endpoint.
 
 ---
 
@@ -373,6 +377,8 @@ For controlled production deployments (e.g. ITSM-gated change windows), see [dat
 - [ ] TLS certificate bound to port 443 (TLS 1.2+)
 - [ ] WebSockets feature installed and enabled at site level
 - [ ] `Jwt__SecretKey` is ≥32 chars, randomly generated, stored as App Pool env var (not in `appsettings.json`)
+- [ ] Admin account seeded and verified by an actual login
+- [ ] `EDGEGUARD_ADMIN_USERNAME` and `EDGEGUARD_ADMIN_PASSWORD` removed from the App Pool once the account exists
 - [ ] `Cors:AllowedOrigins` restricted to your actual SPA domain
 - [ ] `Diagnostics__Redaction__Mode=Strict`
 - [ ] PostgreSQL user has `CONNECT`, `CREATE`, schema ownership only (no superuser)

@@ -16,7 +16,11 @@
       · Data Protection persiste llaves. Si no, degrada a llaves efímeras con
         solo un LogWarning, y en el siguiente reciclaje del app pool los
         SigningSecret de todos los nodos dejan de ser descifrables.
-      · El bootstrap token, si lo hubo, se muestra UNA vez y no se persiste.
+      · La cuenta de administrador inicial existe y puede iniciar sesión. El
+        sembrado del Hub omite la cuenta en silencio —solo un LogWarning— si la
+        contraseña no llegó o no cumple su política, así que el único modo
+        fiable de saberlo es autenticarse de verdad. Confirmada la cuenta, las
+        dos variables de sembrado se retiran del app pool antes de terminar.
 #>
 
 $script:HealthTimeoutSeconds = 90
@@ -150,22 +154,170 @@ function Test-DataProtectionPersisted {
 
 <#
 .SYNOPSIS
-    Extrae el bootstrap token del log de arranque.
+    Comprueba que la cuenta de administrador funciona, autenticándose de verdad.
 .DESCRIPTION
-    Aparece una sola vez, en el primer arranque contra una base vacía. No se
-    escribe al log del instalador: se muestra en consola y ahí termina su rastro
-    en este proceso.
-#>
-function Find-BootstrapToken {
-    [CmdletBinding()]
-    param([string[]]$LogLines)
+    AdminUserSeed corre al arrancar el Hub y siembra la cuenta leyendo
+    EDGEGUARD_ADMIN_USERNAME y EDGEGUARD_ADMIN_PASSWORD del entorno. Es
+    idempotente y, cuando algo no le cuadra —la variable ausente, la contraseña
+    fuera de política—, se limita a un LogWarning y NO crea la cuenta.
 
-    foreach ($line in $LogLines) {
-        if ($line -match '(eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+)') {
-            return $Matches[1]
-        }
+    Por eso no basta con leer el log: se hace un inicio de sesión real contra
+    /api/auth/login. Es la única prueba de que el operador podrá entrar al SPA,
+    y distingue los tres desenlaces que de otro modo se parecen entre sí:
+    cuenta recién creada, cuenta que ya existía y cuenta que nunca se sembró.
+
+    Como en Wait-HubHealth, se usa HttpWebRequest para poder fijar la cabecera
+    Host: el sitio está enlazado a un host header.
+#>
+function Test-HubAdminLogin {
+    [CmdletBinding()]
+    param([int]$Port, [string]$HostHeader, [string]$Username, [string]$Password)
+
+    $url  = "http://localhost:$Port/api/auth/login"
+    $body = @{ username = $Username; password = $Password } | ConvertTo-Json -Compress
+    $data = [System.Text.Encoding]::UTF8.GetBytes($body)
+
+    $request = [System.Net.HttpWebRequest]::Create($url)
+    $request.Host        = $HostHeader
+    $request.Method      = 'POST'
+    $request.ContentType = 'application/json'
+    $request.Timeout     = 20000
+    $request.ContentLength = $data.Length
+
+    try {
+        $stream = $request.GetRequestStream()
+        try   { $stream.Write($data, 0, $data.Length) }
+        finally { $stream.Dispose() }
+
+        $response = $request.GetResponse()
+        try     { return @{ Ok = $true; StatusCode = [int]$response.StatusCode } }
+        finally { $response.Close() }
     }
-    return $null
+    catch [System.Net.WebException] {
+        $resp = $_.Exception.Response
+        $code = if ($resp) { [int]$resp.StatusCode } else { 0 }
+        return @{ Ok = $false; StatusCode = $code; Error = $_.Exception.Message }
+    }
+}
+
+<#
+.SYNOPSIS
+    Retira del app pool las variables de sembrado del administrador.
+.DESCRIPTION
+    Se llama sólo después de comprobar que la cuenta existe y funciona: las dos
+    variables ya cumplieron su único cometido. El sembrado es idempotente y en
+    los siguientes arranques se saltaría de todos modos porque el usuario ya
+    existe, así que no aportan nada y sí cuestan.
+
+    EDGEGUARD_ADMIN_PASSWORD dejaría la contraseña del administrador en claro
+    dentro de applicationHost.config de forma permanente. EDGEGUARD_ADMIN_USERNAME
+    no es secreto, pero se retira con ella: dejar sola la mitad que nombra la
+    cuenta privilegiada no aporta nada operativo —con qué cuenta se sembró queda
+    en el log del instalador— y una variable huérfana invita a "completarla"
+    volviendo a poner la contraseña al lado.
+
+    Escribir la colección recicla el app pool. Es aceptable aquí: /health y el
+    inicio de sesión ya se verificaron, y el reciclaje no vuelve a sembrar nada.
+#>
+function Remove-AdminSeedVariables {
+    [CmdletBinding()]
+    param([string]$AppPoolName)
+
+    $names = @('EDGEGUARD_ADMIN_PASSWORD', 'EDGEGUARD_ADMIN_USERNAME')
+
+    Import-Module WebAdministration -ErrorAction Stop
+    $poolPath = "IIS:\AppPools\$AppPoolName"
+
+    $current = @{}
+    $collection = (Get-ItemProperty $poolPath -Name environmentVariables -ErrorAction SilentlyContinue)
+    if ($collection -and $collection.Collection) {
+        foreach ($entry in $collection.Collection) { $current[$entry.name] = $entry.value }
+    }
+
+    $present = @($names | Where-Object { $current.ContainsKey($_) })
+    if ($present.Count -eq 0) { return }
+
+    foreach ($name in $present) { $current.Remove($name) }
+
+    Invoke-SetupAction -Description "retirar del app pool $($present -join ' y ')" -Action {
+        $rebuilt = @()
+        foreach ($name in $current.Keys) {
+            $rebuilt += @{ name = $name; value = [string]$current[$name] }
+        }
+        Set-ItemProperty $poolPath -Name environmentVariables -Value $rebuilt -ErrorAction Stop
+    } | Out-Null
+
+    if (Test-SetupDryRun) { return }
+
+    $after = (Get-ItemProperty $poolPath -Name environmentVariables -ErrorAction SilentlyContinue)
+    $still = @($after.Collection | Where-Object { $names -contains $_.name } | ForEach-Object { $_.name })
+
+    if ($still -contains 'EDGEGUARD_ADMIN_PASSWORD') {
+        Write-SetupLog ("No se pudo retirar EDGEGUARD_ADMIN_PASSWORD del app pool. Queda la " +
+                        "contraseña del administrador en claro en applicationHost.config: " +
+                        "elimínala a mano desde IIS Manager antes de dar por cerrada la instalación.") -Level Warn
+        return
+    }
+    if ($still.Count -gt 0) {
+        Write-SetupLog "No se pudo retirar $($still -join ', ') del app pool; elimínala a mano." -Level Warn
+        return
+    }
+
+    Write-SetupLog "$($present -join ' y ') retiradas del app pool tras confirmar la cuenta" -Level Detail
+}
+
+<#
+.SYNOPSIS
+    Siembra y verifica la cuenta de administrador inicial.
+#>
+function Confirm-HubAdminAccount {
+    [CmdletBinding()]
+    param([hashtable]$Config, [string[]]$LogLines)
+
+    $username = ([string]$Config.AdminUsername).Trim().ToLowerInvariant()
+    $password = [string]$Config.AdminPassword
+
+    if ([string]::IsNullOrWhiteSpace($password)) {
+        Write-SetupLog ("Sin AdminPassword en la configuración: no se sembró ninguna cuenta. " +
+                        "Si esta es una instalación nueva, NO habrá con qué iniciar sesión en el " +
+                        "SPA; rellena AdminPassword y ejecuta -Mode Repair, o da de alta la cuenta " +
+                        "con scripts\seed-admin.sql.") -Level Warn
+        return
+    }
+
+    $login = Test-HubAdminLogin -Port $Config.Port -HostHeader $Config.HostHeader `
+                                -Username $username -Password $password
+
+    if (-not $login.Ok) {
+        # El log del Hub dice por qué se omitió el sembrado; es más útil que el 401.
+        $skipped = @($LogLines | Where-Object { $_ -match 'Admin seed skipped' })
+        $detail  = if ($skipped.Count -gt 0) { " El Hub reportó: $($skipped[-1])" } else { '' }
+
+        throw ("La cuenta de administrador '$username' no pudo iniciar sesión " +
+               "(HTTP $($login.StatusCode)).$detail Revisa AdminUsername y AdminPassword; " +
+               "si la cuenta ya existía con otra contraseña, el instalador no la cambia.")
+    }
+
+    $created = @($LogLines | Where-Object { $_ -match 'Default super-administrator created' })
+    Write-SetupLog $(if ($created.Count -gt 0) {
+                        "Cuenta de administrador '$username' creada y verificada por inicio de sesión."
+                     } else {
+                        "La cuenta '$username' ya existía; verificada por inicio de sesión."
+                     }) -Level Ok
+
+    Remove-AdminSeedVariables -AppPoolName $Config.AppPoolName
+
+    Write-Host ""
+    Write-Host "  ─────────────────────────────────────────────────────────────" -ForegroundColor Cyan
+    Write-Host "   ADMINISTRADOR INICIAL" -ForegroundColor Cyan
+    Write-Host "  ─────────────────────────────────────────────────────────────" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "   Usuario   $username"
+    Write-Host "   Acceso    http://$($Config.HostHeader):$($Config.Port)/"
+    Write-Host ""
+    Write-Host "   Cambia la contraseña desde el SPA tras el primer acceso, y borra" -ForegroundColor Gray
+    Write-Host "   hub-install.psd1 del servidor: contiene ambas contraseñas en claro." -ForegroundColor Gray
+    Write-Host ""
 }
 
 function Step-TestInstallation {
@@ -178,7 +330,7 @@ function Step-TestInstallation {
     Start-HubSite -SiteName $Config.SiteName -AppPoolName $Config.AppPoolName
 
     if (Test-SetupDryRun) {
-        Write-SetupLog "haría: esperar /health y revisar el log de arranque" -Level Detail
+        Write-SetupLog "haría: esperar /health, revisar el log y verificar la cuenta de administrador" -Level Detail
         return
     }
 
@@ -202,25 +354,6 @@ function Step-TestInstallation {
         Write-SetupLog "El Hosting Bundle pidió reinicio: prográmalo antes de poner el Hub en servicio." -Level Warn
     }
 
-    # ── Bootstrap token ──────────────────────────────────────────────────────
-    $token = Find-BootstrapToken -LogLines $logLines
-    if ($token) {
-        Write-SetupLog "Bootstrap token emitido (se muestra una sola vez, no queda en el log del instalador)" -Level Info
-
-        Write-Host ""
-        Write-Host "  ─────────────────────────────────────────────────────────────" -ForegroundColor Yellow
-        Write-Host "   BOOTSTRAP TOKEN — de un solo uso, no se repite" -ForegroundColor Yellow
-        Write-Host "  ─────────────────────────────────────────────────────────────" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "   $token"
-        Write-Host ""
-        Write-Host "   Crea la cuenta de administrador inicial:" -ForegroundColor Gray
-        Write-Host "     POST http://$($Config.HostHeader):$($Config.Port)/api/auth/bootstrap" -ForegroundColor Gray
-        Write-Host "     Authorization: Bearer <token>" -ForegroundColor Gray
-        Write-Host "     { `"username`": `"admin`", `"password`": `"...`", `"email`": `"...`" }" -ForegroundColor Gray
-        Write-Host ""
-    }
-    else {
-        Write-SetupLog "Sin bootstrap token: la base ya estaba inicializada." -Level Detail
-    }
+    # ── Administrador inicial ────────────────────────────────────────────────
+    Confirm-HubAdminAccount -Config $Config -LogLines $logLines
 }

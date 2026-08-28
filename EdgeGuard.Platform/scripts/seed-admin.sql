@@ -4,13 +4,27 @@
 --
 -- CUÁNDO USAR ESTO
 --
--- El Hub emite un bootstrap token de un solo uso en su primer arranque contra
--- una base vacía, y con él se crea el administrador por POST /api/auth/bootstrap.
--- Ese token aparece UNA vez en el log. Si se perdió —el log rotó, el arranque
--- ocurrió antes de que nadie mirara, la instalación se hizo desatendida— este
--- script es la salida sin tener que borrar y recrear la base.
+-- El camino normal es el sembrado del propio Hub: AdminUserSeed crea la cuenta
+-- al arrancar leyendo EDGEGUARD_ADMIN_USERNAME y EDGEGUARD_ADMIN_PASSWORD del
+-- entorno, y el instalador (setup\hub\install.ps1) las escribe a partir de
+-- AdminUsername y AdminPassword del .psd1, verifica el resultado con un inicio
+-- de sesión real y luego las retira.
 --
--- Es la última opción, no la primera. Prefiere siempre el bootstrap token.
+-- Este script es para los casos en que ese camino ya no sirve:
+--
+--   · la cuenta existe pero se perdió su contraseña, y el sembrado no la
+--     cambia —es idempotente: si el usuario existe, no hace nada—;
+--   · el Hub no puede reiniciarse para volver a sembrar.
+--
+-- Es la última opción, no la primera. Si la instalación es nueva y aún no hay
+-- ninguna cuenta, prefiere rellenar AdminPassword en hub-install.psd1 y
+-- ejecutar '.\install.ps1 -Mode Repair'.
+--
+-- NOTA: revisiones de la documentación anteriores a 2026-08 describían un
+-- "bootstrap token" de administrador emitido al arrancar y un endpoint
+-- POST /api/auth/bootstrap. Ninguno de los dos existe en el código: AuthController
+-- solo expone login, refresh, revoke, revoke-all y me. El bootstrap token que sí
+-- existe sirve para registrar nodos.
 --
 -- ----------------------------------------------------------------------------
 -- REQUISITO PREVIO: el hash BCrypt
