@@ -11,9 +11,23 @@ namespace Dicom.Edge.Hub.Api.Extensions;
 /// </summary>
 public static class StartupDiagnosticsExtensions
 {
+    /// <summary>
+    /// Log category for this block.
+    /// <para>
+    /// Deliberately NOT <c>ILogger&lt;WebApplication&gt;</c>. That resolves to the category
+    /// <c>Microsoft.AspNetCore.Builder.WebApplication</c>, and the platform Serilog setup
+    /// applies <c>MinimumLevel.Override("Microsoft", Warning)</c> — which silently dropped
+    /// every Information line below, so in production the block emitted nothing but two
+    /// context-free warnings. Own category, own level, same pattern as SpaStaticFiles.
+    /// </para>
+    /// </summary>
+    private const string LogCategory = "EdgeGuard.Startup";
+
     public static WebApplication LogStartupDiagnostics(this WebApplication app)
     {
-        var logger = app.Services.GetRequiredService<ILogger<WebApplication>>();
+        var logger = app.Services
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger(LogCategory);
 
         // ── Environment ──────────────────────────────────────────────────────
         var env = app.Environment;
@@ -168,9 +182,18 @@ public static class StartupDiagnosticsExtensions
         // ── Registered API endpoints — listed ONLY after all Map* calls ─────
         // This verifies controller discovery. If an endpoint is missing here
         // it will NEVER be reachable regardless of client request method.
-        var endpointDataSource = app.Services.GetService<EndpointDataSource>();
-        if (endpointDataSource is not null)
+        // Read the route builder's OWN data sources, not the EndpointDataSource in DI.
+        // The DI one is a CompositeEndpointDataSource fed by data sources registered in
+        // the container; the ones created by MapControllers/MapGet/MapHub live in
+        // IEndpointRouteBuilder.DataSources and are only merged in when the pipeline
+        // starts. Since this runs before app.Run(), resolving from DI returned an EMPTY
+        // composite — which made the api/auth/login check below fire on every single
+        // deployment regardless of whether the controller was registered.
+        var dataSources = ((IEndpointRouteBuilder)app).DataSources;
+        if (dataSources.Count > 0)
         {
+            var endpointDataSource = new CompositeEndpointDataSource(dataSources);
+
             var apiEndpoints = endpointDataSource.Endpoints
                 .OfType<RouteEndpoint>()
                 .Where(e => e.RoutePattern.RawText is not null)
@@ -214,7 +237,7 @@ public static class StartupDiagnosticsExtensions
         }
         else
         {
-            logger.LogWarning("EndpointDataSource not available — cannot verify registered routes.");
+            logger.LogWarning("No endpoint data sources registered — cannot verify registered routes.");
         }
 
         // ── SignalR hub ───────────────────────────────────────────────────────

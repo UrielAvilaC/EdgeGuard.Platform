@@ -4,13 +4,13 @@
     Paso 10 — Verificación post-instalación
 
 .DESCRIPTION
-    Arranca el sitio, espera a que /health responda y revisa el log de arranque.
+    Arranca el sitio, espera a que /health/live responda y revisa el log de arranque.
 
     Este paso es la única prueba real de que la instalación funciona: hasta aquí
     todo fue configuración que "parece" correcta. Tres cosas se comprueban y
     ninguna es decorativa:
 
-      · /health responde. Ejercita la conexión a la base y las migraciones, de
+      · /health/live responde. Ejercita la conexión a la base y las migraciones, de
         modo que una contraseña incorrecta se manifiesta aquí aunque el paso 04
         no haya podido validarla.
       · Data Protection persiste llaves. Si no, degrada a llaves efímeras con
@@ -44,8 +44,23 @@ function Start-HubSite {
 
 <#
 .SYNOPSIS
-    Consulta /health hasta que responda o venza el plazo.
+    Consulta /health/live hasta que responda o venza el plazo.
 .DESCRIPTION
+    La ruta es /health/live, no /health/live: la aplicación solo mapea /health/live y
+    /health/ready (HealthCheckConstants), y /health/live está en la lista de prefijos
+    que el fallback de la SPA devuelve como 404. Sondear /health agotaba el plazo
+    entero contra una ruta que nunca existió.
+
+    Se sondea la sonda de liveness y no la de readiness a propósito. Las
+    migraciones se aplican en Program.cs ANTES de que Kestrel acepte conexiones,
+    así que cualquier respuesta HTTP ya demuestra que la base conectó y migró
+    —que es lo que este paso necesita probar—. /health/ready agrega además los
+    checks de disco y del listener MLLP, y Hl7ListenerHealthCheck devuelve
+    Unhealthy (no Degraded) cuando el listener no escucha: con Hl7Enabled = $false,
+    una configuración legítima, el agregado da 503 y este paso reprobaría una
+    instalación correcta. El estado de readiness se consulta después, aparte, y
+    solo se informa.
+
     Se usa HttpWebRequest en lugar de Invoke-WebRequest para poder fijar la
     cabecera Host: el sitio está enlazado a un host header y el servidor no
     resolvería la petición sin ella.
@@ -54,7 +69,7 @@ function Wait-HubHealth {
     [CmdletBinding()]
     param([int]$Port, [string]$HostHeader)
 
-    $url      = "http://localhost:$Port/health"
+    $url      = "http://localhost:$Port/health/live"
     $deadline = (Get-Date).AddSeconds($script:HealthTimeoutSeconds)
     $last     = 'sin respuesta'
 
@@ -79,10 +94,23 @@ function Wait-HubHealth {
                 return @{ Ok = $true; StatusCode = $code; Body = $body.Trim() }
             }
             $last = "HTTP $code"
+            if ($code -eq 404) { return @{ Ok = $false; Error = $last; Fatal = $true } }
         }
         catch [System.Net.WebException] {
             $resp = $_.Exception.Response
-            $last = if ($resp) { "HTTP $([int]$resp.StatusCode)" } else { $_.Exception.Message }
+            if ($resp) {
+                $code = [int]$resp.StatusCode
+                $last = "HTTP $code"
+
+                # Un 404 no es un estado transitorio: el proceso respondió, y
+                # respondió que la ruta no existe. Reintentarlo 90s no cambia el
+                # resultado y desplaza la sospecha hacia el arranque, que es
+                # justo donde no está el problema. Se corta aquí.
+                if ($code -eq 404) { return @{ Ok = $false; Error = $last; Fatal = $true } }
+            }
+            else {
+                $last = $_.Exception.Message
+            }
         }
         catch {
             $last = $_.Exception.Message
@@ -92,6 +120,63 @@ function Wait-HubHealth {
     }
 
     return @{ Ok = $false; Error = $last }
+}
+
+<#
+.SYNOPSIS
+    Consulta /health/ready una vez y vuelca el resultado al log.
+.DESCRIPTION
+    Puramente informativo. Un 503 aquí no reprueba la instalación: significa que
+    alguno de los checks con tag 'ready' —base, disco, listener MLLP— no está
+    verde, y eso puede deberse a decisiones legítimas del despliegue o a
+    condiciones ajenas al instalador. Se muestra para que el operador lo vea
+    ahora y no en la primera incidencia.
+#>
+function Write-HubReadiness {
+    [CmdletBinding()]
+    param([int]$Port, [string]$HostHeader)
+
+    $url = "http://localhost:$Port/health/ready"
+
+    try {
+        $request = [System.Net.HttpWebRequest]::Create($url)
+        $request.Host    = $HostHeader
+        $request.Timeout = 15000
+        $request.Method  = 'GET'
+
+        $response = $request.GetResponse()
+        try {
+            $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+            $body   = $reader.ReadToEnd().Trim()
+            $code   = [int]$response.StatusCode
+        }
+        finally { $response.Close() }
+
+        Write-SetupLog "/health/ready HTTP $code : $body" -Level Detail
+    }
+    catch [System.Net.WebException] {
+        # 503 = algún check no está verde. El cuerpo dice cuál.
+        $resp = $_.Exception.Response
+        if ($resp) {
+            $code = [int]$resp.StatusCode
+            $body = ''
+            try {
+                $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+                $body   = $reader.ReadToEnd().Trim()
+            }
+            catch { }
+            finally { $resp.Close() }
+
+            Write-SetupLog ("/health/ready HTTP $code : $body — informativo, no reprueba la " +
+                            "instalación. Revísalo antes de poner el Hub en servicio.") -Level Warn
+        }
+        else {
+            Write-SetupLog "No se pudo consultar /health/ready: $($_.Exception.Message)" -Level Detail
+        }
+    }
+    catch {
+        Write-SetupLog "No se pudo consultar /health/ready: $($_.Exception.Message)" -Level Detail
+    }
 }
 
 <#
@@ -216,7 +301,7 @@ function Test-HubAdminLogin {
     en el log del instalador— y una variable huérfana invita a "completarla"
     volviendo a poner la contraseña al lado.
 
-    Escribir la colección recicla el app pool. Es aceptable aquí: /health y el
+    Escribir la colección recicla el app pool. Es aceptable aquí: /health/live y el
     inicio de sesión ya se verificaron, y el reciclaje no vuelve a sembrar nada.
 #>
 function Remove-AdminSeedVariables {
@@ -330,19 +415,30 @@ function Step-TestInstallation {
     Start-HubSite -SiteName $Config.SiteName -AppPoolName $Config.AppPoolName
 
     if (Test-SetupDryRun) {
-        Write-SetupLog "haría: esperar /health, revisar el log y verificar la cuenta de administrador" -Level Detail
+        Write-SetupLog "haría: esperar /health/live, revisar el log y verificar la cuenta de administrador" -Level Detail
         return
     }
 
-    # ── /health ──────────────────────────────────────────────────────────────
+    # ── /health/live ─────────────────────────────────────────────────────────
     $health = Wait-HubHealth -Port $Config.Port -HostHeader $Config.HostHeader
 
     if (-not $health.Ok) {
+        if ($health.ContainsKey('Fatal') -and $health.Fatal) {
+            throw ("El Hub respondió 404 en /health/live. El proceso está en pie: lo que falta " +
+                   "es la ruta. Confirma que el paquete desplegado registra los endpoints de " +
+                   "diagnóstico (MapDiagnosticsEndpoints) y que no es una versión anterior a " +
+                   "este instalador.")
+        }
+
         $hint = "Revisa $(Join-Path $Config.InstallPath 'logs') para el detalle."
-        throw "El Hub no respondió en /health tras $($script:HealthTimeoutSeconds)s ($($health.Error)). $hint"
+        throw "El Hub no respondió en /health/live tras $($script:HealthTimeoutSeconds)s ($($health.Error)). $hint"
     }
 
-    Write-SetupLog "/health respondió HTTP $($health.StatusCode): $($health.Body)" -Level Ok
+    Write-SetupLog "/health/live respondió HTTP $($health.StatusCode): $($health.Body)" -Level Ok
+
+    # Readiness es informativo: da el estado de base, disco y listener MLLP sin
+    # que ninguno de los tres pueda reprobar una instalación correcta.
+    Write-HubReadiness -Port $Config.Port -HostHeader $Config.HostHeader
 
     # ── Log de arranque ──────────────────────────────────────────────────────
     $logLines = Get-RecentHubLog -InstallPath $Config.InstallPath

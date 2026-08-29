@@ -26,7 +26,7 @@
     No se usa Npgsql: el ensamblado del paquete es net10.0 y PowerShell 5.1
     corre sobre .NET Framework, que no puede cargarlo. Cuando psql no está
     presente y el servidor exige SCRAM, la validación de credenciales queda
-    diferida al paso 10, que arranca el Hub y espera /health — y ahí una
+    diferida al paso 10, que arranca el Hub y espera /health/live — y ahí una
     contraseña incorrecta se manifiesta de inmediato.
 #>
 

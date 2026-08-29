@@ -142,7 +142,7 @@ llegan a la aplicación.
 | 07 | Variables de entorno del app pool |
 | 08 | `logs\`, `workspace\reports\` y el key ring |
 | 09 | Regla de firewall del listener MLLP |
-| 10 | Arranque, `/health`, Data Protection y administrador inicial |
+| 10 | Arranque, `/health/live`, Data Protection y administrador inicial |
 
 ## Cuando algo falla
 
@@ -171,9 +171,13 @@ llegó al proceso. Es grave: en el siguiente reciclaje del app pool los
 `SigningSecret` de todos los nodos dejan de ser descifrables. Revisa las
 variables del app pool y ejecuta `-Mode Repair`.
 
-**10 — «no respondió en /health».** Revisa `<InstallPath>\logs`. La causa más
+**10 — «no respondió en /health/live».** Revisa `<InstallPath>\logs`. La causa más
 común es una credencial de PostgreSQL incorrecta cuando el paso 04 no pudo
 validarla.
+
+**10 — «respondió 404 en /health/live».** El proceso está en pie; lo que falta es
+la ruta. El paquete desplegado es anterior a los endpoints de diagnóstico, o se
+publicó sin ellos. No se reintenta: un 404 no mejora con el tiempo.
 
 **10 — «la cuenta de administrador no pudo iniciar sesión».** O la cuenta ya
 existía con otra contraseña —el instalador no la cambia—, o el Hub omitió el

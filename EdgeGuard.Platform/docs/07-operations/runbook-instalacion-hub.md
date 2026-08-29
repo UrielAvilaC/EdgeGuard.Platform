@@ -40,7 +40,7 @@ reversión del Hub EdgeGuard sobre Windows Server + IIS mediante el instalador
 
 Despliega un paquete **ya compilado** (backend + SPA en un solo `.zip`), configura
 el sitio y el app pool de IIS, crea los directorios de estado, abre el puerto MLLP
-en el firewall y verifica que el Hub arranque y responda `/health`.
+en el firewall y verifica que el Hub arranque y responda `/health/live`.
 
 ### Qué NO hace — y por lo tanto debe estar resuelto antes
 
@@ -445,7 +445,7 @@ Para instalación desatendida (automatización, ITSM):
 | 07 | Variables de entorno del app pool | Install, Update, Repair | Conservación o generación del `Jwt__SecretKey` |
 | 08 | Directorios de datos | Install, Update, Repair | Validación de la ruta del key ring |
 | 09 | Regla de firewall MLLP | Install, Update, Repair | Puerto y origen efectivos |
-| 10 | Verificación post-instalación | Install, Update, Repair | `/health`, Data Protection, **creación y verificación del administrador** |
+| 10 | Verificación post-instalación | Install, Update, Repair | `/health/live`, Data Protection, **creación y verificación del administrador** |
 
 ### 7.5 Creación automática del administrador inicial
 
@@ -478,7 +478,7 @@ Salida esperada:
 
 **Por qué se verifica con un inicio de sesión y no leyendo el log:** el sembrado
 del Hub, ante una contraseña ausente o fuera de política, se limita a un
-`LogWarning` y no crea la cuenta. El arranque parece correcto y `/health`
+`LogWarning` y no crea la cuenta. El arranque parece correcto y `/health/live`
 responde. Autenticarse es la única prueba de que hay con qué entrar.
 
 **Política de contraseña** — el instalador la valida antes de empezar, así que un
@@ -510,7 +510,7 @@ un fallo de prerrequisitos también quede registrado. Las contraseñas y el
 
 ## 8. Fase T+0 — Verificación funcional
 
-El paso 10 ya verificó automáticamente `/health`, la persistencia de Data
+El paso 10 ya verificó automáticamente `/health/live`, la persistencia de Data
 Protection y la cuenta de administrador. Lo que sigue es la validación independiente que
 firma el responsable de la aplicación.
 
@@ -549,7 +549,7 @@ Import-Module WebAdministration; Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -
 ### 8.3 Salud de la aplicación
 
 ```powershell
-$r = [System.Net.HttpWebRequest]::Create("http://localhost:80/health"); $r.Host = "hub.local"; $resp = $r.GetResponse(); (New-Object System.IO.StreamReader($resp.GetResponseStream())).ReadToEnd()
+$r = [System.Net.HttpWebRequest]::Create("http://localhost:80/health/live"); $r.Host = "hub.local"; $resp = $r.GetResponse(); (New-Object System.IO.StreamReader($resp.GetResponseStream())).ReadToEnd()
 ```
 
 > La cabecera `Host` es imprescindible: el sitio está enlazado a un host header y
@@ -616,7 +616,7 @@ con prioridad la contraseña, que es la del administrador en claro dentro de
 ### 8.8 Punto de control C-3 — cierre de la instalación
 
 - [ ] App pool y sitio en `Started`
-- [ ] `/health` responde 2xx
+- [ ] `/health/live` responde 2xx
 - [ ] El SPA carga en el navegador
 - [ ] SignalR negocia por WebSocket
 - [ ] Variables de entorno completas y verificadas (§8.2)
@@ -874,7 +874,9 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 | **07** — «La variable X no quedó escrita» | Fallo al escribir en la configuración de IIS | Verifique permisos sobre `applicationHost.config` |
 | **08** — «key ring dentro del directorio de instalación» | `DataProtectionKeyPath` mal configurado | Muévalo fuera de `InstallPath` |
 | **10** — llaves de Data Protection **EFÍMERAS** | `DataProtection__KeyPath` no llegó al proceso | **Grave.** Revise las variables del app pool y ejecute `-Mode Repair` antes de registrar nodos |
-| **10** — «no respondió en /health» | Arranque fallido | Revise `<InstallPath>\logs`. Causa más común: credencial de PostgreSQL incorrecta cuando el paso 04 no pudo validarla |
+| **10** — «no respondió en /health/live» | Arranque fallido | Revise `<InstallPath>\logs`. Causa más común: credencial de PostgreSQL incorrecta cuando el paso 04 no pudo validarla |
+| **10** — «respondió 404 en /health/live» | El proceso está en pie, falta la ruta | El paquete desplegado no registra los endpoints de diagnóstico (`MapDiagnosticsEndpoints`) o es anterior a este instalador. No se reintenta: un 404 no es transitorio |
+| **10** — `/health/ready` HTTP 503 | Algún check con tag `ready` no está verde | **Informativo, no reprueba la instalación.** El cuerpo dice cuál: `database`, `storage` o `hl7-listener`. Revíselo antes de poner el Hub en servicio |
 
 ### 12.2 Fallos posteriores al despliegue
 
@@ -1031,7 +1033,7 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 
 **T+0 · Verificación**
 - [ ] App pool y sitio `Started`
-- [ ] `/health` responde 2xx
+- [ ] `/health/live` responde 2xx
 - [ ] SPA carga en el navegador
 - [ ] SignalR por WebSocket
 - [ ] Variables del app pool completas
