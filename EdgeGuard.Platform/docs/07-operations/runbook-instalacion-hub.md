@@ -2,14 +2,14 @@
 
 **Documento operativo controlado.** Procedimiento de instalación, verificación y
 reversión del Hub EdgeGuard sobre Windows Server + IIS mediante el instalador
-`setup\hub\install.ps1`.
+`install.ps1`, incluido en el paquete de entrega.
 
 | Campo | Valor |
 |---|---|
 | Componente | EdgeGuard Hub (API + SPA + listener HL7 MLLP) |
 | Plataforma destino | Windows Server 2019 / 2022, IIS 10 |
 | Motor de datos | PostgreSQL 15 / 16 (externo, preexistente) |
-| Mecanismo | `setup\hub\install.ps1` — 10 pasos idempotentes con reversión automática |
+| Mecanismo | `install.ps1` — 10 pasos idempotentes con reversión automática |
 | Duración estimada | 45–90 min (ventana recomendada: 2 h) |
 | Requiere ventana de cambio | Sí para `Update`; no necesariamente para `Install` en servidor nuevo |
 | Reversible | Sí, desde el paso 05 en adelante (respaldo automático) |
@@ -22,7 +22,7 @@ reversión del Hub EdgeGuard sobre Windows Server + IIS mediante el instalador
 2. [Roles y responsabilidades](#2-roles-y-responsabilidades)
 3. [Modelo de despliegue y decisiones de arquitectura](#3-modelo-de-despliegue-y-decisiones-de-arquitectura)
 4. [Prerrequisitos](#4-prerrequisitos)
-5. [Fase T-7 — Preparación del paquete](#5-fase-t-7--preparación-del-paquete-build)
+5. [El paquete de entrega](#5-el-paquete-de-entrega)
 6. [Fase T-1 — Preparación del servidor](#6-fase-t-1--preparación-del-servidor)
 7. [Fase T-0 — Ejecución de la instalación](#7-fase-t-0--ejecución-de-la-instalación)
 8. [Fase T+0 — Verificación funcional](#8-fase-t0--verificación-funcional)
@@ -46,7 +46,6 @@ en el firewall y verifica que el Hub arranque y responda `/health/live`.
 
 | Fuera de alcance | Responsable | Cuándo |
 |---|---|---|
-| Compilar el backend o el SPA | Build / DevOps | T-7 |
 | Instalar o configurar PostgreSQL | DBA | T-7 |
 | Crear el rol y la base de datos | DBA | T-7 |
 | Emitir o instalar certificados TLS | PKI / Seguridad | T-7 |
@@ -215,135 +214,106 @@ Complete esta tabla y adjúntela al registro de cambio:
 
 | # | Insumo | Valor | Origen |
 |---|---|---|---|
-| 1 | Paquete `edgeguard-hub-<versión>.zip` | | Build (§5) |
-| 2 | `checksums.sha256` | | Build (§5) |
-| 3 | `dotnet-hosting-10.x.x-win.exe` | | Descarga oficial .NET |
-| 4 | Host, puerto, base, rol y contraseña de PostgreSQL | | DBA |
-| 5 | Host header del sitio (FQDN) | | Red / DNS |
-| 6 | Subred del HIS/RIS para MLLP | | Red |
-| 7 | Identificador de instancia (`InstanceId`) | | Operaciones |
-| 7b | Usuario y contraseña del administrador inicial | | Responsable de la aplicación |
-| 8 | Certificado TLS (`.pfx`) + contraseña | | PKI |
-| 9 | Cuenta con privilegios de administrador local | | Directorio |
-| 10 | Ventana de cambio aprobada | | Gestión de cambios |
+| 1 | Paquete `EdgeGuard-Hub-Setup-<versión>.zip` | | Proveedor (§5) — incluye aplicación, runtime y checksums |
+| 2 | Host, puerto, base, rol y contraseña de PostgreSQL | | DBA |
+| 3 | Host header del sitio (FQDN) | | Red / DNS |
+| 4 | Subred del HIS/RIS para MLLP | | Red |
+| 5 | Identificador de instancia (`InstanceId`) | | Operaciones |
+| 6 | Usuario y contraseña del administrador inicial | | Responsable de la aplicación |
+| 7 | Certificado TLS (`.pfx`) + contraseña | | PKI |
+| 8 | Cuenta con privilegios de administrador local | | Directorio |
+| 9 | Ventana de cambio aprobada | | Gestión de cambios |
 
 ---
 
-## 5. Fase T-7 — Preparación del paquete (build)
+## 5. El paquete de entrega
 
-Se ejecuta en la **máquina de compilación**, no en el servidor. Requiere .NET SDK
-10+, Node.js 22+ LTS y acceso al repositorio.
+El Hub se entrega **listo para instalar**, en un único archivo comprimido. No hay
+nada que compilar, descargar ni ensamblar: todo lo necesario viene dentro.
 
-> ### El orden importa y equivocarse produce un paquete que parece correcto
->
-> `angular.json` escribe su salida directamente en
-> `src\backend\Dicom.Edge.Hub.Api\wwwroot`, y el `.csproj` **no** tiene ningún
-> target que dispare el build del SPA: es pura convención. Si `dotnet publish`
-> corre antes que `npm run build`, el paquete sale sin front y el sitio publica
-> solo la API — algo que de otro modo solo se descubre al abrir el navegador.
->
-> El paso 01 del instalador verifica que el zip contenga `wwwroot/index.html`
-> precisamente por esto, y aborta si falta.
+### 5.1 Qué recibe
 
-### 5.1 Compilar el SPA — primero
-
-```powershell
-cd src\frontend\dicomedge-ui
-npm ci
-npm run build
-```
-
-### 5.2 Publicar el backend
-
-```powershell
-dotnet publish src\backend\Dicom.Edge.Hub.Api --configuration Release --runtime win-x64 --self-contained false --output .\publish
-```
-
-### 5.3 Comprimir
-
-```powershell
-Compress-Archive -Path .\publish\* -DestinationPath .\edgeguard-hub-1.2.0.zip
-```
-
-### 5.4 Generar los checksums
-
-```powershell
-Get-FileHash .\edgeguard-hub-1.2.0.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Out-File .\checksums.sha256 -Encoding utf8
-```
-
-Añada al mismo archivo el hash del Hosting Bundle:
-
-```powershell
-Get-FileHash .\dotnet-hosting-10.0.8-win.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Out-File .\checksums.sha256 -Append -Encoding utf8
-```
-
-**Formato exigido** — una línea por artefacto, hash en mayúsculas, dos espacios de
-separación:
+Un archivo `EdgeGuard-Hub-Setup-<versión>.zip`. Al descomprimirlo obtiene esta
+estructura, que es la que se copia al servidor:
 
 ```
-A3F5...9C  edgeguard-hub-1.2.0.zip
-7B21...4E  dotnet-hosting-10.0.8-win.exe
+hub\
+├── install.ps1                  El instalador. Es lo único que se ejecuta.
+├── hub-install.psd1             Archivo de configuración. Es lo único que se edita.
+├── bin\                         Pasos del instalador y desinstalador. No tocar.
+├── data\                        Artefactos ya depositados:
+│   ├── edgeguard-hub-<versión>.zip      Aplicación (API + interfaz web)
+│   ├── dotnet-hosting-<versión>-win.exe Runtime de Microsoft para IIS
+│   └── checksums.sha256                 Huellas de integridad
+├── scripts\
+│   └── seed-admin.sql           Alta manual del administrador. Solo para recuperación.
+└── log\                         Aquí se escribe el registro de la instalación.
 ```
 
-### 5.5 Verificación del build — punto de control C-1
+Los tres artefactos de `data\` ya vienen colocados. En versiones anteriores había
+que depositarlos a mano; ya no.
 
-- [ ] El zip contiene `wwwroot/index.html`
-- [ ] El zip contiene `Dicom.Edge.Hub.Api.dll` y `web.config`
-- [ ] El zip contiene `Npgsql.dll`
-- [ ] `checksums.sha256` declara ambos artefactos y ninguna línea tiene formato inválido
-- [ ] El nombre del zip contiene la versión en formato `n.n.n` (el instalador la extrae de ahí)
+### 5.2 Qué contiene la aplicación
 
-Comprobación rápida del contenido sin descomprimir:
+| Componente | Función |
+|---|---|
+| API del Hub | Servicios de negocio, registro de nodos, gestión de estudios |
+| Interfaz web (SPA) | La consola que usan los operadores en el navegador |
+| Receptor HL7 MLLP | Recibe las órdenes del HIS/RIS por TCP |
+| Runtime de Microsoft | ASP.NET Core Hosting Bundle, requisito de IIS |
 
-```powershell
-Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path .\edgeguard-hub-1.2.0.zip)).Entries | Where-Object { $_.FullName -match 'index.html|Hub.Api.dll|web.config|Npgsql' } | Select-Object FullName
-```
+La aplicación **no** incluye PostgreSQL. La base de datos es externa y debe estar
+disponible antes de instalar (§4.3).
 
-**Firma C-1 — Build:** ______________________  Fecha: __________
+### 5.3 Integridad del paquete
+
+`checksums.sha256` contiene la huella criptográfica de cada artefacto. **El
+instalador la verifica automáticamente antes de tocar nada**, incluso en el ensayo
+`-DryRun`, y se detiene si algo no coincide.
+
+No hay que calcular ni comparar nada a mano. Si el paquete llegó dañado —una copia
+truncada, una transferencia interrumpida— el instalador lo dice en el primer paso,
+que es justo donde sale barato.
+
+### 5.4 Punto de control C-1 — recepción del paquete
+
+- [ ] El archivo se descomprimió sin errores
+- [ ] Existen `install.ps1` y `hub-install.psd1` en la raíz
+- [ ] `data\` contiene el `.zip` de la aplicación, el `.exe` del runtime y `checksums.sha256`
+- [ ] La versión del paquete coincide con la autorizada en la ventana de cambio
+
+Si algo de lo anterior falta, **no continúe**: solicite el paquete de nuevo al
+proveedor. Un paquete incompleto se detecta aquí en un minuto y en el paso 01 en
+cinco; más adelante, no.
+
+**Firma C-1 — Recepción:** ______________________  Fecha: __________
 
 ---
 
 ## 6. Fase T-1 — Preparación del servidor
 
-### 6.1 Copiar el árbol del instalador
+### 6.1 Copiar el paquete al servidor
 
-Copie la carpeta `setup\hub\` completa al servidor, por ejemplo a
-`C:\Deploy\EdgeGuard\hub\`. Estructura esperada:
+Copie la carpeta `hub\` descomprimida (§5.1) al servidor, por ejemplo a
+`C:\Deploy\EdgeGuard\hub\`. Cópiela **completa**: el instalador espera encontrar
+`bin\` y `data\` junto a `install.ps1`.
 
-```
-hub\
-├── install.ps1
-├── hub-install.example.psd1
-├── bin\        (10 pasos + módulo + desinstalador)
-├── data\       ← depositar aquí los artefactos
-└── log\        ← se genera aquí el registro
-```
+Nada más que colocar. Los artefactos ya vienen dentro de `data\`.
 
-### 6.2 Depositar los artefactos en `data\`
+> **Servidores sin salida a internet:** no hace falta ninguna descarga. El runtime
+> de Microsoft viaja en el paquete y el paso 02 lo instala desde `data\`.
 
-| Archivo | Obligatorio |
-|---|---|
-| `edgeguard-hub-<versión>.zip` | Sí |
-| `checksums.sha256` | Sí |
-| `dotnet-hosting-10.x.x-win.exe` | No, pero recomendado |
+### 6.2 Completar el archivo de configuración
 
-> Si hay más de un `.zip`, el instalador toma el de **versión mayor** y lo indica
-> en el resumen. Para forzar otro, use `-PackagePath`.
-
-> **Servidores sin salida a internet:** depositar el Hosting Bundle en `data\` es
-> la vía soportada. La descarga automática requiere fijar URL y hash en
-> `bin\02-Install-HostingBundle.ps1`, que se dejan vacíos a propósito: un hash de
-> relleno convertiría la verificación en un trámite que siempre pasa.
-
-### 6.3 Crear el archivo de configuración
+Abra `hub-install.psd1`, que ya viene en la raíz del paquete:
 
 ```powershell
-cd C:\Deploy\EdgeGuard\hub
-Copy-Item hub-install.example.psd1 hub-install.psd1
-notepad hub-install.psd1
+notepad C:\Deploy\EdgeGuard\hub\hub-install.psd1
 ```
 
-Valores a revisar obligatoriamente antes de continuar:
+Es el **único** archivo que se edita. Todos los valores están presentes con un
+valor por defecto razonable; lo que sigue es lo que debe revisar sí o sí antes de
+continuar:
 
 | Clave | Acción requerida |
 |---|---|
@@ -360,7 +330,7 @@ Valores a revisar obligatoriamente antes de continuar:
 | `Hl7ValidateBeforeAck` | `$false` en la instalación inicial. Ver §9.4. |
 | `AppPoolIdentity` | Ver la advertencia de §9.2 |
 
-### 6.4 Punto de control C-2 — prerrequisitos externos
+### 6.3 Punto de control C-2 — prerrequisitos externos
 
 Antes de ejecutar nada, confirme con los responsables:
 
@@ -559,8 +529,9 @@ $r = [System.Net.HttpWebRequest]::Create("http://localhost:80/health/live"); $r.
 ### 8.4 Verificación del SPA — el fallo silencioso
 
 Abra `http://<HostHeader>/` en un navegador. **Debe cargar la interfaz de
-usuario, no un JSON de la API.** Si aparece la API, el paquete se armó sin el SPA
-(§5) — aunque el paso 01 debería haberlo impedido.
+usuario, no un JSON de la API.** Si aparece la API, el paquete llegó sin
+la interfaz web — aunque el paso 01 debería haberlo impedido. Solicite un paquete
+nuevo al proveedor (§5.4).
 
 En la consola del navegador, confirme que la conexión SignalR se establece por
 WebSocket y no cae a long polling. Si cae, revise WebSockets a nivel de sitio:
@@ -857,7 +828,7 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 | Síntoma | Causa | Acción |
 |---|---|---|
 | **01** — «requiere una consola elevada» | Sesión sin privilegios | Abra PowerShell como administrador |
-| **01** — «no contiene wwwroot/index.html» | El paquete se publicó sin el SPA | `npm run build` **antes** de `dotnet publish`; rearme el zip (§5) |
+| **01** — «no contiene wwwroot/index.html» | El paquete llegó sin la interfaz web | Defecto del paquete. **Solicite uno nuevo al proveedor**; no es reparable en el servidor |
 | **01** — «Checksum incorrecto» | Zip corrupto o distinto del declarado | Vuelva a copiarlo y regenere `checksums.sha256` |
 | **01** — «Espacio insuficiente» | <5 GB libres | Libere espacio o cambie `InstallPath` |
 | **01** — «checksums.sha256 no verificó ningún archivo» | Los nombres no coinciden con los de `data\` | Corrija los nombres en el archivo de checksums |
@@ -883,7 +854,7 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 | Síntoma | Diagnóstico |
 |---|---|
 | El sitio devuelve **500.19** en cada petición | Está el runtime de ASP.NET Core pero falta `AspNetCoreModuleV2`. Reinstale el Hosting Bundle completo (paso 02 lo detecta) |
-| El navegador muestra JSON en lugar del SPA | El paquete se armó sin front (§5) |
+| El navegador muestra JSON en lugar del SPA | El paquete llegó sin la interfaz web. Solicite uno nuevo al proveedor (§5.4) |
 | El monitoreo en tiempo real está mudo, el resto funciona | WebSockets deshabilitado a nivel de sitio (§8.4) |
 | **El HIS/RIS deja de recibir ACK tras un rato de inactividad** | El app pool se apagó por `idleTimeout`. Verifique `AlwaysRunning` e `idleTimeout=00:00:00` (§8.2). Repare con `-Mode Repair` |
 | Los usuarios pierden la sesión tras una actualización | El `Jwt__SecretKey` se regeneró. No debería ocurrir: el paso 07 lo conserva. Revise si el app pool fue recreado a mano |
@@ -997,15 +968,15 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 | `…\Hub\installed.json` | Manifiesto: versión, hash, fecha, operador, máquina | No — se reescribe |
 | `C:\inetpub\edgeguard\dp-keys\` | Key ring de Data Protection | **Sí** — fuera de `InstallPath` |
 | `<InstallPath>.backup-<timestamp>` | Respaldo de la instalación previa | Se conserva |
-| `setup\hub\log\install-<timestamp>.log` | Registro del instalador (secretos redactados) | Se acumula |
+| `hub\log\install-<timestamp>.log` | Registro del instalador (secretos redactados) | Se acumula |
 
 ### Apéndice F — Checklist maestro de un vistazo
 
-**T-7 · Build**
-- [ ] `npm ci && npm run build` en `src\frontend\dicomedge-ui`
-- [ ] `dotnet publish` del backend
-- [ ] Zip armado y `checksums.sha256` generado
-- [ ] Contenido verificado: `wwwroot/index.html`, `Hub.Api.dll`, `web.config`, `Npgsql.dll`
+**Recepción del paquete**
+- [ ] `EdgeGuard-Hub-Setup-<versión>.zip` recibido y descomprimido sin errores
+- [ ] `install.ps1` y `hub-install.psd1` presentes en la raíz
+- [ ] `data\` contiene aplicación, runtime y `checksums.sha256`
+- [ ] La versión coincide con la autorizada
 - [ ] Firma C-1
 
 **T-7 · Externos**
@@ -1016,9 +987,8 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 - [ ] Ventana de cambio aprobada
 
 **T-1 · Servidor**
-- [ ] Árbol `setup\hub\` copiado
-- [ ] Artefactos en `data\` (zip, checksums, hosting bundle)
-- [ ] `hub-install.psd1` creado y revisado clave por clave
+- [ ] Carpeta `hub\` del paquete copiada completa al servidor
+- [ ] `hub-install.psd1` revisado clave por clave
 - [ ] `AdminUsername` y `AdminPassword` definidos y conformes a la política
 - [ ] ≥5 GB libres en el volumen de instalación
 - [ ] Firma C-2
@@ -1058,11 +1028,11 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 
 | Campo | Valor |
 |---|---|
-| Fuente | `setup\hub\` (instalador y sus 10 pasos), `docs\02-getting-started\prerequisites.md`, `docs\07-operations\deployment-hub.md` |
+| Aplica a | Instalador del Hub EdgeGuard, versión del paquete de entrega |
 | Documentos relacionados | `deployment-node.md`, `backup-recovery.md`, `database-migrations.md`, `monitoring.md`, `troubleshooting.md` |
-| Revisión | 1.0 — 2026-08-28 |
+| Revisión | 1.1 — 2026-08-29 |
 
 > **Mantenimiento.** Este runbook describe el comportamiento del instalador tal
-> como está implementado. Un cambio en `setup\hub\bin\*.ps1` —un paso nuevo, una
-> variable de entorno distinta, otra validación— obliga a revisar los apartados
-> §7.4, §9 y el Apéndice A.
+> como está implementado. Una versión nueva del paquete que añada un paso, cambie
+> una variable de entorno o incorpore otra validación obliga a revisar los
+> apartados §7.4, §9 y el Apéndice A.
