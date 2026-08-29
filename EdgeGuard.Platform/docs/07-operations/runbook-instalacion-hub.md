@@ -20,17 +20,16 @@ reversión del Hub EdgeGuard sobre Windows Server + IIS mediante el instalador
 
 1. [Alcance y límites](#1-alcance-y-límites)
 2. [Roles y responsabilidades](#2-roles-y-responsabilidades)
-3. [Modelo de despliegue y decisiones de arquitectura](#3-modelo-de-despliegue-y-decisiones-de-arquitectura)
-4. [Prerrequisitos](#4-prerrequisitos)
-5. [El paquete de entrega](#5-el-paquete-de-entrega)
-6. [Fase T-1 — Preparación del servidor](#6-fase-t-1--preparación-del-servidor)
-7. [Fase T-0 — Ejecución de la instalación](#7-fase-t-0--ejecución-de-la-instalación)
-8. [Fase T+0 — Verificación funcional](#8-fase-t0--verificación-funcional)
-9. [Fase T+1 — Endurecimiento post-instalación](#9-fase-t1--endurecimiento-post-instalación)
-10. [Actualización de una instalación existente](#10-actualización-de-una-instalación-existente)
-11. [Reversión y desinstalación](#11-reversión-y-desinstalación)
-12. [Diagnóstico de fallos](#12-diagnóstico-de-fallos)
-13. [Apéndices](#13-apéndices)
+3. [Prerrequisitos](#3-prerrequisitos)
+4. [El paquete de entrega](#4-el-paquete-de-entrega)
+5. [Fase T-1 — Preparación del servidor](#5-fase-t-1--preparación-del-servidor)
+6. [Fase T-0 — Ejecución de la instalación](#6-fase-t-0--ejecución-de-la-instalación)
+7. [Fase T+0 — Verificación funcional](#7-fase-t0--verificación-funcional)
+8. [Fase T+1 — Endurecimiento post-instalación](#8-fase-t1--endurecimiento-post-instalación)
+9. [Actualización de una instalación existente](#9-actualización-de-una-instalación-existente)
+10. [Reversión y desinstalación](#10-reversión-y-desinstalación)
+11. [Diagnóstico de fallos](#11-diagnóstico-de-fallos)
+12. [Apéndices](#12-apéndices)
 
 ---
 
@@ -71,7 +70,7 @@ en el firewall y verifica que el Hub arranque y responda `/health/live`.
 | **DBA** | Entrega rol, base, credenciales y confirma el `GRANT CREATE`. Firma el punto de control C-2. |
 | **Administrador de red / Seguridad** | Abre puertos, entrega la subred del HIS/RIS para acotar MLLP, entrega el certificado TLS. |
 | **Responsable de la aplicación** | Define y custodia la credencial del administrador inicial, valida funcionalmente. |
-| **Aprobador de cambio** | Autoriza la ventana. Recibe la evidencia de cierre (§8.5). |
+| **Aprobador de cambio** | Autoriza la ventana. Recibe la evidencia de cierre (§7.5). |
 
 **Regla de separación:** quien ejecuta el instalador ve la contraseña de
 PostgreSQL en claro (queda en `hub-install.psd1` o se teclea). Si eso no es
@@ -80,55 +79,9 @@ aceptable en la organización, use el mecanismo de variable de entorno o
 
 ---
 
-## 3. Modelo de despliegue y decisiones de arquitectura
+## 3. Prerrequisitos
 
-Cuatro decisiones del instalador condicionan la operación. Entenderlas evita
-diagnósticos caros más adelante.
-
-### 3.1 Toda la configuración vive en variables de entorno del app pool
-
-`appsettings.Production.json` va **vacío a propósito**. El estado de configuración
-vive en IIS, de modo que una actualización nunca tiene que fusionar archivos de
-configuración. El paso 07 reemplaza la colección completa de variables: una clave
-retirada de la configuración desaparece de verdad en lugar de sobrevivir de una
-instalación anterior.
-
-**Consecuencia operativa:** si alguien recrea el app pool a mano, pierde toda la
-configuración. La recuperación es `.\install.ps1 -Mode Repair`.
-
-### 3.2 El key ring de Data Protection vive FUERA del directorio de instalación
-
-El paso 05 reemplaza el directorio de instalación completo en cada actualización.
-Si el key ring estuviera dentro, se perdería, y con él la capacidad de descifrar
-los `SigningSecret` de **todos los nodos registrados**. Los pasos 07 y 08 abortan
-si la ruta cae dentro de `InstallPath`.
-
-**Valor por defecto:** `C:\inetpub\edgeguard\dp-keys` — fuera de
-`C:\inetpub\EdgeGuard\Hub`.
-
-### 3.3 El listener HL7 MLLP vive dentro del proceso de IIS
-
-`startMode=AlwaysRunning` e `idleTimeout=00:00:00` **no son afinación de
-rendimiento**. Con la configuración por defecto de IIS, el proceso se apaga tras
-20 minutos sin peticiones HTTP y el listener MLLP deja de aceptar mensajes del
-HIS/RIS sin que nadie se entere: el sitio web sigue respondiendo con normalidad.
-
-Por la misma razón el paso 06 activa la precarga (`preloadEnabled`): sin ella el
-proceso no arranca hasta la primera petición HTTP y el listener no existe hasta
-entonces.
-
-### 3.4 WebSockets se habilita en dos niveles
-
-Habilitar la característica de Windows (paso 03) **no basta**: el sitio también
-debe permitirlo (paso 06). Si falta a nivel de sitio, SignalR cae a long polling o
-falla, el monitoreo en tiempo real del SPA queda mudo y el resto del sitio funciona
-con normalidad — un fallo que se diagnostica tarde y mal.
-
----
-
-## 4. Prerrequisitos
-
-### 4.1 Hardware del servidor Hub
+### 3.1 Hardware del servidor Hub
 
 | Recurso | Mínimo | Recomendado producción |
 |---|---|---|
@@ -142,7 +95,7 @@ con normalidad — un fallo que se diagnostica tarde y mal.
 > El paso 01 **aborta** con menos de 5 GB libres en el volumen de `InstallPath`.
 > El Hub almacena metadatos DICOM, auditoría y mensajes HL7 — no píxeles.
 
-### 4.2 Software del servidor
+### 3.2 Software del servidor
 
 | Componente | Versión | Quién lo instala |
 |---|---|---|
@@ -162,7 +115,7 @@ con normalidad — un fallo que se diagnostica tarde y mal.
 > quedan sin validar hasta el paso 10, donde un fallo cuesta más de diagnosticar.
 > Instalar el cliente de PostgreSQL en el servidor Hub es la recomendación.
 
-### 4.3 Base de datos — entregable del DBA
+### 3.3 Base de datos — entregable del DBA
 
 ```sql
 -- Ejecutar en el servidor PostgreSQL antes de T-1
@@ -189,7 +142,7 @@ psql -h <DbHost> -p 5432 -U edgeguard -d edgeguard_hub -c "SELECT has_schema_pri
 
 Debe devolver `t`. Si devuelve `f`, el paso 04 abortará la instalación.
 
-### 4.4 Puertos y red
+### 3.4 Puertos y red
 
 | Puerto | Protocolo | Dirección | Propósito | Regla |
 |---|---|---|---|---|
@@ -208,13 +161,13 @@ Debe devolver `t`. Si devuelve `f`, el paso 04 abortará la instalación.
 > aviso en el resumen y otro en el paso 09; anótelo como deuda de seguridad con
 > fecha de cierre.
 
-### 4.5 Insumos a reunir antes de T-1
+### 3.5 Insumos a reunir antes de T-1
 
 Complete esta tabla y adjúntela al registro de cambio:
 
 | # | Insumo | Valor | Origen |
 |---|---|---|---|
-| 1 | Paquete `EdgeGuard-Hub-Setup-<versión>.zip` | | Proveedor (§5) — incluye aplicación, runtime y checksums |
+| 1 | Paquete `EdgeGuard-Hub-Setup-<versión>.zip` | | Proveedor (§4) — incluye aplicación, runtime y checksums |
 | 2 | Host, puerto, base, rol y contraseña de PostgreSQL | | DBA |
 | 3 | Host header del sitio (FQDN) | | Red / DNS |
 | 4 | Subred del HIS/RIS para MLLP | | Red |
@@ -226,12 +179,12 @@ Complete esta tabla y adjúntela al registro de cambio:
 
 ---
 
-## 5. El paquete de entrega
+## 4. El paquete de entrega
 
 El Hub se entrega **listo para instalar**, en un único archivo comprimido. No hay
 nada que compilar, descargar ni ensamblar: todo lo necesario viene dentro.
 
-### 5.1 Qué recibe
+### 4.1 Qué recibe
 
 Un archivo `EdgeGuard-Hub-Setup-<versión>.zip`. Al descomprimirlo obtiene esta
 estructura, que es la que se copia al servidor:
@@ -253,7 +206,7 @@ hub\
 Los tres artefactos de `data\` ya vienen colocados. En versiones anteriores había
 que depositarlos a mano; ya no.
 
-### 5.2 Qué contiene la aplicación
+### 4.2 Qué contiene la aplicación
 
 | Componente | Función |
 |---|---|
@@ -263,9 +216,9 @@ que depositarlos a mano; ya no.
 | Runtime de Microsoft | ASP.NET Core Hosting Bundle, requisito de IIS |
 
 La aplicación **no** incluye PostgreSQL. La base de datos es externa y debe estar
-disponible antes de instalar (§4.3).
+disponible antes de instalar (§3.3).
 
-### 5.3 Integridad del paquete
+### 4.3 Integridad del paquete
 
 `checksums.sha256` contiene la huella criptográfica de cada artefacto. **El
 instalador la verifica automáticamente antes de tocar nada**, incluso en el ensayo
@@ -275,7 +228,7 @@ No hay que calcular ni comparar nada a mano. Si el paquete llegó dañado —una
 truncada, una transferencia interrumpida— el instalador lo dice en el primer paso,
 que es justo donde sale barato.
 
-### 5.4 Punto de control C-1 — recepción del paquete
+### 4.4 Punto de control C-1 — recepción del paquete
 
 - [ ] El archivo se descomprimió sin errores
 - [ ] Existen `install.ps1` y `hub-install.psd1` en la raíz
@@ -290,11 +243,11 @@ cinco; más adelante, no.
 
 ---
 
-## 6. Fase T-1 — Preparación del servidor
+## 5. Fase T-1 — Preparación del servidor
 
-### 6.1 Copiar el paquete al servidor
+### 5.1 Copiar el paquete al servidor
 
-Copie la carpeta `hub\` descomprimida (§5.1) al servidor, por ejemplo a
+Copie la carpeta `hub\` descomprimida (§4.1) al servidor, por ejemplo a
 `C:\Deploy\EdgeGuard\hub\`. Cópiela **completa**: el instalador espera encontrar
 `bin\` y `data\` junto a `install.ps1`.
 
@@ -303,7 +256,7 @@ Nada más que colocar. Los artefactos ya vienen dentro de `data\`.
 > **Servidores sin salida a internet:** no hace falta ninguna descarga. El runtime
 > de Microsoft viaja en el paquete y el paso 02 lo instala desde `data\`.
 
-### 6.2 Completar el archivo de configuración
+### 5.2 Completar el archivo de configuración
 
 Abra `hub-install.psd1`, que ya viene en la raíz del paquete:
 
@@ -326,11 +279,11 @@ continuar:
 | `DataProtectionKeyPath` | Debe quedar **fuera** de `InstallPath` |
 | `InstanceId` | Identificador único de esta instancia |
 | `RedactionMode` | `Strict` en producción (PHI redactado) |
-| `NodeAuthEnforce` | `$false` en la instalación inicial. Ver §9.4. |
-| `Hl7ValidateBeforeAck` | `$false` en la instalación inicial. Ver §9.4. |
-| `AppPoolIdentity` | Ver la advertencia de §9.2 |
+| `NodeAuthEnforce` | `$false` en la instalación inicial. Ver §8.4. |
+| `Hl7ValidateBeforeAck` | `$false` en la instalación inicial. Ver §8.4. |
+| `AppPoolIdentity` | Ver la advertencia de §8.2 |
 
-### 6.3 Punto de control C-2 — prerrequisitos externos
+### 5.3 Punto de control C-2 — prerrequisitos externos
 
 Antes de ejecutar nada, confirme con los responsables:
 
@@ -346,9 +299,9 @@ Antes de ejecutar nada, confirme con los responsables:
 
 ---
 
-## 7. Fase T-0 — Ejecución de la instalación
+## 6. Fase T-0 — Ejecución de la instalación
 
-### 7.1 Abrir una consola elevada
+### 6.1 Abrir una consola elevada
 
 El paso 01 **aborta** si la sesión no está elevada.
 
@@ -356,7 +309,7 @@ El paso 01 **aborta** si la sesión no está elevada.
 Start-Process powershell -Verb RunAs
 ```
 
-### 7.2 Ensayo obligatorio — `-DryRun`
+### 6.2 Ensayo obligatorio — `-DryRun`
 
 **No omita este paso.** `-DryRun` recorre el procedimiento completo sin escribir
 nada. Las verificaciones de solo lectura se ejecutan **de verdad**: checksums,
@@ -384,7 +337,7 @@ etiquetado con su origen (archivo, parámetro, default, interactivo).
 **Si el ensayo falla, deténgase.** Corrija y repita el ensayo. Un `-DryRun` que
 falla es un `install` que fallará más caro.
 
-### 7.3 Instalación
+### 6.3 Instalación
 
 ```powershell
 .\install.ps1
@@ -402,7 +355,7 @@ Para instalación desatendida (automatización, ITSM):
 > `-NonInteractive` sin archivo de configuración falla listando de una vez todo lo
 > que falta. Es el comportamiento deseado en pipelines.
 
-### 7.4 Qué hace cada paso — referencia de seguimiento
+### 6.4 Qué hace cada paso — referencia de seguimiento
 
 | # | Paso | Modos | Qué observar |
 |---|---|---|---|
@@ -417,7 +370,7 @@ Para instalación desatendida (automatización, ITSM):
 | 09 | Regla de firewall MLLP | Install, Update, Repair | Puerto y origen efectivos |
 | 10 | Verificación post-instalación | Install, Update, Repair | `/health/live`, Data Protection, **creación y verificación del administrador** |
 
-### 7.5 Creación automática del administrador inicial
+### 6.5 Creación automática del administrador inicial
 
 El paso 10 crea y verifica la cuenta a partir de `AdminUsername` y
 `AdminPassword` del `.psd1`. No hay que capturar ningún token ni ejecutar
@@ -470,7 +423,7 @@ corrección es rellenarla y ejecutar `-Mode Repair`.
 > `POST /api/edge/token`. Se emite bajo demanda, nunca al arrancar. Ver
 > `deployment-node.md`.
 
-### 7.6 Registro de la ejecución
+### 6.6 Registro de la ejecución
 
 Todo queda en `log\install-<timestamp>.log`, creado **antes** del paso 01 para que
 un fallo de prerrequisitos también quede registrado. Las contraseñas y el
@@ -478,13 +431,13 @@ un fallo de prerrequisitos también quede registrado. Las contraseñas y el
 
 ---
 
-## 8. Fase T+0 — Verificación funcional
+## 7. Fase T+0 — Verificación funcional
 
 El paso 10 ya verificó automáticamente `/health/live`, la persistencia de Data
 Protection y la cuenta de administrador. Lo que sigue es la validación independiente que
 firma el responsable de la aplicación.
 
-### 8.1 Estado de IIS
+### 7.1 Estado de IIS
 
 ```powershell
 Import-Module WebAdministration; Get-WebAppPoolState -Name EdgeGuardHub; Get-WebsiteState -Name EdgeGuard.Hub
@@ -492,7 +445,7 @@ Import-Module WebAdministration; Get-WebAppPoolState -Name EdgeGuardHub; Get-Web
 
 Ambos deben reportar `Started`.
 
-### 8.2 Configuración efectiva del app pool
+### 7.2 Configuración efectiva del app pool
 
 ```powershell
 Import-Module WebAdministration; (Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -Name environmentVariables).Collection | Select-Object name, value
@@ -516,7 +469,7 @@ Import-Module WebAdministration; Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -
 - [ ] `idleTimeout` = `00:00:00`
 - [ ] `managedRuntimeVersion` vacío (No Managed Code)
 
-### 8.3 Salud de la aplicación
+### 7.3 Salud de la aplicación
 
 ```powershell
 $r = [System.Net.HttpWebRequest]::Create("http://localhost:80/health/live"); $r.Host = "hub.local"; $resp = $r.GetResponse(); (New-Object System.IO.StreamReader($resp.GetResponseStream())).ReadToEnd()
@@ -526,12 +479,12 @@ $r = [System.Net.HttpWebRequest]::Create("http://localhost:80/health/live"); $r.
 > el servidor no resolvería la petición sin ella. Es la misma técnica que usa el
 > paso 10.
 
-### 8.4 Verificación del SPA — el fallo silencioso
+### 7.4 Verificación del SPA — el fallo silencioso
 
 Abra `http://<HostHeader>/` en un navegador. **Debe cargar la interfaz de
 usuario, no un JSON de la API.** Si aparece la API, el paquete llegó sin
 la interfaz web — aunque el paso 01 debería haberlo impedido. Solicite un paquete
-nuevo al proveedor (§5.4).
+nuevo al proveedor (§4.4).
 
 En la consola del navegador, confirme que la conexión SignalR se establece por
 WebSocket y no cae a long polling. Si cae, revise WebSockets a nivel de sitio:
@@ -540,7 +493,7 @@ WebSocket y no cae a long polling. Si cae, revise WebSockets a nivel de sitio:
 Get-WebConfigurationProperty -PSPath "IIS:\Sites\EdgeGuard.Hub" -Filter "system.webServer/webSocket" -Name "enabled"
 ```
 
-### 8.5 Data Protection — verificación independiente
+### 7.5 Data Protection — verificación independiente
 
 ```powershell
 Get-ChildItem C:\inetpub\edgeguard\dp-keys -Filter 'key-*.xml'
@@ -551,7 +504,7 @@ confirma la persistencia, no registre ningún nodo todavía:** en el siguiente
 reciclaje del app pool los `SigningSecret` de todos los nodos dejarían de ser
 descifrables. Ejecute `-Mode Repair` y vuelva a verificar.
 
-### 8.6 Listener HL7 MLLP
+### 7.6 Listener HL7 MLLP
 
 ```powershell
 Get-NetFirewallRule -DisplayName 'EdgeGuard Hub - HL7 MLLP' | Get-NetFirewallPortFilter
@@ -565,9 +518,9 @@ Test-NetConnection -ComputerName localhost -Port 8001
 Pruebas funcionales de mensajería con `scripts\Test-Hl7Listener.ps1` y
 `scripts\Test-Hl7ConcurrentLoad.ps1`.
 
-### 8.7 Administrador inicial
+### 7.7 Administrador inicial
 
-El paso 10 ya creó la cuenta y comprobó el inicio de sesión (§7.5). Confirme de
+El paso 10 ya creó la cuenta y comprobó el inicio de sesión (§6.5). Confirme de
 forma independiente:
 
 - [ ] Inicio de sesión correcto en el SPA con `AdminUsername`
@@ -584,13 +537,13 @@ instalador avisó de que no pudo retirarla: elimínela a mano desde IIS Manager,
 con prioridad la contraseña, que es la del administrador en claro dentro de
 `applicationHost.config`.
 
-### 8.8 Punto de control C-3 — cierre de la instalación
+### 7.8 Punto de control C-3 — cierre de la instalación
 
 - [ ] App pool y sitio en `Started`
 - [ ] `/health/live` responde 2xx
 - [ ] El SPA carga en el navegador
 - [ ] SignalR negocia por WebSocket
-- [ ] Variables de entorno completas y verificadas (§8.2)
+- [ ] Variables de entorno completas y verificadas (§7.2)
 - [ ] Data Protection persiste llaves en disco
 - [ ] Regla de firewall MLLP correcta y acotada
 - [ ] Administrador inicial creado y verificado por el paso 10
@@ -604,12 +557,12 @@ con prioridad la contraseña, que es la del administrador en claro dentro de
 
 ---
 
-## 9. Fase T+1 — Endurecimiento post-instalación
+## 8. Fase T+1 — Endurecimiento post-instalación
 
 El instalador entrega un sistema **funcional**, no **endurecido**. Estas tareas
 son manuales y deben cerrarse antes de poner el Hub en servicio productivo.
 
-### 9.1 HTTPS — obligatorio en producción
+### 8.1 HTTPS — obligatorio en producción
 
 El instalador deja el sitio en HTTP por diseño. El binding se añade a mano y
 sobrevive a las actualizaciones: el paso 06 no lo toca ni lo elimina.
@@ -622,13 +575,13 @@ sobrevive a las actualizaciones: el paso 06 no lo toca ni lo elimina.
 4. **Actualice `Jwt__Issuer`** a `https://<HostHeader>` en las variables del app
    pool: el paso 07 lo escribe como `http://` porque el instalador solo configura
    HTTP.
-5. Reinicie el app pool y repita §8.3 y §8.4 contra HTTPS.
+5. Reinicie el app pool y repita §7.3 y §7.4 contra HTTPS.
 6. Restrinja a TLS 1.2+ según la política de la organización.
 
 > Los Edge Nodes se configuran con `HubBaseUrl` apuntando a HTTPS. Complete este
 > apartado **antes** de registrar nodos.
 
-### 9.2 Identidad del app pool
+### 8.2 Identidad del app pool
 
 **El valor por defecto es `LocalSystem`, contra la recomendación del checklist de
 producción de `deployment-hub.md`.** Con esa identidad, cualquier ejecución de
@@ -654,7 +607,7 @@ icacls "C:\inetpub\edgeguard\dp-keys" /grant "IIS AppPool\EdgeGuardHub:(OI)(CI)M
 > El paso 08 no hace trabajo de ACL porque con `LocalSystem` no hace falta. Si
 > cambia la identidad, ese trabajo es suyo.
 
-### 9.3 Acotar el listener MLLP
+### 8.3 Acotar el listener MLLP
 
 Si instaló con `Hl7RemoteAddress = 'Any'`, ciérrelo:
 
@@ -665,7 +618,7 @@ Get-NetFirewallRule -DisplayName 'EdgeGuard Hub - HL7 MLLP' | Set-NetFirewallRul
 O ajuste `hub-install.psd1` y ejecute `.\install.ps1 -Mode Repair`, que es la vía
 que deja el estado del servidor alineado con el archivo de configuración.
 
-### 9.4 Banderas de despliegue coordinado
+### 8.4 Banderas de despliegue coordinado
 
 Dos banderas quedan en `$false` a propósito y se activan **solo cuando todos los
 nodos ya salieron con la versión nueva**:
@@ -677,7 +630,7 @@ nodos ya salieron con la versión nueva**:
 
 Procedimiento de activación: modificar `hub-install.psd1` → `.\install.ps1 -Mode Repair`.
 
-### 9.5 Higiene de secretos
+### 8.5 Higiene de secretos
 
 - [ ] **Borrar `hub-install.psd1` del servidor** — contiene en texto plano la contraseña de PostgreSQL y la del administrador
 - [ ] Limpiar la variable `EDGEGUARD_SETUP_DBPASSWORD` si se usó
@@ -687,9 +640,9 @@ Procedimiento de activación: modificar `hub-install.psd1` → `.\install.ps1 -M
 > aparecen en esta lista porque el paso 10 ya las retiró** del app pool al
 > confirmar la cuenta. Solo hay algo que hacer si el instalador avisó de que no
 > pudo retirarlas; en ese caso lo dice explícitamente y la comprobación está en
-> §8.7.
+> §7.7.
 
-### 9.6 Operación continua
+### 8.6 Operación continua
 
 | Tarea | Referencia |
 |---|---|
@@ -704,9 +657,9 @@ Procedimiento de activación: modificar `hub-install.psd1` → `.\install.ps1 -M
 
 ---
 
-## 10. Actualización de una instalación existente
+## 9. Actualización de una instalación existente
 
-### 10.1 Cómo decide el modo `Auto`
+### 9.1 Cómo decide el modo `Auto`
 
 El instalador lee `installed.json` del directorio de instalación:
 
@@ -719,7 +672,7 @@ El instalador lee `installed.json` del directorio de instalación:
 > No se usa la versión del ensamblado: el `.csproj` no declara `<Version>` y
 > `Dicom.Edge.Hub.Api.dll` siempre reporta `1.0.0.0`.
 
-### 10.2 Qué preserva cada modo
+### 9.2 Qué preserva cada modo
 
 | Modo | Binarios | `workspace\` | `logs\` | Key ring | `Jwt__SecretKey` | Base de datos |
 |---|---|---|---|---|---|---|
@@ -736,7 +689,7 @@ El instalador lee `installed.json` del directorio de instalación:
 > apuntando a archivos que ya no están. `logs\` conserva el rastro de arranque de
 > la instalación previa, útil para diagnosticar una actualización que salió mal.
 
-### 10.3 Procedimiento de actualización
+### 9.3 Procedimiento de actualización
 
 1. **Ventana de cambio requerida.** El paso 05 detiene el app pool y espera hasta
    30 s a que `w3wp` libere los DLL. Hay interrupción de servicio.
@@ -748,11 +701,11 @@ El instalador lee `installed.json` del directorio de instalación:
 6. Ejecute: `.\install.ps1`
 7. **Anote la ruta del respaldo** que reporta el paso 05
    (`<InstallPath>.backup-<timestamp>`).
-8. Ejecute la verificación de §8 completa.
+8. Ejecute la verificación de §7 completa.
 9. El respaldo se conserva; retírelo solo tras un periodo de estabilización
    acordado.
 
-### 10.4 Cuándo usar `Repair`
+### 9.4 Cuándo usar `Repair`
 
 `Repair` es para cuando alguien tocó IIS a mano y algo dejó de funcionar:
 variables de entorno borradas al recrear el app pool, sitio apuntando a otra ruta,
@@ -769,9 +722,9 @@ binarios.
 
 ---
 
-## 11. Reversión y desinstalación
+## 10. Reversión y desinstalación
 
-### 11.1 Reversión automática
+### 10.1 Reversión automática
 
 Si un paso **del 05 en adelante** falla, el instalador:
 
@@ -785,7 +738,7 @@ Antes del paso 05 no hay nada que revertir: no se había tocado la instalación.
 > sigue en su sitio. Restáurelo a mano copiando el contenido del directorio de
 > respaldo sobre `InstallPath` y arrancando el app pool.
 
-### 11.2 Reversión manual de una actualización
+### 10.2 Reversión manual de una actualización
 
 ```powershell
 Import-Module WebAdministration
@@ -801,7 +754,7 @@ Start-WebAppPool -Name EdgeGuardHub
 > `docs/07-operations/database-migrations.md` y coordine con el DBA antes de
 > revertir una actualización que incluyó migraciones.
 
-### 11.3 Desinstalación
+### 10.3 Desinstalación
 
 ```powershell
 .\bin\Uninstall-Hub.ps1 -DryRun
@@ -821,9 +774,9 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 
 ---
 
-## 12. Diagnóstico de fallos
+## 11. Diagnóstico de fallos
 
-### 12.1 Por paso
+### 11.1 Por paso
 
 | Síntoma | Causa | Acción |
 |---|---|---|
@@ -835,7 +788,7 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 | **02** — «Falta el Hosting Bundle» | No está instalado ni depositado en `data\` | Deposite el instalador en `data\`. La descarga automática exige fijar URL y hash en `bin\02-Install-HostingBundle.ps1` |
 | **02** — código 3010 | Instalado correctamente, requiere reinicio | Programe el reinicio antes de poner el Hub en servicio |
 | **03** — no se pudo habilitar WebSockets | Característica bloqueada o imagen recortada | Bloqueante: SignalR no negocia sin ella. Habilítela manualmente y repita |
-| **04** — `3D000` | La base no existe | El instalador no la crea. Créela (§4.3) |
+| **04** — `3D000` | La base no existe | El instalador no la crea. Créela (§3.3) |
 | **04** — `28000` | El rol no existe o `pg_hba.conf` rechaza la conexión | Coordine con el DBA |
 | **04** — `28P01` | Contraseña incorrecta | Corrija la credencial |
 | **04** — «no tiene permiso CREATE» | Falta el `GRANT` | `GRANT CREATE ON SCHEMA public TO <rol>;` |
@@ -849,21 +802,21 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 | **10** — «respondió 404 en /health/live» | El proceso está en pie, falta la ruta | El paquete desplegado no registra los endpoints de diagnóstico (`MapDiagnosticsEndpoints`) o es anterior a este instalador. No se reintenta: un 404 no es transitorio |
 | **10** — `/health/ready` HTTP 503 | Algún check con tag `ready` no está verde | **Informativo, no reprueba la instalación.** El cuerpo dice cuál: `database`, `storage` o `hl7-listener`. Revíselo antes de poner el Hub en servicio |
 
-### 12.2 Fallos posteriores al despliegue
+### 11.2 Fallos posteriores al despliegue
 
 | Síntoma | Diagnóstico |
 |---|---|
 | El sitio devuelve **500.19** en cada petición | Está el runtime de ASP.NET Core pero falta `AspNetCoreModuleV2`. Reinstale el Hosting Bundle completo (paso 02 lo detecta) |
-| El navegador muestra JSON en lugar del SPA | El paquete llegó sin la interfaz web. Solicite uno nuevo al proveedor (§5.4) |
-| El monitoreo en tiempo real está mudo, el resto funciona | WebSockets deshabilitado a nivel de sitio (§8.4) |
-| **El HIS/RIS deja de recibir ACK tras un rato de inactividad** | El app pool se apagó por `idleTimeout`. Verifique `AlwaysRunning` e `idleTimeout=00:00:00` (§8.2). Repare con `-Mode Repair` |
+| El navegador muestra JSON en lugar del SPA | El paquete llegó sin la interfaz web. Solicite uno nuevo al proveedor (§4.4) |
+| El monitoreo en tiempo real está mudo, el resto funciona | WebSockets deshabilitado a nivel de sitio (§7.4) |
+| **El HIS/RIS deja de recibir ACK tras un rato de inactividad** | El app pool se apagó por `idleTimeout`. Verifique `AlwaysRunning` e `idleTimeout=00:00:00` (§7.2). Repare con `-Mode Repair` |
 | Los usuarios pierden la sesión tras una actualización | El `Jwt__SecretKey` se regeneró. No debería ocurrir: el paso 07 lo conserva. Revise si el app pool fue recreado a mano |
-| Los nodos empiezan a fallar la autenticación tras un reciclaje | Llaves de Data Protection efímeras o key ring perdido (§8.5, §11.3) |
+| Los nodos empiezan a fallar la autenticación tras un reciclaje | Llaves de Data Protection efímeras o key ring perdido (§7.5, §10.3) |
 | El paso 10 falla: «la cuenta de administrador no pudo iniciar sesión» | La cuenta ya existía con otra contraseña, o el sembrado se omitió. El mensaje incluye el `Admin seed skipped` que reportó el Hub |
 | Instalación correcta pero no se puede entrar al SPA | `AdminPassword` iba vacía. Rellénela y ejecute `-Mode Repair` |
 | Se perdió la contraseña del administrador | El instalador no la cambia en cuentas existentes. Cámbiela desde el SPA, o dé de alta la cuenta con `scripts\seed-admin.sql` |
 
-### 12.3 Recolección de evidencia para escalar
+### 11.3 Recolección de evidencia para escalar
 
 ```powershell
 $stamp = Get-Date -Format yyyyMMdd-HHmmss
@@ -881,7 +834,7 @@ Compress-Archive -Path "$out\*" -DestinationPath "$out.zip"
 
 ---
 
-## 13. Apéndices
+## 12. Apéndices
 
 ### Apéndice A — Configuración → variables de entorno
 
@@ -997,7 +950,7 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 - [ ] Consola elevada
 - [ ] `-DryRun` ejecutado y aprobado
 - [ ] Instalación ejecutada
-- [ ] **Administrador inicial creado y verificado** (§7.5)
+- [ ] **Administrador inicial creado y verificado** (§6.5)
 - [ ] Log del instalador archivado
 - [ ] Ruta del respaldo anotada
 
@@ -1015,7 +968,7 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 
 **T+1 · Endurecimiento**
 - [ ] HTTPS configurado y `Jwt__Issuer` actualizado a `https://`
-- [ ] Identidad del app pool revisada (§9.2)
+- [ ] Identidad del app pool revisada (§8.2)
 - [ ] MLLP acotado a la subred del HIS/RIS
 - [ ] **`hub-install.psd1` borrado del servidor**
 - [ ] Respaldos configurados, incluido el key ring
@@ -1035,4 +988,4 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 > **Mantenimiento.** Este runbook describe el comportamiento del instalador tal
 > como está implementado. Una versión nueva del paquete que añada un paso, cambie
 > una variable de entorno o incorpore otra validación obliga a revisar los
-> apartados §7.4, §9 y el Apéndice A.
+> apartados §6.4, §8 y el Apéndice A.
