@@ -113,7 +113,7 @@ en IIS y una actualización nunca tiene que fusionar archivos de configuración.
 |---|---|
 | `DbHost`/`DbPort`/`DbName`/`DbUser` + contraseña | `EDGEGUARD_HUB_CONNECTIONSTRING` |
 | *(generada por el instalador)* | `Jwt__SecretKey` |
-| `HostHeader` | `Jwt__Issuer` |
+| `HostHeader` | `Jwt__Issuer` — solo la etiqueta del emisor; no afecta al binding |
 | `AdminUsername` | `EDGEGUARD_ADMIN_USERNAME` — retirada por el paso 10 |
 | `AdminPassword` | `EDGEGUARD_ADMIN_PASSWORD` — retirada por el paso 10 |
 | `DataProtectionKeyPath` | `DataProtection__KeyPath` |
@@ -138,7 +138,7 @@ llegan a la aplicación.
 | 03 | Características de IIS, incluido WebSockets |
 | 04 | Puerto, protocolo y permisos de PostgreSQL |
 | 05 | Respaldo, despliegue e `installed.json` |
-| 06 | App pool y sitio (HTTP) |
+| 06 | App pool y sitio (HTTP, binding `*:Puerto` sin host header) |
 | 07 | Variables de entorno del app pool |
 | 08 | `logs\`, `workspace\reports\` y el key ring |
 | 09 | Regla de firewall del listener MLLP |
@@ -208,6 +208,16 @@ registrados dejan de ser descifrables y cada nodo tiene que volver a
 autenticarse para que se le recomponga.
 
 ## Notas de diseño
+
+**Binding a todas las IP, sin host header.** El sitio se crea como `*:80` sin
+nombre, así que el Hub responde por cualquier dirección IP del servidor y no
+depende de que el cliente registre un nombre en su DNS ni en el archivo `hosts`
+de cada equipo. El paso 10 imprime al final las URL por IP con las que el
+operador puede entrar al SPA.
+
+A cambio, el sitio se queda con todo el puerto 80 del servidor: si más adelante
+tienen que convivir otros sitios en la misma máquina, hay que darle un puerto
+propio o volver a introducir host headers a mano en IIS Manager.
 
 **Solo HTTP.** Para HTTPS, añade el binding y el certificado en IIS Manager
 después de instalar; el instalador no los toca ni los elimina.

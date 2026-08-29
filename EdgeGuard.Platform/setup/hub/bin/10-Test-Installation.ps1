@@ -61,24 +61,24 @@ function Start-HubSite {
     instalación correcta. El estado de readiness se consulta después, aparte, y
     solo se informa.
 
-    Se usa HttpWebRequest en lugar de Invoke-WebRequest para poder fijar la
-    cabecera Host: el sitio está enlazado a un host header y el servidor no
-    resolvería la petición sin ella.
+    Se usa HttpWebRequest en lugar de Invoke-WebRequest porque no depende de
+    Internet Explorer ni del proxy del usuario y expone el código de estado de
+    las respuestas de error sin lanzar. El sitio está enlazado a *:Puerto sin
+    host header, así que basta con apuntar a localhost.
 #>
 function Wait-HubHealth {
     [CmdletBinding()]
-    param([int]$Port, [string]$HostHeader)
+    param([int]$Port)
 
     $url      = "http://localhost:$Port/health/live"
     $deadline = (Get-Date).AddSeconds($script:HealthTimeoutSeconds)
     $last     = 'sin respuesta'
 
-    Write-SetupLog "Esperando $url (Host: $HostHeader), hasta $($script:HealthTimeoutSeconds)s" -Level Detail
+    Write-SetupLog "Esperando $url, hasta $($script:HealthTimeoutSeconds)s" -Level Detail
 
     while ((Get-Date) -lt $deadline) {
         try {
             $request = [System.Net.HttpWebRequest]::Create($url)
-            $request.Host    = $HostHeader
             $request.Timeout = 10000
             $request.Method  = 'GET'
 
@@ -134,13 +134,12 @@ function Wait-HubHealth {
 #>
 function Write-HubReadiness {
     [CmdletBinding()]
-    param([int]$Port, [string]$HostHeader)
+    param([int]$Port)
 
     $url = "http://localhost:$Port/health/ready"
 
     try {
         $request = [System.Net.HttpWebRequest]::Create($url)
-        $request.Host    = $HostHeader
         $request.Timeout = 15000
         $request.Method  = 'GET'
 
@@ -250,20 +249,16 @@ function Test-DataProtectionPersisted {
     /api/auth/login. Es la única prueba de que el operador podrá entrar al SPA,
     y distingue los tres desenlaces que de otro modo se parecen entre sí:
     cuenta recién creada, cuenta que ya existía y cuenta que nunca se sembró.
-
-    Como en Wait-HubHealth, se usa HttpWebRequest para poder fijar la cabecera
-    Host: el sitio está enlazado a un host header.
 #>
 function Test-HubAdminLogin {
     [CmdletBinding()]
-    param([int]$Port, [string]$HostHeader, [string]$Username, [string]$Password)
+    param([int]$Port, [string]$Username, [string]$Password)
 
     $url  = "http://localhost:$Port/api/auth/login"
     $body = @{ username = $Username; password = $Password } | ConvertTo-Json -Compress
     $data = [System.Text.Encoding]::UTF8.GetBytes($body)
 
     $request = [System.Net.HttpWebRequest]::Create($url)
-    $request.Host        = $HostHeader
     $request.Method      = 'POST'
     $request.ContentType = 'application/json'
     $request.Timeout     = 20000
@@ -353,6 +348,43 @@ function Remove-AdminSeedVariables {
 
 <#
 .SYNOPSIS
+    Devuelve las URL por las que el Hub queda accesible desde la red.
+.DESCRIPTION
+    El sitio se enlaza a *:Puerto sin host header, así que responde por
+    cualquier dirección IP del servidor. Se listan las IPv4 reales para que el
+    operador tenga a mano la URL que va a repartir, en lugar de un nombre que
+    todavía no existe en el DNS del cliente.
+
+    Se descartan loopback y las APIPA 169.254.x.x, que no sirven para llegar
+    desde otro equipo. Si la enumeración falla —Get-NetIPAddress no está en
+    todas las ediciones— se devuelve localhost, que al menos es cierto en el
+    propio servidor.
+#>
+function Get-HubAccessUrl {
+    [CmdletBinding()]
+    param([int]$Port)
+
+    $suffix = if ($Port -eq 80) { '' } else { ":$Port" }
+
+    try {
+        $addresses = @(
+            Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
+                Where-Object { $_.IPAddress -notmatch '^(127\.|169\.254\.)' } |
+                Select-Object -ExpandProperty IPAddress -Unique |
+                Sort-Object
+        )
+    }
+    catch {
+        $addresses = @()
+    }
+
+    if ($addresses.Count -eq 0) { $addresses = @('localhost') }
+
+    return @($addresses | ForEach-Object { "http://${_}$suffix/" })
+}
+
+<#
+.SYNOPSIS
     Siembra y verifica la cuenta de administrador inicial.
 #>
 function Confirm-HubAdminAccount {
@@ -370,8 +402,7 @@ function Confirm-HubAdminAccount {
         return
     }
 
-    $login = Test-HubAdminLogin -Port $Config.Port -HostHeader $Config.HostHeader `
-                                -Username $username -Password $password
+    $login = Test-HubAdminLogin -Port $Config.Port -Username $username -Password $password
 
     if (-not $login.Ok) {
         # El log del Hub dice por qué se omitió el sembrado; es más útil que el 401.
@@ -398,7 +429,11 @@ function Confirm-HubAdminAccount {
     Write-Host "  ─────────────────────────────────────────────────────────────" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "   Usuario   $username"
-    Write-Host "   Acceso    http://$($Config.HostHeader):$($Config.Port)/"
+    $urls = Get-HubAccessUrl -Port $Config.Port
+    Write-Host "   Acceso    $($urls[0])"
+    foreach ($extra in @($urls | Select-Object -Skip 1)) {
+        Write-Host "             $extra"
+    }
     Write-Host ""
     Write-Host "   Cambia la contraseña desde el SPA tras el primer acceso, y borra" -ForegroundColor Gray
     Write-Host "   hub-install.psd1 del servidor: contiene ambas contraseñas en claro." -ForegroundColor Gray
@@ -420,7 +455,7 @@ function Step-TestInstallation {
     }
 
     # ── /health/live ─────────────────────────────────────────────────────────
-    $health = Wait-HubHealth -Port $Config.Port -HostHeader $Config.HostHeader
+    $health = Wait-HubHealth -Port $Config.Port
 
     if (-not $health.Ok) {
         if ($health.ContainsKey('Fatal') -and $health.Fatal) {
@@ -438,7 +473,7 @@ function Step-TestInstallation {
 
     # Readiness es informativo: da el estado de base, disco y listener MLLP sin
     # que ninguno de los tres pueda reprobar una instalación correcta.
-    Write-HubReadiness -Port $Config.Port -HostHeader $Config.HostHeader
+    Write-HubReadiness -Port $Config.Port
 
     # ── Log de arranque ──────────────────────────────────────────────────────
     $logLines = Get-RecentHubLog -InstallPath $Config.InstallPath

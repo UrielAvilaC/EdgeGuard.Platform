@@ -169,7 +169,7 @@ Complete esta tabla y adjúntela al registro de cambio:
 |---|---|---|---|
 | 1 | Paquete `EdgeGuard-Hub-Setup-<versión>.zip` | | Proveedor (§4) — incluye aplicación, runtime y checksums |
 | 2 | Host, puerto, base, rol y contraseña de PostgreSQL | | DBA |
-| 3 | Host header del sitio (FQDN) | | Red / DNS |
+| 3 | IP fija del servidor del Hub | | Red |
 | 4 | Subred del HIS/RIS para MLLP | | Red |
 | 5 | Identificador de instancia (`InstanceId`) | | Operaciones |
 | 6 | Usuario y contraseña del administrador inicial | | Responsable de la aplicación |
@@ -270,7 +270,7 @@ continuar:
 
 | Clave | Acción requerida |
 |---|---|
-| `HostHeader` | FQDN real del sitio. Alimenta también `Jwt__Issuer`. |
+| `HostHeader` | Etiqueta del emisor de los JWT (`Jwt__Issuer`). **No afecta al binding:** el sitio se enlaza a `*:Puerto` y responde por IP. Puede dejarse como viene. |
 | `DbHost` / `DbPort` / `DbName` / `DbUser` | Datos entregados por el DBA |
 | `DbPassword` | **Cambiar** `CAMBIAR_ANTES_DE_INSTALAR` — o dejar vacío y usar variable de entorno |
 | `AdminUsername` | Usuario del administrador inicial. Se normaliza a minúsculas |
@@ -289,7 +289,7 @@ Antes de ejecutar nada, confirme con los responsables:
 
 - [ ] **DBA:** rol y base creados, `GRANT CREATE ON SCHEMA public` aplicado, `pg_hba.conf` admite la IP del Hub
 - [ ] **Red:** 5432 saliente abierto; subred del HIS/RIS documentada
-- [ ] **DNS:** el `HostHeader` resuelve a la IP del servidor
+- [ ] **Red:** el servidor tiene IP fija (no DHCP) y está anotada en el insumo 3
 - [ ] **PKI:** certificado `.pfx` disponible para la fase T+1
 - [ ] **Servidor:** ≥5 GB libres en el volumen de instalación
 - [ ] **Cuenta:** privilegios de administrador local confirmados
@@ -396,7 +396,7 @@ Salida esperada:
   ─────────────────────────────────────────────────────────────
 
    Usuario   admin
-   Acceso    http://hub.local:80/
+   Acceso    http://10.20.30.40/
 ```
 
 **Por qué se verifica con un inicio de sesión y no leyendo el log:** el sembrado
@@ -472,19 +472,19 @@ Import-Module WebAdministration; Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -
 ### 7.3 Salud de la aplicación
 
 ```powershell
-$r = [System.Net.HttpWebRequest]::Create("http://localhost:80/health/live"); $r.Host = "hub.local"; $resp = $r.GetResponse(); (New-Object System.IO.StreamReader($resp.GetResponseStream())).ReadToEnd()
+Invoke-WebRequest -Uri "http://localhost/health/live" -UseBasicParsing | Select-Object -ExpandProperty Content
 ```
 
-> La cabecera `Host` es imprescindible: el sitio está enlazado a un host header y
-> el servidor no resolvería la petición sin ella. Es la misma técnica que usa el
-> paso 10.
+> El sitio está enlazado a `*:80` sin host header, así que atiende por localhost,
+> por la IP del servidor y por cualquier nombre que apunte a él. No hace falta
+> fijar la cabecera `Host`.
 
 ### 7.4 Verificación del SPA — el fallo silencioso
 
-Abra `http://<HostHeader>/` en un navegador. **Debe cargar la interfaz de
-usuario, no un JSON de la API.** Si aparece la API, el paquete llegó sin
-la interfaz web — aunque el paso 01 debería haberlo impedido. Solicite un paquete
-nuevo al proveedor (§4.4).
+Abra `http://<IP-del-servidor>/` en un navegador, desde el propio servidor y
+desde un equipo de la red. **Debe cargar la interfaz de usuario, no un JSON de
+la API.** Si aparece la API, el paquete llegó sin la interfaz web — aunque el
+paso 01 debería haberlo impedido. Solicite un paquete nuevo al proveedor (§4.4).
 
 En la consola del navegador, confirme que la conexión SignalR se establece por
 WebSocket y no cae a long polling. Si cae, revise WebSockets a nivel de sitio:
@@ -569,12 +569,12 @@ sobrevive a las actualizaciones: el paso 06 no lo toca ni lo elimina.
 
 1. Importe el certificado en el almacén `LocalMachine\My` (IIS Manager →
    *Server Certificates* → *Import*).
-2. Añada el binding HTTPS al sitio en el puerto 443 con el host header
-   correspondiente.
+2. Añada el binding HTTPS al sitio en el puerto 443. Déjelo sin host header,
+   igual que el binding HTTP, salvo que el certificado obligue a SNI.
 3. Configure la redirección HTTP → HTTPS.
-4. **Actualice `Jwt__Issuer`** a `https://<HostHeader>` en las variables del app
-   pool: el paso 07 lo escribe como `http://` porque el instalador solo configura
-   HTTP.
+4. `Jwt__Issuer` es solo la etiqueta del emisor y no tiene que cambiar al pasar
+   a HTTPS: el Hub firma y valida los tokens contra sí mismo. Cambiarla invalida
+   las sesiones abiertas.
 5. Reinicie el app pool y repita §7.3 y §7.4 contra HTTPS.
 6. Restrinja a TLS 1.2+ según la política de la organización.
 
@@ -842,7 +842,7 @@ Compress-Archive -Path "$out\*" -DestinationPath "$out.zip"
 |---|---|
 | `DbHost` / `DbPort` / `DbName` / `DbUser` + contraseña | `EDGEGUARD_HUB_CONNECTIONSTRING` |
 | *(generada por el instalador, 64 caracteres)* | `Jwt__SecretKey` |
-| `HostHeader` | `Jwt__Issuer` (como `http://<HostHeader>`) |
+| `HostHeader` | `Jwt__Issuer` (como `http://<HostHeader>`) — solo etiqueta; no afecta al binding |
 | `AdminUsername` | `EDGEGUARD_ADMIN_USERNAME` (en minúsculas) — **el paso 10 la retira** |
 | `AdminPassword` | `EDGEGUARD_ADMIN_PASSWORD` — **el paso 10 la retira** tras confirmar la cuenta |
 | `DataProtectionKeyPath` | `DataProtection__KeyPath` |

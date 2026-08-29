@@ -70,17 +70,27 @@ function Set-HubAppPool {
 <#
 .SYNOPSIS
     Crea o reconfigura el sitio y su binding HTTP.
+.DESCRIPTION
+    El binding es *:Puerto sin host header: IIS atiende por cualquier dirección
+    IP del servidor y por cualquier nombre con el que se le llame. No hay que
+    registrar ningún nombre en DNS ni en el archivo hosts de cada equipo, y el
+    acceso por IP —lo primero que prueba el operador— funciona desde el minuto
+    uno.
+
+    A cambio, este sitio se queda con todo el puerto 80 del servidor: si más
+    adelante conviven otros sitios en la misma máquina, habrá que darle un
+    puerto propio o volver a introducir host headers a mano.
 #>
 function Set-HubSite {
     [CmdletBinding()]
-    param([string]$Name, [string]$PhysicalPath, [string]$AppPoolName, [int]$Port, [string]$HostHeader)
+    param([string]$Name, [string]$PhysicalPath, [string]$AppPoolName, [int]$Port)
 
     $path = "IIS:\Sites\$Name"
 
     if (-not (Test-Path $path)) {
-        Invoke-SetupAction -Description "crear el sitio $Name en :$Port ($HostHeader)" -Action {
+        Invoke-SetupAction -Description "crear el sitio $Name en *:$Port" -Action {
             New-WebSite -Name $Name -PhysicalPath $PhysicalPath -ApplicationPool $AppPoolName `
-                        -Port $Port -HostHeader $HostHeader -Force | Out-Null
+                        -Port $Port -Force | Out-Null
         } | Out-Null
     }
     else {
@@ -91,10 +101,10 @@ function Set-HubSite {
             Set-ItemProperty $path -Name applicationPool  -Value $AppPoolName
 
             $existing = @(Get-WebBinding -Name $Name -Protocol http |
-                          Where-Object { $_.bindingInformation -eq "*:${Port}:$HostHeader" })
+                          Where-Object { $_.bindingInformation -eq "*:${Port}:" })
             if ($existing.Count -eq 0) {
-                Write-SetupLog "se añade el binding http *:${Port}:$HostHeader" -Level Detail
-                New-WebBinding -Name $Name -Protocol http -Port $Port -HostHeader $HostHeader
+                Write-SetupLog "se añade el binding http *:${Port}:" -Level Detail
+                New-WebBinding -Name $Name -Protocol http -Port $Port -HostHeader ''
             }
         }
     }
@@ -111,7 +121,7 @@ function Set-HubSite {
     # el listener MLLP no existe hasta entonces.
     Set-ItemProperty $path -Name applicationDefaults.preloadEnabled -Value $true -ErrorAction SilentlyContinue
 
-    Write-SetupLog "Sitio $Name → $PhysicalPath, http://${HostHeader}:$Port, WebSockets y precarga activos" -Level Detail
+    Write-SetupLog "Sitio $Name → $PhysicalPath, http://*:$Port (sin host header), WebSockets y precarga activos" -Level Detail
 }
 
 function Step-NewIisSite {
@@ -128,8 +138,7 @@ function Step-NewIisSite {
     Set-HubSite -Name $Config.SiteName `
                 -PhysicalPath $Config.InstallPath `
                 -AppPoolName $Config.AppPoolName `
-                -Port $Config.Port `
-                -HostHeader $Config.HostHeader
+                -Port $Config.Port
 
     if (Test-SetupDryRun) { return }
 
