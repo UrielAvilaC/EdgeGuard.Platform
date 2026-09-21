@@ -28,6 +28,19 @@ public interface IStudyRepository
         CancellationToken ct = default);
 
     /// <summary>
+    /// Los mismos estudios que <see cref="GetByPatientIdAsync"/> (con
+    /// <paramref name="patientRecordId"/> nulo) o que <see cref="GetByPatientAsync"/>,
+    /// pero <b>rastreados</b>, para los flujos de fusión que los reasignan.
+    /// <para>Aquellas dos son de sólo lectura por diseño: las comparte el listado del
+    /// controlador. Escribir sobre entidades sin rastrear rompe el token de concurrencia
+    /// de <see cref="Study"/> y descarta la operación completa.</para>
+    /// </summary>
+    Task<IReadOnlyList<Study>> GetByPatientForUpdateAsync(
+        string? patientRecordId,
+        string patientDicomId,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Studies carrying the given MRN but no patient FK yet. Used to attach the link when
     /// the patient is registered after the studies arrived.
     /// </summary>

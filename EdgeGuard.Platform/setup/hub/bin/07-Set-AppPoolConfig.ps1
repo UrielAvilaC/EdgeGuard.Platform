@@ -154,10 +154,19 @@ function Step-SetAppPoolConfig {
     if (Test-SetupDryRun) { return }
 
     # ── Postcondición ────────────────────────────────────────────────────────
-    $written = Get-AppPoolEnvironment -AppPoolName $Config.AppPoolName
-    foreach ($required in @('EDGEGUARD_HUB_CONNECTIONSTRING', 'Jwt__SecretKey', 'DataProtection__KeyPath')) {
-        if (-not $written.ContainsKey($required) -or [string]::IsNullOrWhiteSpace($written[$required])) {
-            throw "La variable $required no quedó escrita en el app pool."
+    $written  = Get-AppPoolEnvironment -AppPoolName $Config.AppPoolName
+    $required = @('EDGEGUARD_HUB_CONNECTIONSTRING', 'Jwt__SecretKey', 'DataProtection__KeyPath')
+
+    # Si se configuró contraseña de administrador, que llegara al app pool es
+    # tan obligatorio como el resto: es la única vía por la que AdminUserSeed
+    # la recibe, y si falta el Hub se limita a un LogWarning y no crea la cuenta.
+    if ($environment.Contains('EDGEGUARD_ADMIN_PASSWORD')) {
+        $required += 'EDGEGUARD_ADMIN_PASSWORD'
+    }
+
+    foreach ($name in $required) {
+        if (-not $written.ContainsKey($name) -or [string]::IsNullOrWhiteSpace($written[$name])) {
+            throw "La variable $name no quedó escrita en el app pool."
         }
     }
 

@@ -44,8 +44,12 @@ public static class HubDomainServiceCollectionExtensions
         services.AddScoped<INodeEquipmentPushService, NodeEquipmentPushService>();
         services.AddScoped<IStudyRequeuePushService, StudyRequeuePushService>();
 
-        // In-memory PACS C-ECHO status store (refreshed each time a node reports)
+        // Conectividad PACS por nodo: el store en memoria es la vista viva (singleton,
+        // se vacía al reciclar el pool) y la query le añade como respaldo lo persistido
+        // en las asignaciones, que sí sobrevive al reinicio.
         services.AddSingleton<INodePacsEchoStore, NodePacsEchoStore>();
+        services.AddScoped<INodePacsEchoWriter, NodePacsEchoWriter>();
+        services.AddScoped<INodePacsEchoQuery, NodePacsEchoQuery>();
 
         return services;
     }

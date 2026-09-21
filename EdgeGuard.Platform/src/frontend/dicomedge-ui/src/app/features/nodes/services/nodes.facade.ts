@@ -141,6 +141,18 @@ export class NodesFacade {
     });
   }
 
+  deleteNode(id: string): void {
+    this.api.delete(id).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: () => {
+        this.toast.success('Nodo eliminado');
+        this.loadNodes();
+      },
+      error: () => this.toast.error('No se pudo eliminar el nodo'),
+    });
+  }
+
   assignPacs(nodeId: string, pacsId: string, request: AssignPacsRequest): void {
     this.store.setSelectedLoading(true);
     this.api.assignPacs(nodeId, pacsId, request).pipe(

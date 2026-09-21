@@ -9,15 +9,28 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- StartupEndpointEnumerationTests builds a WebApplication in-process to pin how
+         endpoint enumeration behaves before app.Run(). No host is started. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+
+    <!-- ConcurrencyTokenPersistenceTests corre el modelo real de EF contra SQLite en
+         memoria. Hace falta un proveedor relacional de verdad: el proveedor InMemory no
+         implementa tokens de concurrencia, así que las pruebas de este archivo pasarían
+         en verde incluso con el defecto que existen para detectar. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/backend/Dicom.Edge.Hub.Application/Dicom.Edge.Hub.Application.csproj" />
     <ProjectReference Include="../../src/backend/Dicom.Edge.Hub.Domain/Dicom.Edge.Hub.Domain.csproj" />
     <ProjectReference Include="../../src/backend/Dicom.Edge.Hub.Infrastructure/Dicom.Edge.Hub.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/backend/Dicom.Edge.Hub.Persistence/Dicom.Edge.Hub.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

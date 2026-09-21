@@ -52,6 +52,7 @@
     <File Path="docs/07-operations/deployment-hub.md" />
     <File Path="docs/07-operations/deployment-node.md" />
     <File Path="docs/07-operations/monitoring.md" />
+    <File Path="docs/07-operations/runbook-instalacion-hub.md" />
     <File Path="docs/07-operations/troubleshooting.md" />
   </Folder>
   <Folder Name="/docs/08-integrations/">
@@ -71,6 +72,7 @@
     <File Path="docs/10-remediation/p1-fase1-implementation.md" />
     <File Path="docs/10-remediation/node-ae-title-unification-plan.md" />
     <File Path="docs/10-remediation/oru-report-delivery-plan.md" />
+    <File Path="docs/10-remediation/hub-startup-verification-plan.md" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/backend/">

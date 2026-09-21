@@ -22,7 +22,11 @@ public static class SharedNodeSettingDefaults
         [
             // ── General ─────────────────────────────────────────────────────
             E(K.General.NodeName,     "EdgeNode-1",   C.General,  "Node Name",              V.String),
-            E(K.General.AeTitle,      "EDGE_NODE",    C.General,  "AE Title (derived)",     V.String),
+            // Aquí había un "AE Title (derived)". Se quitó: el nodo nunca leía esa fila
+            // —el proveedor de configuración la ignora a propósito y deriva el AE de
+            // dicom.ae_title—, así que era un campo editable sin ningún efecto. Peor aún,
+            // se sembraba una sola vez y nunca se refrescaba, de modo que en cuanto se
+            // editaba el AE de verdad este quedaba mostrando el valor viejo.
             E(K.General.Description,  "",             C.General,  "Description",            V.String),
             E(K.General.Location,     "",             C.General,  "Location",               V.String),
             E(K.General.FacilityName, "",             C.General,  "Facility Name",          V.String),
@@ -93,7 +97,8 @@ public static class SharedNodeSettingDefaults
 
             // ── PACS Sender ─────────────────────────────────────────────────
             E(K.PacsSender.Enabled,                   "true",     C.PacsSender, "PACS Sender Enabled",       V.Bool),
-            E(K.PacsSender.LocalAeTitle,              "EDGE_NODE", C.PacsSender, "Local AE Title (derived)",  V.String),
+            // Sin "Local AE Title (derived)": el Calling AE de salida se deriva en runtime
+            // de dicom.ae_title, y esta fila no se leía nunca. Editarla no cambiaba nada.
             E(K.PacsSender.MaxConcurrentSends,        "4",        C.PacsSender, "Max Concurrent Sends",      V.Int),
             E(K.PacsSender.TimeoutSeconds,            "120",      C.PacsSender, "Send Timeout (sec)",        V.Int),
             E(K.PacsSender.MaxRetries,                "3",        C.PacsSender, "Max Retries",               V.Int),

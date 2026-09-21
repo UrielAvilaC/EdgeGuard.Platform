@@ -151,6 +151,7 @@ public class NodeConfigurationSeedTests
         public Task<Node?> GetByIdAsync(string id, CancellationToken ct = default) => Task.FromResult<Node?>(null);
         public Task<Node?> GetByNameAndIpAsync(string name, string ipAddress, CancellationToken ct = default) => Task.FromResult<Node?>(null);
         public Task<IReadOnlyList<Node>> GetAllAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Node>>([]);
+        public Task<IReadOnlyList<Node>> GetAllForUpdateAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Node>>([]);
         public Task<IReadOnlyList<Node>> GetActiveNodesAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<Node>>([]);
         public Task<Node?> GetWithPacsAssignmentsAsync(string id, CancellationToken ct = default) => Task.FromResult<Node?>(null);
         public Task<PagedResult<Node>> GetPagedAsync(PaginationRequest pagination, CancellationToken ct = default) => throw new NotSupportedException();

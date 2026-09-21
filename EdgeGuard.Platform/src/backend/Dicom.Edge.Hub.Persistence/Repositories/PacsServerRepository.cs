@@ -48,11 +48,17 @@ public class PacsServerRepository : IPacsServerRepository
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Borrado lógico. Antes hacía <c>Remove</c>, y eso dejaba los estudios históricos
+    /// apuntando con <c>TargetPacsId</c> a una fila inexistente — sin error, porque no es
+    /// clave foránea, pero perdiendo el rastro de a dónde se había entregado cada estudio.
+    /// </summary>
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
-        var pacs = await _context.PacsServers.FindAsync([id], ct);
-        if (pacs is not null)
-            _context.PacsServers.Remove(pacs);
+        // Lectura rastreada (el filtro global excluye los ya eliminados, así que repetir
+        // la operación sobre uno borrado simplemente no encuentra nada).
+        var pacs = await _context.PacsServers.FirstOrDefaultAsync(p => p.Id == id, ct);
+        pacs?.SoftDelete();
     }
 
     public async Task<PagedResult<PacsServer>> GetFilteredPagedAsync(PaginationRequest pagination, PacsServerFilterCriteria filter, CancellationToken ct = default)
@@ -81,6 +87,7 @@ public class PacsServerRepository : IPacsServerRepository
         ["isEnabled"] = p => p.IsEnabled,
         ["isGlobal"] = p => p.IsGlobal,
         ["createdAt"] = p => p.CreatedAt,
-        ["lastCEchoAt"] = p => p.LastCEchoAt,
+        // Sin "lastCEchoAt": el PACS ya no guarda conectividad, y ordenar un catálogo
+        // global por un sondeo que es de cada nodo no tendría un valor que mirar.
     };
 }

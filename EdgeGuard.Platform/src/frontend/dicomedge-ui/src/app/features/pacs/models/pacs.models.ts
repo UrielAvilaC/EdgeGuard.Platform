@@ -11,9 +11,9 @@ export interface PacsServer {
   isGlobal: boolean;
   maxConcurrentAssociations: number;
   timeoutSeconds: number;
-  lastCEchoAt: string | null;
-  lastCEchoSuccess: boolean;
-  isReachable: boolean;
+  // Sin campos de conectividad. El PACS es un catálogo; quién lo alcanza y quién no es
+  // una propiedad del par (nodo, PACS), porque la sondea cada nodo desde su propia red.
+  // Se consulta por nodo en GET /nodes/{id}/pacs-echo.
   createdAt: string;
   updatedAt: string | null;
 }

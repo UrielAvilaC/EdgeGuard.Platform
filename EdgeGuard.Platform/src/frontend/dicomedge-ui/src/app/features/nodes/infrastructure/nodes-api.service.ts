@@ -44,6 +44,15 @@ export class NodesApiService {
     return this.api.put<void>(API_ROUTES.NODES.DISABLE(id), {});
   }
 
+  /**
+   * Retira el nodo del catálogo. El Hub hace borrado lógico: la fila y todo su historial
+   * —estudios recibidos, telemetría, auditoría— se conservan, porque los estudios guardan
+   * de qué nodo llegaron y ese rastro no puede romperse.
+   */
+  delete(id: string): Observable<void> {
+    return this.api.delete<void>(API_ROUTES.NODES.BY_ID(id));
+  }
+
   getCount(): Observable<{ count: number }> {
     return this.api.get<{ count: number }>(API_ROUTES.NODES.COUNT);
   }

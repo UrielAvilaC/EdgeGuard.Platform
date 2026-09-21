@@ -48,8 +48,14 @@ Consola **elevada**. El paso 01 aborta si no lo está.
 
 `Auto` decide leyendo `installed.json` del directorio de instalación: sin
 manifiesto → `Install`; con el mismo hash de paquete → `Repair`; con otro →
-`Update`. No se usa la versión del ensamblado porque el `.csproj` no declara
-`<Version>` y siempre reporta `1.0.0.0`.
+`Update`.
+
+La decisión sigue siendo por hash y no por versión, pero ya no por falta de
+alternativa: desde 1.4.1 la solución sella `<Version>` en
+`Directory.Build.props`, los ensamblados la reportan y `/api/info` la publica.
+El hash se conserva porque distingue dos paquetes de la misma versión —un
+republicado tras corregir algo, por ejemplo—, y eso es justo lo que `Repair`
+necesita saber.
 
 `Repair` es para cuando alguien tocó IIS a mano y algo dejó de funcionar:
 variables borradas al recrear el app pool, sitio apuntando a otra ruta,
@@ -113,7 +119,7 @@ en IIS y una actualización nunca tiene que fusionar archivos de configuración.
 |---|---|
 | `DbHost`/`DbPort`/`DbName`/`DbUser` + contraseña | `EDGEGUARD_HUB_CONNECTIONSTRING` |
 | *(generada por el instalador)* | `Jwt__SecretKey` |
-| `HostHeader` | `Jwt__Issuer` |
+| `HostHeader` | `Jwt__Issuer` — solo la etiqueta del emisor; no afecta al binding |
 | `AdminUsername` | `EDGEGUARD_ADMIN_USERNAME` — retirada por el paso 10 |
 | `AdminPassword` | `EDGEGUARD_ADMIN_PASSWORD` — retirada por el paso 10 |
 | `DataProtectionKeyPath` | `DataProtection__KeyPath` |
@@ -133,16 +139,16 @@ llegan a la aplicación.
 
 | # | Hace |
 |---|---|
-| 01 | Elevación, sistema operativo, IIS, disco, checksums, contenido del paquete, resolución del modo |
+| 01 | Elevación, sistema operativo, IIS, puerto HTTP libre, disco, checksums, contenido del paquete, resolución del modo |
 | 02 | ASP.NET Core Hosting Bundle |
 | 03 | Características de IIS, incluido WebSockets |
 | 04 | Puerto, protocolo y permisos de PostgreSQL |
 | 05 | Respaldo, despliegue e `installed.json` |
-| 06 | App pool y sitio (HTTP) |
+| 06 | App pool y sitio (HTTP, binding `*:Puerto` sin host header) |
 | 07 | Variables de entorno del app pool |
 | 08 | `logs\`, `workspace\reports\` y el key ring |
 | 09 | Regla de firewall del listener MLLP |
-| 10 | Arranque, `/health`, Data Protection y administrador inicial |
+| 10 | Arranque, `/health/live`, Data Protection y administrador inicial |
 
 ## Cuando algo falla
 
@@ -155,6 +161,17 @@ ese build. Ver `data\README.md`.
 
 **01 — «Checksum incorrecto».** El zip está corrupto o no es el declarado.
 Vuelve a copiarlo y regenera `checksums.sha256`.
+
+**01 — «El puerto 80 ya está reservado en IIS».** Otro sitio —casi siempre el
+Default Web Site— tiene un binding en ese puerto. Elimínalo en IIS Manager, o
+dale al Hub un puerto propio en `Port` dentro de `hub-install.psd1`. Detener el
+sitio en conflicto no sirve: el instalador lo sigue reportando a propósito,
+porque vuelve a tomar el puerto en cuanto alguien lo inicia o se reinicia el
+servidor.
+
+**01 — «está ocupado por un proceso ajeno a IIS».** Algo que no es un sitio web
+escucha en ese puerto. `Get-NetTCPConnection -State Listen -LocalPort 80` dice
+quién.
 
 **02 — «Falta el Hosting Bundle».** Deposita el instalador en `data\`. La
 descarga automática requiere fijar URL y hash en
@@ -171,9 +188,13 @@ llegó al proceso. Es grave: en el siguiente reciclaje del app pool los
 `SigningSecret` de todos los nodos dejan de ser descifrables. Revisa las
 variables del app pool y ejecuta `-Mode Repair`.
 
-**10 — «no respondió en /health».** Revisa `<InstallPath>\logs`. La causa más
+**10 — «no respondió en /health/live».** Revisa `<InstallPath>\logs`. La causa más
 común es una credencial de PostgreSQL incorrecta cuando el paso 04 no pudo
 validarla.
+
+**10 — «respondió 404 en /health/live».** El proceso está en pie; lo que falta es
+la ruta. El paquete desplegado es anterior a los endpoints de diagnóstico, o se
+publicó sin ellos. No se reintenta: un 404 no mejora con el tiempo.
 
 **10 — «la cuenta de administrador no pudo iniciar sesión».** O la cuenta ya
 existía con otra contraseña —el instalador no la cambia—, o el Hub omitió el
@@ -204,6 +225,22 @@ registrados dejan de ser descifrables y cada nodo tiene que volver a
 autenticarse para que se le recomponga.
 
 ## Notas de diseño
+
+**Binding a todas las IP, sin host header.** El sitio se crea como `*:80` sin
+nombre, así que el Hub responde por cualquier dirección IP del servidor y no
+depende de que el cliente registre un nombre en su DNS ni en el archivo `hosts`
+de cada equipo. El paso 10 imprime al final las URL por IP con las que el
+operador puede entrar al SPA.
+
+A cambio, el sitio se queda con todo el puerto 80 del servidor: si más adelante
+tienen que convivir otros sitios en la misma máquina, hay que darle un puerto
+propio o volver a introducir host headers a mano en IIS Manager.
+
+Por eso el paso 01 aborta si el puerto ya está tomado, antes de copiar un solo
+archivo: se revisan los bindings de TODOS los sitios de IIS —iniciados o no— y
+los listeners TCP del servidor. Un sitio detenido no estorba hoy pero reclama su
+puerto al siguiente arranque, así que el conflicto se reporta igual; un binding
+del propio sitio del Hub no cuenta, es la instalación previa.
 
 **Solo HTTP.** Para HTTPS, añade el binding y el certificado en IIS Manager
 después de instalar; el instalador no los toca ni los elimina.

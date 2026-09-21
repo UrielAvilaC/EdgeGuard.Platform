@@ -9,6 +9,19 @@ namespace Dicom.Edge.Hub.Application.NodeConfiguration;
 /// </summary>
 public interface INodeConfigurationService
 {
+    /// <summary>
+    /// Copia el AE canónico del nodo —el ajuste <c>dicom.ae_title</c>— a la columna
+    /// <c>nodes.ae_title</c> que alimenta el catálogo.
+    ///
+    /// <para>El ajuste es la fuente: de él deriva el nodo su AE de SCP, su Calling AE de
+    /// salida y el que reporta al registrarse. La columna sólo existe para listar, buscar
+    /// y ordenar sin ir a los perfiles, y para que el índice único impida dos nodos con el
+    /// mismo AE. Los caminos que escriben el ajuste ya llaman a esto solos; queda público
+    /// para los que cambian el AE efectivo sin pasar por ellos, como la reconciliación del
+    /// re-registro.</para>
+    /// </summary>
+    Task SyncCatalogAeTitleAsync(string nodeId, CancellationToken ct = default);
+
     /// <summary>Returns all configuration entries for a node. Initializes defaults if none exist.</summary>
     Task<IReadOnlyList<NodeConfigurationProfileDto>> GetNodeConfigAsync(
         string nodeId, CancellationToken ct = default);

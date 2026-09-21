@@ -17,6 +17,7 @@ namespace Dicom.Edge.Hub.Application.PacsServers;
 /// </summary>
 public sealed class PacsServerService(
     IPacsServerRepository pacsRepository,
+    INodeRepository nodeRepository,
     INodeOutbox nodeOutbox,
     IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,
@@ -96,12 +97,41 @@ public sealed class PacsServerService(
         var pacs = await pacsRepository.GetByIdAsync(id, ct);
         if (pacs is null) return false;
 
+        // Las asignaciones nodo→PACS no son clave foránea, así que nadie las retira solo.
+        // Con el borrado físico anterior quedaban apuntando a una fila inexistente; ahora
+        // apuntarían a una invisible, que en la práctica es igual de roto. Se desasigna
+        // explícitamente antes de retirar el PACS.
+        var desasignados = await UnassignFromAllNodesAsync(id, ct);
+
         await pacsRepository.DeleteAsync(id, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("PACS server deleted: {PacsId}", id);
+        logger.LogInformation(
+            "PACS server soft-deleted: {PacsId} (unassigned from {Count} node(s))", id, desasignados);
         _ = PushPacsToAllNodesAsync();
         return true;
+    }
+
+    /// <summary>
+    /// Retira el PACS de todos los nodos que lo tuvieran asignado. Devuelve cuántos.
+    /// </summary>
+    private async Task<int> UnassignFromAllNodesAsync(string pacsId, CancellationToken ct)
+    {
+        var nodos = await nodeRepository.GetAllForUpdateAsync(ct);
+        var afectados = 0;
+
+        foreach (var nodo in nodos)
+        {
+            var conAsignaciones = await nodeRepository.GetWithPacsAssignmentsAsync(nodo.Id, ct);
+            if (conAsignaciones is null) continue;
+            if (!conAsignaciones.PacsAssignments.Any(a => a.PacsId == pacsId && a.IsActive)) continue;
+
+            conAsignaciones.UnassignPacs(pacsId);
+            await nodeRepository.UpdateAsync(conAsignaciones, ct);
+            afectados++;
+        }
+
+        return afectados;
     }
 
     /// <summary>

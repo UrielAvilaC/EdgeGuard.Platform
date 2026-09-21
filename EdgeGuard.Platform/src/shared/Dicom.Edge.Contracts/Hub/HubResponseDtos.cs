@@ -220,9 +220,8 @@ public sealed record PacsServerDto
     public bool IsGlobal { get; init; }
     public int MaxConcurrentAssociations { get; init; }
     public int TimeoutSeconds { get; init; }
-    public DateTime? LastCEchoAt { get; init; }
-    public bool LastCEchoSuccess { get; init; }
-    public bool IsReachable { get; init; }
+    // Sin campos de conectividad: la alcanzabilidad es del par (nodo, PACS), no del PACS.
+    // Se consulta en GET /api/nodes/{id}/pacs-echo.
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
 }

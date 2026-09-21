@@ -420,3 +420,9 @@ setup/hub/hub-install.psd1
 
 # Paquete del instalador del Hub: >100 MB, excede el limite de GitHub.
 setup/hub/install.zip
+
+# ── Manuales del cliente ─────────────────────────────────────────────────────
+# Los PDF si se versionan: son el entregable. El HTML intermedio que deja
+# Build-Manuales.ps1 -KeepHtml, no.
+setup/manuales/build/*.html
+!setup/manuales/build/plantilla*.html

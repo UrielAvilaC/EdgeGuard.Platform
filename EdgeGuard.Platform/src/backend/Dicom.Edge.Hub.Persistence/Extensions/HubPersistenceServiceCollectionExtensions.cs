@@ -24,6 +24,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Persistence.Extensions;
 
@@ -115,7 +116,26 @@ public static class HubPersistenceServiceCollectionExtensions
     {
         using var scope = serviceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<HubDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("EdgeGuard.Startup");
+
+        // On a database that has never been migrated, EF probes __EFMigrationsHistory before
+        // the table exists; the SELECT fails and EF logs it at Error level, then recovers and
+        // creates the table. Frame it before it happens: an unexplained Error in the startup
+        // log of a brand-new installation reliably turns into a support call.
+        logger.LogInformation(
+            "Applying pending EF migrations. On a first run the probe of \"__EFMigrationsHistory\" " +
+            "fails once and EF logs it as an error — that is expected, and the table is created " +
+            "immediately afterwards.");
+
+        var started = DateTimeOffset.UtcNow;
         await ctx.Database.MigrateAsync(ct);
+
+        logger.LogInformation(
+            "EF migrations applied in {ElapsedSeconds:N1}s",
+            (DateTimeOffset.UtcNow - started).TotalSeconds);
     }
 
     /// <summary>

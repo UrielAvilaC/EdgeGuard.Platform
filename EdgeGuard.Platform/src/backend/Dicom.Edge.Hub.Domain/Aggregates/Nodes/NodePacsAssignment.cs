@@ -17,12 +17,27 @@ public sealed class NodePacsAssignment : Entity<string>
     /// </summary>
     public bool InheritedFromHub { get; private set; }
 
-    // C-ECHO tracking
+    // ── Seguimiento C-ECHO ───────────────────────────────────────────────────
+    //
+    // Aquí es donde pertenece la conectividad, y no en PacsServer: la sondea el nodo
+    // con C-ECHO contra los destinos que tiene asignados, así que es una propiedad del
+    // par (nodo, PACS). El mismo PACS puede estar vivo para un nodo y muerto para otro
+    // —distinta red, distinto firewall, distinto AE llamado— y uno sin nodos asignados
+    // no tiene alcanzabilidad definida, porque nadie lo sondea.
+
     public DateTime? LastCEchoAt { get; private set; }
     public bool? LastCEchoSuccess { get; private set; }
+
+    /// <summary>Latencia del último C-ECHO exitoso, en milisegundos.</summary>
+    public double? LastCEchoLatencyMs { get; private set; }
+
+    /// <summary>Error legible del último C-ECHO fallido (red, timeout, etc.).</summary>
+    public string? LastCEchoError { get; private set; }
+
+    /// <summary>Rechazo DICOM estructurado, p. ej. "CalledAENotRecognized".</summary>
+    public string? LastCEchoErrorReason { get; private set; }
+
     public int CEchoIntervalSeconds { get; private set; }
-
-
 
     private NodePacsAssignment() { }
 
@@ -44,10 +59,32 @@ public sealed class NodePacsAssignment : Entity<string>
         };
     }
 
-    public void UpdateCEchoResult(bool success)
+    /// <summary>
+    /// Registra el resultado del último sondeo C-ECHO que el nodo reportó para este
+    /// destino.
+    /// </summary>
+    /// <param name="checkedAtUtc">
+    /// Instante en que el <b>nodo</b> hizo el sondeo, no en que el Hub lo recibió. La
+    /// diferencia importa: el nodo reporta por lotes cada cierto intervalo, así que usar
+    /// la hora de recepción envejecería mal la medición en la pantalla.
+    /// </param>
+    public void UpdateCEchoResult(
+        bool success,
+        DateTime checkedAtUtc,
+        double? latencyMs = null,
+        string? error = null,
+        string? errorReason = null)
     {
-        LastCEchoAt = DateTime.UtcNow;
+        LastCEchoAt = checkedAtUtc;
         LastCEchoSuccess = success;
+
+        // En el caso exitoso no hay error que conservar, y al revés: mantener el error
+        // anterior junto a un éxito nuevo haría que la pantalla mostrara un motivo de
+        // fallo que ya no corresponde.
+        LastCEchoLatencyMs   = success ? latencyMs : null;
+        LastCEchoError       = success ? null : error;
+        LastCEchoErrorReason = success ? null : errorReason;
+
         UpdatedAt = DateTime.UtcNow;
     }
 

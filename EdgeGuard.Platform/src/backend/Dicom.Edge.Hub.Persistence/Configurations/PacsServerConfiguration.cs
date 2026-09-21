@@ -23,11 +23,17 @@ public class PacsServerConfiguration : IEntityTypeConfiguration<PacsServer>
               .IsRequired()
               .HasMaxLength(16);
 
-            vo.HasIndex(v => v.Value).IsUnique();
+            // Único sólo entre los PACS vivos: uno eliminado conserva su fila y no debe
+            // seguir reservando su AE. Ver la nota equivalente en NodeConfiguration.
+            vo.HasIndex(v => v.Value)
+              .IsUnique()
+              .HasFilter("is_deleted = false");
         });
 
         builder.HasIndex(p => p.IsGlobal);
         builder.HasIndex(p => p.IsEnabled);
+        builder.HasIndex(p => p.IsDeleted)
+               .HasDatabaseName("ix_pacs_servers_is_deleted");
 
         builder.Ignore(p => p.DomainEvents);
     }

@@ -13,7 +13,20 @@ public interface INodeRepository
     /// <summary>Looks up a node by Name + IP for re-registration discovery.</summary>
     Task<Node?> GetByNameAndIpAsync(string name, string ipAddress, CancellationToken ct = default);
 
+    /// <summary>
+    /// Todos los nodos, sin rastreo. Para listar y proyectar; no para escribir después.
+    /// </summary>
     Task<IReadOnlyList<Node>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Todos los nodos, rastreados, para los caminos de lectura-modificación-escritura.
+    /// <para>La diferencia con <see cref="GetAllAsync"/> no es una optimización: el
+    /// snapshot que deja el rastreo es lo único que preserva el <c>UpdatedAt</c> original,
+    /// que es el token de concurrencia de <see cref="Node"/>. Escribir sobre entidades sin
+    /// rastrear produce un <c>UPDATE</c> que no afecta ninguna fila.</para>
+    /// </summary>
+    Task<IReadOnlyList<Node>> GetAllForUpdateAsync(CancellationToken ct = default);
+
     Task<IReadOnlyList<Node>> GetActiveNodesAsync(CancellationToken ct = default);
     Task<Node?> GetWithPacsAssignmentsAsync(string id, CancellationToken ct = default);
     Task<PagedResult<Node>> GetPagedAsync(PaginationRequest pagination, CancellationToken ct = default);

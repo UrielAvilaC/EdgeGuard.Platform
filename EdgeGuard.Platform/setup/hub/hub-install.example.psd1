@@ -25,6 +25,9 @@
     SiteName                  = 'EdgeGuard.Hub'
     AppPoolName               = 'EdgeGuardHub'
     HostHeader                = 'hub.local'
+    # El paso 01 aborta si otro sitio de IIS ya tiene este puerto —aunque esté
+    # detenido— o si lo escucha otro proceso. Si el servidor ya publica algo en
+    # el 80, dale aquí un puerto propio al Hub en vez de apagar el otro sitio.
     Port                      = 80
     AppPoolIdentity           = 'LocalSystem'
 

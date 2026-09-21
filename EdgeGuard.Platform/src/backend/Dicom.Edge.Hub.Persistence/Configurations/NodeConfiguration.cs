@@ -32,7 +32,13 @@ public class NodeConfiguration : IEntityTypeConfiguration<Node>
               .IsRequired()
               .HasMaxLength(16);
 
-            vo.HasIndex(v => v.Value).IsUnique();
+            // Índice único PARCIAL: sólo entre los nodos vivos. Un nodo eliminado conserva
+            // su fila, así que con un único total seguiría reservando su AE para siempre —
+            // y dar de alta el mismo sitio otra vez, que es el caso normal tras reinstalar,
+            // fallaría con violación de índice contra un nodo que ya nadie ve.
+            vo.HasIndex(v => v.Value)
+              .IsUnique()
+              .HasFilter("is_deleted = false");
         });
 
         builder.HasMany(n => n.PacsAssignments)

@@ -6,6 +6,7 @@ using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
+using Dicom.Edge.Hub.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace Dicom.Edge.Hub.Application.NodeConfiguration;
@@ -51,10 +52,77 @@ public sealed class NodeConfigurationService(
         profile.UpdateValue(newValue);
         await unitOfWork.SaveChangesAsync(ct);
 
+        if (string.Equals(settingKey, SharedNodeSettingKeys.Dicom.AeTitle, StringComparison.Ordinal))
+            await SyncCatalogAeTitleAsync(nodeId, ct);
+
         logger.LogInformation(
             "Node {NodeId} setting {Key} updated to {Value}",
             nodeId, settingKey, newValue);
         return true;
+    }
+
+    /// <summary>
+    /// Mantiene <c>nodes.ae_title</c> igual al ajuste <c>dicom.ae_title</c>, que es la
+    /// fuente única del AE del nodo.
+    ///
+    /// <para>La columna es una copia para que el catálogo pueda listar, buscar y ordenar
+    /// por AE sin tocar los perfiles, y para que el índice único siga impidiendo dos nodos
+    /// con el mismo AE. Antes nadie la actualizaba —se fijaba en el alta y ahí se quedaba—,
+    /// así que al cambiar el AE el catálogo seguía mostrando el anterior. El operador veía
+    /// dos valores distintos para el mismo nodo y el incorrecto era el más a mano.</para>
+    ///
+    /// <para>No interrumpe el guardado del ajuste: la fuente ya quedó escrita y es la que
+    /// gobierna la asociación DICOM. Si el espejo no puede aplicarse se registra, porque
+    /// entonces el catálogo queda desactualizado y conviene saberlo.</para>
+    /// </summary>
+    public async Task SyncCatalogAeTitleAsync(string nodeId, CancellationToken ct = default)
+    {
+        var newValue = await GetSettingValueAsync(nodeId, SharedNodeSettingKeys.Dicom.AeTitle, ct);
+
+        if (string.IsNullOrWhiteSpace(newValue))
+            return;
+
+        AeTitle canonical;
+        try
+        {
+            canonical = AeTitle.Create(newValue);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Node {NodeId}: '{Value}' is not a valid AE title — the catalogue column keeps its previous value",
+                nodeId, newValue);
+            return;
+        }
+
+        // Dos nodos con el mismo AE title colisionan en las asociaciones DICOM, y además
+        // el índice único rechazaría la escritura. Se comprueba antes para poder explicar
+        // cuál es el otro nodo en vez de dejar una violación de índice en el log.
+        var enConflicto = (await nodeRepository.GetAllAsync(ct))
+            .FirstOrDefault(n => n.Id != nodeId
+                              && string.Equals(n.AeTitle.Value, canonical.Value, StringComparison.OrdinalIgnoreCase));
+
+        if (enConflicto is not null)
+        {
+            logger.LogWarning(
+                "Node {NodeId}: AE '{AeTitle}' already belongs to node {OtherNodeId} ({OtherName}). "
+                + "The setting was saved and governs the DICOM association, but the catalogue column "
+                + "was left untouched — two nodes sharing an AE will collide and must be resolved",
+                nodeId, canonical.Value, enConflicto.Id, enConflicto.Name);
+            return;
+        }
+
+        var node = await nodeRepository.GetByIdAsync(nodeId, ct);
+        if (node is null) return;
+
+        if (!node.SyncAeTitleFromConfiguration(canonical)) return;
+
+        await nodeRepository.UpdateAsync(node, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Node {NodeId} catalogue AE synced to {AeTitle} from dicom.ae_title",
+            nodeId, canonical.Value);
     }
 
     public async Task<string?> GetSettingValueAsync(
@@ -108,6 +176,9 @@ public sealed class NodeConfigurationService(
         if (updated > 0)
             await unitOfWork.SaveChangesAsync(ct);
 
+        if (request.Settings.Any(s => string.Equals(s.Key, SharedNodeSettingKeys.Dicom.AeTitle, StringComparison.Ordinal)))
+            await SyncCatalogAeTitleAsync(nodeId, ct);
+
         logger.LogInformation(
             "Batch update for node {NodeId}: Updated={Updated}, NotFound={NotFound}",
             nodeId, updated, notFound);
@@ -142,6 +213,11 @@ public sealed class NodeConfigurationService(
         if (count > 0)
             await unitOfWork.SaveChangesAsync(ct);
 
+        // Restablecer la categoría DICOM devuelve dicom.ae_title a su default, así que el
+        // catálogo tiene que seguirlo o volvería a mostrar el AE anterior.
+        if (profiles.Any(p => string.Equals(p.SettingKey, SharedNodeSettingKeys.Dicom.AeTitle, StringComparison.Ordinal)))
+            await SyncCatalogAeTitleAsync(nodeId, ct);
+
         logger.LogInformation(
             "Reset {Count} settings in category '{Category}' for node {NodeId}",
             count, category, nodeId);
@@ -171,6 +247,9 @@ public sealed class NodeConfigurationService(
 
         profile.ResetToDefault(defaultEntry.DefaultValue);
         await unitOfWork.SaveChangesAsync(ct);
+
+        if (string.Equals(settingKey, SharedNodeSettingKeys.Dicom.AeTitle, StringComparison.Ordinal))
+            await SyncCatalogAeTitleAsync(nodeId, ct);
 
         logger.LogInformation(
             "Node {NodeId} setting {Key} reset to default {Value}",

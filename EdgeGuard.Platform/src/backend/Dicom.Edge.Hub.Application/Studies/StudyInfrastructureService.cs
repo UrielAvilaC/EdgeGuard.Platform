@@ -30,8 +30,13 @@ public sealed class StudyInfrastructureService(
             ? await pacsRepository.GetByIdAsync(study.TargetPacsId!, ct)
             : null;
 
-        // Reachability: prefer the node-specific assignment result (accurate for this node →
-        // PACS pair); fall back to the PACS server's own last C-ECHO; else unknown (null).
+        // Alcanzabilidad del par (nodo, PACS), que es el único nivel en que la pregunta
+        // tiene respuesta: la sondea este nodo desde su red contra ese AE. Sin sondeo
+        // registrado queda null —desconocido—, que no es lo mismo que "no alcanzable".
+        //
+        // Aquí había además un fallback al último C-ECHO del propio PacsServer. Era una
+        // rama muerta: nadie escribía esos campos, así que la condición nunca se cumplía.
+        // Y conceptualmente tampoco servía, porque un veredicto "del PACS" no existe.
         bool? pacsReachable = null;
         DateTime? pacsLastEchoAt = null;
 
@@ -42,11 +47,6 @@ public sealed class StudyInfrastructureService(
         {
             pacsReachable = assignment.LastCEchoSuccess;
             pacsLastEchoAt = assignment.LastCEchoAt;
-        }
-        else if (pacs?.LastCEchoAt is not null)
-        {
-            pacsReachable = pacs.LastCEchoSuccess;
-            pacsLastEchoAt = pacs.LastCEchoAt;
         }
 
         return new StudyInfrastructureDto

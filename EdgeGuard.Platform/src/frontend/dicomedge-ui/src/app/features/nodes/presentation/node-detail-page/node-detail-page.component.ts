@@ -132,10 +132,66 @@ export default class NodeDetailPage {
     return new Map(status.destinations.map(d => [d.aeTitle.toLowerCase(), d]));
   });
 
+  /**
+   * Destinos del último reporte C-ECHO que el nodo **todavía tiene asignados**.
+   *
+   * El reporte que guarda el Hub es una foto de lo que el nodo sondeó en su último
+   * ciclo, y va por detrás de las asignaciones por diseño: al desvincular un PACS el
+   * nodo sigue reportándolo hasta que recibe la configuración nueva y vuelve a sondear.
+   * Sin este filtro, la tarjeta seguía mostrando —normalmente en rojo— un destino que
+   * ya no le corresponde a este nodo, y que además nadie va a volver a sondear nunca.
+   *
+   * Se cruza por AE title porque es lo único que trae el reporte; el pacsId sólo existe
+   * del lado de las asignaciones.
+   */
+  protected readonly echoDestinations = computed<PacsCEchoDestination[]>(() => {
+    const status = this.pacsEchoStatus();
+    const node = this.facade.selectedNode();
+    if (!status || !node) return [];
+
+    const catalogo = this.pacsMap();
+    const asignados = new Set(
+      node.pacsAssignments
+        .map((a) => catalogo.get(a.pacsId)?.aeTitle?.toLowerCase())
+        .filter((ae): ae is string => !!ae),
+    );
+
+    return status.destinations.filter((d) => asignados.has(d.aeTitle.toLowerCase()));
+  });
+
+  /**
+   * El catálogo de PACS es lo que traduce pacsId → AE title, así que sin él no se puede
+   * decidir qué destino sigue asignado. Mientras no llegue, la tarjeta muestra "cargando"
+   * en vez de una lista filtrada contra un catálogo vacío, que se vería idéntica a un
+   * nodo sin PACS asignados.
+   */
+  protected readonly echoCatalogPending = computed(() => {
+    const node = this.facade.selectedNode();
+    return !!node && node.pacsAssignments.length > 0 && this.allPacsServers().length === 0;
+  });
+
   protected readonly echoSummary = computed(() => {
     const status = this.pacsEchoStatus();
     if (!status) return null;
-    return { total: status.totalChecked, reachable: status.totalReachable, reportedAt: status.reportedAtUtc };
+
+    const destinos = this.echoDestinations();
+    if (destinos.length === 0) return null;
+
+    // El total se recuenta sobre lo filtrado: los contadores del reporte incluyen los
+    // destinos ya desvinculados, así que usarlos dejaría un "1/3" junto a una sola fila.
+    return {
+      total: destinos.length,
+      reachable: destinos.filter((d) => d.success).length,
+      reportedAt: status.reportedAtUtc,
+    };
+  });
+
+  /** Distingue "nunca reportó" de "reportó, pero aún no sondea lo que tiene asignado". */
+  protected readonly echoEmptyReason = computed<'sin-reporte' | 'sin-asignaciones' | 'sin-sondear'>(() => {
+    const node = this.facade.selectedNode();
+    if (node && node.pacsAssignments.length === 0) return 'sin-asignaciones';
+    if (!this.pacsEchoStatus()) return 'sin-reporte';
+    return 'sin-sondear';
   });
 
   protected readonly pageTitle = computed(() => {
@@ -218,6 +274,30 @@ export default class NodeDetailPage {
     }).afterClosed().subscribe((confirmed: boolean) => {
       if (confirmed) {
         this.facade.disableNode(node.id);
+      }
+    });
+  }
+
+  protected confirmDelete(): void {
+    const node = this.facade.selectedNode();
+    if (!node) return;
+
+    this.dialog.open(UiConfirmDialog, {
+      data: {
+        title: 'Eliminar nodo',
+        // Se dice explícitamente qué se conserva. El operador necesita saber que esto no
+        // borra el historial clínico —los estudios recordarán de qué nodo llegaron— y a la
+        // vez que el nodo deja de poder entregar, que es lo irreversible en la práctica.
+        message:
+          `¿Eliminar el nodo "${node.name}"? Saldrá del catálogo y dejará de recibir y ` +
+          `entregar estudios. Los estudios que ya envió se conservan con su origen.`,
+        confirmText: 'Eliminar',
+        confirmColor: 'warn',
+      } satisfies ConfirmDialogData,
+    }).afterClosed().subscribe((confirmed: boolean) => {
+      if (confirmed) {
+        this.facade.deleteNode(node.id);
+        this.router.navigate(['/nodes']);
       }
     });
   }

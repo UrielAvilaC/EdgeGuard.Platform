@@ -1178,6 +1178,20 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_c_echo_at");
 
+                    b.Property<string>("LastCEchoError")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("last_c_echo_error");
+
+                    b.Property<string>("LastCEchoErrorReason")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("last_c_echo_error_reason");
+
+                    b.Property<double?>("LastCEchoLatencyMs")
+                        .HasColumnType("double precision")
+                        .HasColumnName("last_c_echo_latency_ms");
+
                     b.Property<bool?>("LastCEchoSuccess")
                         .HasColumnType("boolean")
                         .HasColumnName("last_c_echo_success");
@@ -1841,6 +1855,10 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Description")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
@@ -1852,6 +1870,10 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("host_name");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_deleted");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("is_enabled");
@@ -1859,18 +1881,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                     b.Property<bool>("IsGlobal")
                         .HasColumnType("boolean")
                         .HasColumnName("is_global");
-
-                    b.Property<bool>("IsReachable")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_reachable");
-
-                    b.Property<DateTime?>("LastCEchoAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_c_echo_at");
-
-                    b.Property<bool>("LastCEchoSuccess")
-                        .HasColumnType("boolean")
-                        .HasColumnName("last_c_echo_success");
 
                     b.Property<int>("MaxConcurrentAssociations")
                         .HasColumnType("integer")
@@ -1901,6 +1911,9 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_pacs_servers");
+
+                    b.HasIndex("IsDeleted")
+                        .HasDatabaseName("ix_pacs_servers_is_deleted");
 
                     b.HasIndex("IsEnabled")
                         .HasDatabaseName("ix_pacs_servers_is_enabled");
@@ -2806,7 +2819,8 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                             b1.HasIndex("Value")
                                 .IsUnique()
-                                .HasDatabaseName("ix_nodes_ae_title");
+                                .HasDatabaseName("ix_nodes_ae_title")
+                                .HasFilter("is_deleted = false");
 
                             b1.ToTable("nodes");
 
@@ -2876,7 +2890,8 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                             b1.HasIndex("Value")
                                 .IsUnique()
-                                .HasDatabaseName("ix_pacs_servers_ae_title");
+                                .HasDatabaseName("ix_pacs_servers_ae_title")
+                                .HasFilter("is_deleted = false");
 
                             b1.ToTable("pacs_servers");
 

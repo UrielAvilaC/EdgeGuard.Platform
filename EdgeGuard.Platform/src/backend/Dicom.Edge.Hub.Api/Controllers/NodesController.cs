@@ -107,6 +107,21 @@ public class NodesController : ControllerBase
         return found ? NoContent() : NotFound();
     }
 
+    /// <summary>
+    /// DELETE /api/nodes/{id} — Retira el nodo del catálogo.
+    ///
+    /// <para>Borrado lógico: la fila y todo su historial —estudios recibidos, telemetría,
+    /// chequeos de salud, auditoría— se conservan, porque nada de eso es clave foránea y
+    /// un borrado real dejaría registros clínicos apuntando a un nodo inexistente.</para>
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Policy = Policies.ManageEdgeNodes)]
+    public async Task<IActionResult> Delete(string id, CancellationToken ct)
+    {
+        var found = await _nodeService.DeleteAsync(id, ct);
+        return found ? NoContent() : NotFound();
+    }
+
     // ── PACS Assignments ──────────────────────────────────────────────────────
 
     /// <summary>PUT /api/nodes/{id}/pacs/{pacsId} — Assigns a PACS server to a node.</summary>
@@ -151,13 +166,19 @@ public class NodesController : ControllerBase
     // ── PACS C-ECHO Status ────────────────────────────────────────────────────
 
     /// <summary>
-    /// GET /api/nodes/{id}/pacs-echo — Returns the latest PACS C-ECHO status reported by the node.
-    /// Updated each time the node runs a C-ECHO cycle and reports results to the Hub.
+    /// GET /api/nodes/{id}/pacs-echo — Últimos resultados C-ECHO <b>de este nodo</b> contra
+    /// los PACS que tiene asignados.
+    ///
+    /// <para>Se sirve del store en vivo y, si está vacío porque el Hub se reinició, de lo
+    /// persistido en las asignaciones del nodo.</para>
     /// </summary>
     [HttpGet("{id}/pacs-echo")]
-    public IActionResult GetPacsEchoStatus(string id, [FromServices] INodePacsEchoStore pacsEchoStore)
+    public async Task<IActionResult> GetPacsEchoStatus(
+        string id,
+        [FromServices] INodePacsEchoQuery pacsEchoQuery,
+        CancellationToken ct = default)
     {
-        var status = pacsEchoStore.Get(id);
+        var status = await pacsEchoQuery.GetAsync(id, ct);
         if (status is null)
             return NotFound(new { message = $"No PACS echo report received yet from node '{id}'." });
 

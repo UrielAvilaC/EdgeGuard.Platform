@@ -109,6 +109,13 @@ function Step-EnableIisFeatures {
         Write-SetupLog "Características no habilitadas: $($failed -join ', ')" -Level Warn
     }
 
+    # Segunda pasada del control de puerto. Si IIS no existía cuando corrió el
+    # paso 01, no había bindings que mirar — y habilitar IIS acaba de crear el
+    # Default Web Site en *:80. Vale más enterarse aquí que en el paso 10.
+    if (Get-Command -Name Assert-HubHttpPortFree -ErrorAction SilentlyContinue) {
+        Assert-HubHttpPortFree -Port $Config.Port -SiteName $Config.SiteName
+    }
+
     # Habilitar la característica a nivel de servidor no basta: el sitio también
     # debe permitir WebSockets. Eso se aplica en el paso 06, al crearlo.
     $State['WebSocketsPending'] = $true

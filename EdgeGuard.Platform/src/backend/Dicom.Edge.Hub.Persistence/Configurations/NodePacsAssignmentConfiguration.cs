@@ -14,6 +14,12 @@ public class NodePacsAssignmentConfiguration : IEntityTypeConfiguration<NodePacs
         builder.Property(a => a.NodeId).IsRequired().HasMaxLength(50);
         builder.Property(a => a.PacsId).IsRequired().HasMaxLength(50);
 
+        // Último resultado C-ECHO de este par (nodo, PACS). El error se acota porque es
+        // texto de diagnóstico para la pantalla, no una traza: el detalle completo del
+        // momento vive en el store en vivo.
+        builder.Property(a => a.LastCEchoError).HasMaxLength(512);
+        builder.Property(a => a.LastCEchoErrorReason).HasMaxLength(128);
+
         builder.HasIndex(a => new { a.NodeId, a.PacsId, a.IsActive });
     }
 }

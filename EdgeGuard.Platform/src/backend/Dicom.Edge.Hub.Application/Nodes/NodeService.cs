@@ -3,6 +3,7 @@ using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 using Dicom.Edge.Hub.Domain.ValueObjects;
+using Dicom.Edge.Contracts.Configuration;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ namespace Dicom.Edge.Hub.Application.Nodes;
 public sealed class NodeService(
     INodeRepository nodeRepository,
     IPacsServerRepository pacsRepository,
+    INodeConfigurationService configService,
     INodeOutbox nodeOutbox,
     IOptions<NodePushOptions> pushOptions,
     IServiceScopeFactory scopeFactory,
@@ -39,7 +41,21 @@ public sealed class NodeService(
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        logger.LogInformation("Node created: {NodeId} {Name}", node.Id, node.Name);
+        // El perfil nace con el AE que dio el operador, igual que en el alta por registro.
+        // Sin esto el alta manual dejaba el nodo divergente desde el primer segundo: la
+        // ficha mostraba el AE escrito, pero dicom.ae_title —que es el que gobierna la
+        // asociación DICOM— se sembraba después con el genérico "EDGE_NODE", y el primer
+        // push de configuración se lo imponía al nodo.
+        await configService.InitializeNodeDefaultsAsync(
+            node.Id,
+            new Dictionary<string, string>
+            {
+                [SharedNodeSettingKeys.Dicom.AeTitle] = request.AeTitle
+            },
+            ct);
+
+        logger.LogInformation("Node created: {NodeId} {Name} AE={AeTitle}",
+            node.Id, node.Name, request.AeTitle);
         return node;
     }
 
@@ -89,6 +105,26 @@ public sealed class NodeService(
         await unitOfWork.SaveChangesAsync(ct);
 
         logger.LogInformation("Node disabled: {NodeId}", id);
+        return true;
+    }
+
+    public async Task<bool> DeleteAsync(string id, CancellationToken ct = default)
+    {
+        var node = await nodeRepository.GetByIdAsync(id, ct);
+        if (node is null) return false;
+
+        node.SoftDelete();
+        await nodeRepository.UpdateAsync(node, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        // A partir de aquí el nodo deja de existir para el resto del Hub: el filtro global
+        // lo excluye de los listados, del ruteo HL7 y de la validación de su API key, así
+        // que si siguiera encendido dejaría de poder entregar estudios. Se registra el AE
+        // porque es el dato que hay que mirar si alguien lo da de alta otra vez.
+        logger.LogInformation(
+            "Node soft-deleted: {NodeId} {Name} (AE {AeTitle}) — its history is preserved",
+            node.Id, node.Name, node.AeTitle.Value);
+
         return true;
     }
 

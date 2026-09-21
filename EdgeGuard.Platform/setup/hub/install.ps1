@@ -205,10 +205,17 @@ function Merge-SetupConfig {
 function Test-SetupConfig {
     param(
         [hashtable]$Config,
-        [hashtable]$FromFile
+        [hashtable]$FromFile,
+        [switch]$RequireAdminPassword
     )
 
     $errors = New-Object System.Collections.Generic.List[string]
+
+    if ($RequireAdminPassword -and [string]::IsNullOrWhiteSpace([string]$Config.AdminPassword)) {
+        $errors.Add("Falta 'AdminPassword' y es una instalación nueva: el Hub no sembraría " +
+                    "ninguna cuenta y nadie podría entrar al SPA. Indícala en el .psd1, o " +
+                    "da de alta la cuenta después con scripts\seed-admin.sql.")
+    }
 
     # Claves desconocidas: un 'DbHostt' mal escrito caería silenciosamente al
     # default y dejaría al operador depurando una conexión a la base equivocada.
@@ -256,7 +263,7 @@ function Test-SetupConfig {
 
     # La política se replica de AdminUserSeed.ValidatePasswordPolicy. Duplicarla
     # aquí es deliberado: el Hub, ante una contraseña que no la cumple, se limita
-    # a un LogWarning y NO crea la cuenta. El arranque parece correcto, /health
+    # a un LogWarning y NO crea la cuenta. El arranque parece correcto, /health/live
     # responde y el operador solo descubre el problema al intentar entrar al SPA.
     # Fallar aquí cuesta una corrección en el .psd1; fallar allá cuesta una
     # sesión de diagnóstico.
@@ -456,13 +463,41 @@ try {
         $origin.DbPassword = 'interactivo'
     }
 
+    # ── Administrador inicial ────────────────────────────────────────────────
+    # Sin AdminPassword el Hub se limita a un LogWarning y NO siembra la cuenta.
+    # En una instalación nueva eso deja un Hub sano al que nadie puede entrar, y
+    # hasta ahora la ausencia atravesaba validación, paso 07 y paso 10 sin que
+    # nada la detuviera. Solo se exige en instalación nueva: en Update y Repair
+    # la cuenta ya existe y dejarla vacía es lo correcto.
+    #
+    # El criterio de "nueva" es el mismo que usa el paso 01 para resolver -Mode
+    # Auto: la ausencia de installed.json en el directorio de instalación.
+    # La validación aún no ha corrido, así que InstallPath podría venir vacío: en
+    # ese caso no se deduce nada aquí y se deja que el error lo reporte ella, con
+    # su mensaje, en lugar de que Join-Path lance uno peor.
+    $interviewed  = (-not $NonInteractive) -and (-not $configPath)
+    $installPath  = [string]$config.InstallPath
+    $isNewInstall = (-not [string]::IsNullOrWhiteSpace($installPath)) -and
+                    (-not (Test-Path -LiteralPath (Join-Path $installPath 'installed.json')))
+    $needsAdmin   = $isNewInstall -and [string]::IsNullOrWhiteSpace([string]$config.AdminPassword)
+
+    if ($needsAdmin -and -not $interviewed -and -not $NonInteractive) {
+        Write-Host ""
+        Write-Host "  Instalación nueva sin AdminPassword en la configuración." -ForegroundColor Yellow
+        Write-Host "  Sin ella no se crea ninguna cuenta y nadie podrá entrar al SPA." -ForegroundColor Yellow
+        $secure = Read-Host -Prompt '  Administrador — contraseña' -AsSecureString
+        $config.AdminPassword = ConvertFrom-SetupSecureString $secure
+        $origin.AdminPassword = 'interactivo'
+        $needsAdmin = [string]::IsNullOrWhiteSpace([string]$config.AdminPassword)
+    }
+
     Register-SetupSecret ([string]$config.DbPassword)
     if (-not [string]::IsNullOrWhiteSpace([string]$config.AdminPassword)) {
         Register-SetupSecret ([string]$config.AdminPassword)
     }
 
     # ── Validación ───────────────────────────────────────────────────────────
-    $errors = Test-SetupConfig -Config $config -FromFile $fromFile
+    $errors = Test-SetupConfig -Config $config -FromFile $fromFile -RequireAdminPassword:$needsAdmin
     if ($errors.Count -gt 0) {
         Write-SetupLog "La configuración tiene $($errors.Count) problema(s):" -Level Error
         foreach ($e in $errors) { Write-SetupLog $e -Level Detail }

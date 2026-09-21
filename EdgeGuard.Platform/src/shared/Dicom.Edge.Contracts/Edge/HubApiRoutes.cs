@@ -59,8 +59,16 @@ public static class NodeApiRoutes
     /// <summary>POST — Hub pushes an HL7 worklist item to the node.</summary>
     public const string Hl7WorklistPush = "/hl7/worklist";
 
-    /// <summary>GET — Health check endpoint on the node.</summary>
-    public const string HealthCheck = "/health";
+    /// <summary>
+    /// GET — Health check endpoint on the node, served by <c>HealthController</c>.
+    /// <para>
+    /// This is the node's own status document (worklist counts, machine name), not the
+    /// ASP.NET Core health-check probes. Those live at <c>/health/live</c> and
+    /// <c>/health/ready</c> — see <c>HealthCheckConstants</c>, which is the single source
+    /// of truth for probe paths on both the Hub and the node.
+    /// </para>
+    /// </summary>
+    public const string HealthCheck = "/api/health";
 
     /// <summary>GET — Active worklist items on the node.</summary>
     public const string WorklistItems = "/dicom/worklist";
