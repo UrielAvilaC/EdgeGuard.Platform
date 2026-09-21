@@ -4,6 +4,7 @@ using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
 using Dicom.Edge.Hub.Domain.Services;
 using Dicom.Edge.Hub.Infrastructure.HostedServices;
 using Dicom.Edge.Models.Enums;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -37,7 +38,11 @@ public class NodeHealthEvaluator : INodeHealthEvaluator
 
     public async Task EvaluateAllNodesAsync(CancellationToken ct = default)
     {
-        var nodes = await _nodeRepository.GetAllAsync(ct);
+        // Lectura rastreada, no AsNoTracking: este es un camino de escritura. Con la
+        // lectura sin rastreo el UPDATE salía con el UpdatedAt ya mutado en su WHERE y
+        // no afectaba ninguna fila, así que el nodo seguía Online en la base mientras
+        // el log repetía la transición una vez por minuto sin llegar a aplicarla nunca.
+        var nodes = await _nodeRepository.GetAllForUpdateAsync(ct);
 
         foreach (var node in nodes)
         {
@@ -49,7 +54,7 @@ public class NodeHealthEvaluator : INodeHealthEvaluator
         // ninguno: el repositorio solo marca la entidad como modificada, así que
         // cada transición calculada se descartaba al liberarse el scope y los
         // nodos quedaban Online con latidos de semanas.
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveTransitionsAsync(ct);
     }
 
     public async Task EvaluateNodeAsync(string nodeId, CancellationToken ct = default)
@@ -62,7 +67,38 @@ public class NodeHealthEvaluator : INodeHealthEvaluator
         }
 
         await EvaluateNodeInternalAsync(node, ct);
-        await _unitOfWork.SaveChangesAsync(ct);
+        await SaveTransitionsAsync(ct);
+    }
+
+    /// <summary>
+    /// Persiste las transiciones del ciclo tolerando el único conflicto que aquí es
+    /// legítimo: que haya entrado un latido mientras se evaluaba.
+    ///
+    /// <para>El <c>catch</c> es deliberadamente estrecho. El defecto que teníamos se
+    /// manifestaba con <i>esta misma excepción</i>, así que ensancharlo a
+    /// <c>Exception</c> —o volver a leer sin rastreo— convertiría el fallo en algo
+    /// todavía más difícil de ver que las 751 líneas de Error que dejó en el log.
+    /// Lo que mantiene esa puerta cerrada es <c>TrackedEntityGuard</c>, que lanza
+    /// <c>InvalidOperationException</c> y por lo tanto no cae aquí.</para>
+    /// </summary>
+    private async Task SaveTransitionsAsync(CancellationToken ct)
+    {
+        try
+        {
+            await _unitOfWork.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // Que un nodo haya escrito su latido durante la evaluación significa que está
+            // vivo, o sea lo contrario de un problema. El próximo ciclo lo vuelve a juzgar
+            // con el estado fresco, así que esto es Warning y no Error: un Error aquí
+            // dispara alertas por una condición esperada y, sobre todo, es indistinguible
+            // del fallo real que teníamos antes.
+            _logger.LogWarning(ex,
+                "Evaluación de salud descartada por escritura concurrente sobre {Count} entidad(es); " +
+                "se reevalúa en el próximo ciclo",
+                ex.Entries.Count);
+        }
     }
 
     private async Task EvaluateNodeInternalAsync(Node node, CancellationToken ct)

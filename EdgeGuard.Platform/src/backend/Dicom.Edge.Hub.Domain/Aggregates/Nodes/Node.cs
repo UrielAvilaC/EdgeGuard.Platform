@@ -170,6 +170,32 @@ public sealed class Node : AggregateRoot<string>, ISoftDeletable
         AddDomainEvent(new NodeStatusChangedEvent(Id, old, Status));
     }
 
+    /// <summary>
+    /// Refleja en el catálogo el AE canónico del nodo, que vive en el ajuste
+    /// <c>dicom.ae_title</c>.
+    ///
+    /// <para><b>Esta propiedad es una copia, no una fuente.</b> El AE que gobierna la
+    /// asociación DICOM es el del ajuste: de él deriva el nodo su AE de SCP, su Calling AE
+    /// de salida y el que reporta al registrarse. La columna existe sólo para que el
+    /// listado de nodos pueda mostrar y ordenar por AE sin ir a buscar los perfiles, y
+    /// para que el índice único siga garantizando que no haya dos nodos con el mismo AE.</para>
+    ///
+    /// <para>Por eso el único que debería llamar a este método es quien guarda ese ajuste.
+    /// Antes no existía: la columna se fijaba en el alta y no volvía a moverse nunca, así
+    /// que al cambiar el AE de un nodo el catálogo seguía mostrando el viejo — dos valores
+    /// distintos para el mismo nodo en dos pantallas, y el incorrecto era el más visible.</para>
+    /// </summary>
+    /// <returns><c>true</c> si el valor cambió.</returns>
+    public bool SyncAeTitleFromConfiguration(AeTitle canonical)
+    {
+        if (AeTitle is not null && string.Equals(AeTitle.Value, canonical.Value, StringComparison.Ordinal))
+            return false;
+
+        AeTitle = canonical;
+        UpdatedAt = DateTime.UtcNow;
+        return true;
+    }
+
     public void Enable()
     {
         IsEnabled = true;

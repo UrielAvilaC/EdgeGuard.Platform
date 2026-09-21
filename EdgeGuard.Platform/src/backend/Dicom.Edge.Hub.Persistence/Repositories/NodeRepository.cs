@@ -15,6 +15,17 @@ public class NodeRepository : INodeRepository
 
     public NodeRepository(HubDbContext context) => _context = context;
 
+    /// <summary>
+    /// Busca por clave. Respeta el filtro de borrado lógico, así que un nodo eliminado no
+    /// se resuelve por id — importa porque por aquí pasan el latido, el reporte de salud y
+    /// el ruteo HL7, y un nodo dado de baja que siguiera resolviéndose seguiría operando.
+    /// </summary>
+    /// <remarks>
+    /// Que <c>FindAsync</c> aplique los filtros globales es cierto desde EF Core 10 y no lo
+    /// era antes, así que es una garantía de la versión, no del método. Hay una prueba que
+    /// la fija (<c>SoftDeleteFilterTests</c>): si una actualización de EF la revirtiera, se
+    /// pone roja en vez de dejar nodos eliminados respondiendo en producción.
+    /// </remarks>
     public async Task<Node?> GetByIdAsync(string id, CancellationToken ct = default) =>
         await _context.Nodes.FindAsync([id], ct);
 
@@ -24,6 +35,14 @@ public class NodeRepository : INodeRepository
 
     public async Task<IReadOnlyList<Node>> GetAllAsync(CancellationToken ct = default) =>
         await _context.Nodes.AsNoTracking().ToListAsync(ct);
+
+    /// <summary>
+    /// Igual que <see cref="GetAllAsync"/> pero rastreado, para quien vaya a escribir.
+    /// El snapshot de lectura es lo único que conserva el <c>UpdatedAt</c> original, y sin
+    /// él el token de concurrencia viaja mutado en el <c>WHERE</c> del <c>UPDATE</c>.
+    /// </summary>
+    public async Task<IReadOnlyList<Node>> GetAllForUpdateAsync(CancellationToken ct = default) =>
+        await _context.Nodes.ToListAsync(ct);
 
     public async Task<IReadOnlyList<Node>> GetActiveNodesAsync(CancellationToken ct = default) =>
         await _context.Nodes
@@ -65,6 +84,11 @@ public class NodeRepository : INodeRepository
 
     public Task UpdateAsync(Node node, CancellationToken ct = default)
     {
+        TrackedEntityGuard.EnsureTracked(
+            _context, node,
+            "GetByIdAsync, GetByNameAndIpAsync, GetWithPacsAssignmentsAsync o GetAllForUpdateAsync " +
+            "(GetAllAsync, GetActiveNodesAsync, GetNodesWithApiKeyAsync y las paginadas son de sólo lectura)");
+
         _context.Nodes.Update(node);
         return Task.CompletedTask;
     }

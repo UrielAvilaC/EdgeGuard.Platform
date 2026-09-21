@@ -113,7 +113,13 @@ export default class PacsPage {
     this.dialog.open(UiConfirmDialog, {
       data: {
         title: 'Eliminar servidor PACS',
-        message: `¿Eliminar el servidor "${server.name}"? Esta acción no se puede deshacer.`,
+        // Ya no dice "no se puede deshacer": el borrado pasó a ser lógico. La fila se
+        // conserva para que los estudios enviados a este PACS sigan pudiendo decir a
+        // dónde fueron; lo que se retira es el destino del catálogo y de los nodos.
+        message:
+          `¿Eliminar el servidor "${server.name}"? Dejará de estar disponible y se ` +
+          `retirará de los nodos que lo tengan asignado. El historial de estudios ya ` +
+          `enviados a este PACS se conserva.`,
         confirmText: 'Eliminar',
         confirmColor: 'warn',
       } satisfies ConfirmDialogData,

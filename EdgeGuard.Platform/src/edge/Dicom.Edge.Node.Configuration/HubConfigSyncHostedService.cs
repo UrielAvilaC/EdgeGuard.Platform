@@ -141,9 +141,9 @@ public sealed class HubConfigSyncHostedService(
             // esto persiste lo que el nodo realmente está usando. Corre antes del registro
             // y del primer pull, de modo que el nodo se registra ya con su AE definitivo.
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.Dicom.AeTitle,        Opts.AeTitle,      ct);
-            // Opts.AeTitle is DERIVED from DicomServer:AeTitle (single source of truth),
-            // so node.ae_title mirrors the canonical AE for display purposes only.
-            await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.AeTitle,      Opts.AeTitle,      ct);
+            // Ya no se siembra node.ae_title: era un espejo de sólo presentación que, por
+            // escribirse únicamente cuando estaba vacío, dejaba de reflejar el AE canónico
+            // en cuanto alguien lo editaba. Un segundo AE visible y desactualizado.
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.IpAddress,    Opts.IpAddress,    ct);
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Version,      Opts.Version,      ct);
             await SyncIfEmptyAsync(settings, SharedNodeSettingKeys.General.Location,     Opts.Location,     ct);

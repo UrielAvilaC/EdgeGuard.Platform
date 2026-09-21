@@ -78,6 +78,7 @@ public class HubDbContext : DbContext
         modelBuilder.Entity<Study>().HasQueryFilter(s => !s.IsDeleted);
         modelBuilder.Entity<Node>().HasQueryFilter(n => !n.IsDeleted);
         modelBuilder.Entity<Patient>().HasQueryFilter(p => !p.IsDeleted);
+        modelBuilder.Entity<PacsServer>().HasQueryFilter(p => !p.IsDeleted);
 
         // PostgreSQL standard: apply snake_case naming convention
         // Table names are set explicitly in each IEntityTypeConfiguration.

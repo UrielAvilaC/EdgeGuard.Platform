@@ -7,7 +7,7 @@ namespace Dicom.Edge.Hub.Domain.Aggregates.Pacs;
 /// <summary>
 /// PACS server aggregate. Managed centrally by the Hub and optionally inherited to nodes.
 /// </summary>
-public sealed class PacsServer : AggregateRoot<string>
+public sealed class PacsServer : AggregateRoot<string>, ISoftDeletable
 {
     public string Name { get; private set; } = default!;
     public AeTitle AeTitle { get; private set; } = default!;
@@ -17,9 +17,12 @@ public sealed class PacsServer : AggregateRoot<string>
     public bool IsEnabled { get; private set; }
     public int MaxConcurrentAssociations { get; private set; }
     public int TimeoutSeconds { get; private set; }
-    public DateTime? LastCEchoAt { get; private set; }
-    public bool LastCEchoSuccess { get; private set; }
-    public bool IsReachable { get; private set; }
+
+    // Aquí vivían LastCEchoAt, LastCEchoSuccess e IsReachable. Se eliminaron: la
+    // conectividad no es una propiedad del PACS sino del par (nodo, PACS), porque la
+    // sondea cada nodo contra sus destinos asignados. Un PACS puede estar vivo para un
+    // nodo y muerto para otro, y uno sin nodos asignados no tiene alcanzabilidad
+    // definida. Ahora se registra en NodePacsAssignment, que sí es ese par.
 
     /// <summary>
     /// When true, this PACS is automatically inherited by all nodes.
@@ -27,6 +30,9 @@ public sealed class PacsServer : AggregateRoot<string>
     public bool IsGlobal { get; private set; }
 
     public string? SupportedModalitiesCsv { get; private set; }
+
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
 
     private PacsServer() { }
 
@@ -58,23 +64,11 @@ public sealed class PacsServer : AggregateRoot<string>
             IsEnabled = true,
             IsGlobal = isGlobal,
             MaxConcurrentAssociations = maxConcurrentAssociations,
-            TimeoutSeconds = timeoutSeconds,
-            IsReachable = false,
-            LastCEchoSuccess = false
+            TimeoutSeconds = timeoutSeconds
         };
 
         pacs.AddDomainEvent(new PacsRegisteredEvent(pacs.Id, aeTitle.Value, hostName, port));
         return pacs;
-    }
-
-    public void UpdateCEchoStatus(bool success, DateTime timestamp)
-    {
-        LastCEchoAt = timestamp;
-        LastCEchoSuccess = success;
-        IsReachable = success;
-        UpdatedAt = DateTime.UtcNow;
-
-        AddDomainEvent(new PacsCEchoResultEvent(Id, AeTitle.Value, success));
     }
 
     public void Enable()
@@ -123,6 +117,40 @@ public sealed class PacsServer : AggregateRoot<string>
     public void SetSupportedModalities(IEnumerable<string> modalities)
     {
         SupportedModalitiesCsv = string.Join(",", modalities.Select(m => m.Trim().ToUpperInvariant()));
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Retira el PACS del catálogo conservando la fila.
+    ///
+    /// <para>Antes se borraba físicamente. El problema no era el borrado en sí, sino lo que
+    /// dejaba atrás: los estudios guardan a qué PACS se enviaron (<c>Study.TargetPacsId</c>)
+    /// y la auditoría de envíos guarda su AE, pero ninguno es clave foránea. Borrar la fila
+    /// no fallaba — simplemente dejaba el historial clínico apuntando a un servidor que ya
+    /// no existía, y la pantalla de infraestructura del estudio mostraba un hueco donde
+    /// antes decía a dónde se había entregado.</para>
+    ///
+    /// <para>Con el borrado lógico el PACS desaparece del catálogo y de las asignaciones
+    /// nuevas, pero el historial sigue pudiendo explicarse.</para>
+    /// </summary>
+    public void SoftDelete()
+    {
+        if (IsDeleted) return;
+
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        IsEnabled = false;
+        UpdatedAt = DateTime.UtcNow;
+
+        AddDomainEvent(new PacsStatusChangedEvent(Id, AeTitle.Value, IsEnabled: false));
+    }
+
+    public void Restore()
+    {
+        if (!IsDeleted) return;
+
+        IsDeleted = false;
+        DeletedAt = null;
         UpdatedAt = DateTime.UtcNow;
     }
 }

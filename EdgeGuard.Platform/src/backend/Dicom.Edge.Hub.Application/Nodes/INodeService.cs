@@ -23,6 +23,19 @@ public interface INodeService
     Task<bool> DisableAsync(string id, CancellationToken ct = default);
 
     /// <summary>
+    /// Retira el nodo del catálogo conservando su fila y todo lo que cuelga de él.
+    ///
+    /// <para>Es borrado lógico y tiene que serlo: los estudios guardan de qué nodo
+    /// llegaron (<c>Study.SourceNodeId</c>), y lo mismo la telemetría, los chequeos de
+    /// salud y la auditoría. Nada de eso es clave foránea, así que un borrado físico no
+    /// daría error — dejaría el historial clínico apuntando a un nodo inexistente.</para>
+    ///
+    /// <para>Distinto de <see cref="DisableAsync"/>: deshabilitar deja el nodo a la vista
+    /// y es reversible desde la pantalla; eliminar lo saca del catálogo.</para>
+    /// </summary>
+    Task<bool> DeleteAsync(string id, CancellationToken ct = default);
+
+    /// <summary>
     /// Assigns a PACS server to a node. Returns false if node or PACS was not found.
     /// Idempotent: if the assignment already exists and is active, it returns true.
     /// </summary>

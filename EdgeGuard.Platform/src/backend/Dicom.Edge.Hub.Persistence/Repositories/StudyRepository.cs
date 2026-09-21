@@ -47,6 +47,24 @@ public class StudyRepository : IStudyRepository
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
+    /// <summary>
+    /// Une la semántica de <see cref="GetByPatientIdAsync"/> y <see cref="GetByPatientAsync"/>,
+    /// pero rastreado, para los flujos de fusión HL7 que reasignan estos estudios.
+    /// <para>Las dos lecturas originales son <c>AsNoTracking</c> porque también sirven al
+    /// listado del controlador. Reasignar sobre ellas dejaba el <c>UpdatedAt</c> mutado en
+    /// el <c>WHERE</c> del <c>UPDATE</c>, así que la fusión entera —paciente, cadena de
+    /// merge, estudios y auditoría, todo en el mismo <c>SaveChanges</c>— se perdía.</para>
+    /// </summary>
+    public async Task<IReadOnlyList<Study>> GetByPatientForUpdateAsync(
+        string? patientRecordId, string patientDicomId, CancellationToken ct = default) =>
+        await _context.Studies
+            .Where(s => patientRecordId == null
+                ? s.PatientId == patientDicomId
+                : s.PatientRecordId == patientRecordId ||
+                  (s.PatientRecordId == null && s.PatientId == patientDicomId))
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
+
     public async Task<IReadOnlyList<Study>> GetUnlinkedByPatientIdAsync(
         string patientId, CancellationToken ct = default) =>
         await _context.Studies
@@ -120,6 +138,13 @@ public class StudyRepository : IStudyRepository
 
     public Task UpdateAsync(Study study, CancellationToken ct = default)
     {
+        TrackedEntityGuard.EnsureTracked(
+            _context, study,
+            "GetByIdAsync, GetByStudyInstanceUidAsync, GetByAccessionNumberAsync, " +
+            "GetUnlinkedByPatientIdAsync, GetPendingForPacsAsync, GetStudiesForCleanupAsync " +
+            "o GetByPatientForUpdateAsync (GetByPatientAsync, GetByPatientIdAsync, GetByNodeAsync, " +
+            "GetByStatusAsync, GetByPacsStatusAsync, GetByDateRangeAsync y las paginadas son de sólo lectura)");
+
         _context.Studies.Update(study);
         return Task.CompletedTask;
     }

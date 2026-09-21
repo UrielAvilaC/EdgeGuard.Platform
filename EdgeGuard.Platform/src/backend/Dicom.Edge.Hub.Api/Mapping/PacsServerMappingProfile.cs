@@ -21,9 +21,6 @@ public static class PacsServerMappingProfile
         IsGlobal = entity.IsGlobal,
         MaxConcurrentAssociations = entity.MaxConcurrentAssociations,
         TimeoutSeconds = entity.TimeoutSeconds,
-        LastCEchoAt = entity.LastCEchoAt,
-        LastCEchoSuccess = entity.LastCEchoSuccess,
-        IsReachable = entity.IsReachable,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };

@@ -180,9 +180,7 @@ public sealed class Hl7PatientSyncService(
 
         // 3. Reassign all studies that belong to the prior patient — both those linked by
         //    FK and any that only carry the prior MRN.
-        var priorStudies = prior is not null
-            ? await studyRepository.GetByPatientAsync(prior.Id, priorId, ct)
-            : await studyRepository.GetByPatientIdAsync(priorId, ct);
+        var priorStudies = await studyRepository.GetByPatientForUpdateAsync(prior?.Id, priorId, ct);
         if (priorStudies.Count > 0)
         {
             foreach (var study in priorStudies)
@@ -222,7 +220,7 @@ public sealed class Hl7PatientSyncService(
             return;
 
         // Reassign studies belonging to the prior patient ID
-        var priorStudies = await studyRepository.GetByPatientIdAsync(priorId, ct);
+        var priorStudies = await studyRepository.GetByPatientForUpdateAsync(null, priorId, ct);
 
         // If prior accession is set, restrict to that study
         if (!string.IsNullOrWhiteSpace(message.MrgPriorAccessionNumber))

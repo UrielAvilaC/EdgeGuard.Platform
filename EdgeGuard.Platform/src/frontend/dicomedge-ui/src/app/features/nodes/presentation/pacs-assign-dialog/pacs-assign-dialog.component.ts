@@ -14,8 +14,6 @@ import {
   faXmark,
   faServer,
   faLock,
-  faCheckCircle,
-  faTimesCircle,
   faMagnifyingGlass,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -64,6 +62,24 @@ interface PacsRowState {
   templateUrl: './pacs-assign-dialog.component.html',
   styleUrl: './pacs-assign-dialog.component.scss',
 })
+/**
+ * Selección de los PACS que un nodo tiene asignados.
+ *
+ * **Este diálogo no muestra conectividad, a propósito.** Antes pintaba un badge
+ * "Alcanzable / No alcanzable" junto a cada PACS, y se quitó por dos razones
+ * independientes:
+ *
+ * 1. El dato no existía. Salía de `PacsServer.isReachable`, que el Hub nunca escribe
+ *    —`UpdateCEchoStatus` no lo invoca nadie—, así que llegaba `false` para todos los
+ *    PACS siempre y el badge era un literal rojo permanente.
+ * 2. Aunque existiera, no pertenece aquí. La conectividad es del par (nodo, PACS): la
+ *    sondea el nodo con C-ECHO contra los destinos que tiene asignados. En este diálogo
+ *    todavía se está decidiendo si ese par va a existir, así que no hay nada que
+ *    reportar todavía.
+ *
+ * La conectividad real vive en la tarjeta "Conectividad PACS" del detalle del nodo,
+ * alimentada por `GET /nodes/{id}/pacs-echo`.
+ */
 export class PacsAssignDialog implements OnInit {
   private readonly dialogRef = inject(MatDialogRef<PacsAssignDialog>);
   readonly data: PacsAssignDialogData = inject(MAT_DIALOG_DATA);
@@ -74,8 +90,6 @@ export class PacsAssignDialog implements OnInit {
   protected readonly faXmark = faXmark;
   protected readonly faServer = faServer;
   protected readonly faLock = faLock;
-  protected readonly faCheckCircle = faCheckCircle;
-  protected readonly faTimesCircle = faTimesCircle;
   protected readonly faMagnifyingGlass = faMagnifyingGlass;
 
   protected readonly rows = signal<PacsRowState[]>([]);

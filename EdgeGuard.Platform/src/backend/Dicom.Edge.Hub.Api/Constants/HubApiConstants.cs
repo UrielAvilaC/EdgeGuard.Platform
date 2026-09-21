@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace Dicom.Edge.Hub.Api.Constants;
 
 /// <summary>
@@ -14,8 +16,36 @@ public static class HubApiConstants
     /// <summary>Human-readable service display name used in /info and registration.</summary>
     public const string ServiceDisplayName = "EdgeGuard.Hub";
 
-    /// <summary>Current service version exposed via /info endpoint.</summary>
-    public const string ServiceVersion = "1.0.0";
+    /// <summary>
+    /// Versión del servicio que publica <c>/api/info</c>, leída del propio ensamblado.
+    ///
+    /// <para>Antes era una constante escrita a mano, y por eso llevaba tiempo diciendo
+    /// "1.0.0" mientras los paquetes iban por otra numeración: el número vivía sólo en el
+    /// nombre del .zip, así que no había forma de preguntarle a un Hub instalado qué
+    /// versión estaba corriendo.</para>
+    ///
+    /// <para>El origen es <c>&lt;Version&gt;</c> de <c>Directory.Build.props</c>. El SDK
+    /// le añade a <c>InformationalVersion</c> el hash del commit tras un <c>+</c>
+    /// (<c>1.4.1+a1b2c3…</c>); aquí se recorta porque este valor es para mostrar. El
+    /// sufijo sigue disponible en las propiedades del archivo para quien lo necesite.</para>
+    /// </summary>
+    public static readonly string ServiceVersion = ResolveServiceVersion();
+
+    private static string ResolveServiceVersion()
+    {
+        var informational = typeof(HubApiConstants).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informational))
+        {
+            var plus = informational.IndexOf('+');
+            return plus > 0 ? informational[..plus] : informational;
+        }
+
+        // Sin el atributo, la versión del ensamblado sirve igual. El "0.0.0" final sólo
+        // aparecería en un ensamblado sin ninguna versión, que el SDK no produce.
+        return typeof(HubApiConstants).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    }
 
     // ==================== Bootstrap & Configuration ====================
 

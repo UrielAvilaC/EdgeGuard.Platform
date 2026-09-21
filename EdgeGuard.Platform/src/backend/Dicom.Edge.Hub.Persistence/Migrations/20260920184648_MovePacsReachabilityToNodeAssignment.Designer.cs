@@ -3,6 +3,7 @@ using System;
 using Dicom.Edge.Hub.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dicom.Edge.Hub.Persistence.Migrations
 {
     [DbContext(typeof(HubDbContext))]
-    partial class HubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920184648_MovePacsReachabilityToNodeAssignment")]
+    partial class MovePacsReachabilityToNodeAssignment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1855,10 +1858,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("deleted_at");
-
                     b.Property<string>("Description")
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)")
@@ -1869,10 +1868,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("host_name");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_deleted");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean")
@@ -1911,9 +1906,6 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_pacs_servers");
-
-                    b.HasIndex("IsDeleted")
-                        .HasDatabaseName("ix_pacs_servers_is_deleted");
 
                     b.HasIndex("IsEnabled")
                         .HasDatabaseName("ix_pacs_servers_is_enabled");
@@ -2819,8 +2811,7 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                             b1.HasIndex("Value")
                                 .IsUnique()
-                                .HasDatabaseName("ix_nodes_ae_title")
-                                .HasFilter("is_deleted = false");
+                                .HasDatabaseName("ix_nodes_ae_title");
 
                             b1.ToTable("nodes");
 
@@ -2890,8 +2881,7 @@ namespace Dicom.Edge.Hub.Persistence.Migrations
 
                             b1.HasIndex("Value")
                                 .IsUnique()
-                                .HasDatabaseName("ix_pacs_servers_ae_title")
-                                .HasFilter("is_deleted = false");
+                                .HasDatabaseName("ix_pacs_servers_ae_title");
 
                             b1.ToTable("pacs_servers");
 

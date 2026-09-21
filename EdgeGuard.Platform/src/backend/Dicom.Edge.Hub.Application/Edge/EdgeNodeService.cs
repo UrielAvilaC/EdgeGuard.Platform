@@ -33,6 +33,7 @@ public sealed class EdgeNodeService(
     IPacsServerRepository pacsRepository,
     INodeConfigurationService configService,
     INodePacsEchoStore pacsEchoStore,
+    INodePacsEchoWriter pacsEchoWriter,
     INodeEquipmentRepository equipmentRepository,
     IPatientRegistrationService patientRegistration,
     IPasswordHasher passwordHasher,
@@ -211,6 +212,10 @@ public sealed class EdgeNodeService(
             "Node {NodeId} re-registered reporting AE '{Reported}' but the Hub has '{Configured}' "
             + "configured — the Hub value wins and will be pushed on the next config sync",
             nodeId, reportedAeTitle, configured);
+
+        // El catálogo tiene que mostrar el AE que gana, no el que el nodo acaba de
+        // reportar: es el que se le va a imponer en el próximo pull.
+        await configService.SyncCatalogAeTitleAsync(nodeId, ct);
     }
 
     public async Task<EdgeOperationResult?> ProcessHeartbeatAsync(
@@ -546,14 +551,16 @@ public sealed class EdgeNodeService(
         return dict;
     }
 
-    public Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(
+    public async Task<EdgeOperationResult?> ProcessPacsEchoReportAsync(
         NodePacsEchoReportRequest request, CancellationToken ct = default)
     {
-        // Store optimistically without checking node existence — the echo status
-        // lives in an in-memory store, so a stale node id is only a cosmetic issue.
-        // (Do NOT fire-and-forget an EF query here: an un-awaited DbContext read
-        // outlives the request scope, disposing the context mid-read and corrupting
-        // the Npgsql connection — "BindComplete while expecting ReadyForQueryMessage".)
+        // El store en memoria se escribe primero y sin condiciones: es la vista "en vivo",
+        // la más rica (latencia, error DICOM completo) y la que no puede fallar. Un nodeId
+        // obsoleto aquí sólo es cosmético.
+        // (Lo que NO se puede hacer es lanzar una consulta EF sin await: un DbContext que
+        // sobrevive al scope de la petición se libera a mitad de lectura y corrompe la
+        // conexión Npgsql — "BindComplete while expecting ReadyForQueryMessage". Por eso
+        // la persistencia de más abajo va awaited, no en fire-and-forget.)
         var status = new NodePacsCEchoStatusDto
         {
             NodeId        = request.NodeId,
@@ -577,7 +584,11 @@ public sealed class EdgeNodeService(
             "PACS echo report stored for node {NodeId}: {Count} destination(s), {Ok} reachable",
             request.NodeId, status.TotalChecked, status.TotalReachable);
 
-        return Task.FromResult<EdgeOperationResult?>(new EdgeOperationResult(true, DateTime.UtcNow));
+        // Y se baja a las asignaciones del nodo, para que sobreviva al reciclado del pool.
+        // El writer nunca lanza: el dato vivo ya quedó guardado arriba.
+        await pacsEchoWriter.PersistAsync(request, ct);
+
+        return new EdgeOperationResult(true, DateTime.UtcNow);
     }
 
     public async Task<EdgeOperationResult?> ProcessEquipmentStatusReportAsync(

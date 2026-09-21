@@ -34,7 +34,6 @@ internal static class NodeSettingConfigPathMap
 
             // ── Hub identity (General → HubConnection) ───────────────────────
             [NodeSettingKeys.General.NodeName]                = ConfigPaths.HubNodeName,
-            [NodeSettingKeys.General.AeTitle]                 = ConfigPaths.HubAeTitle,
             [NodeSettingKeys.General.IpAddress]               = ConfigPaths.HubIpAddress,
             [NodeSettingKeys.General.ApiEndpoint]             = ConfigPaths.HubApiEndpoint,
             [NodeSettingKeys.General.Location]                = ConfigPaths.HubLocation,
@@ -62,7 +61,6 @@ internal static class NodeSettingConfigPathMap
 
             // ── PACS Sender ──────────────────────────────────────────────────
             [NodeSettingKeys.PacsSender.Enabled]                   = ConfigPaths.PacsSenderEnabled,
-            [NodeSettingKeys.PacsSender.LocalAeTitle]              = ConfigPaths.PacsSenderLocalAeTitle,
             [NodeSettingKeys.PacsSender.MaxConcurrentSends]        = ConfigPaths.PacsSenderMaxConcurrentSends,
             [NodeSettingKeys.PacsSender.TimeoutSeconds]            = ConfigPaths.PacsSenderTimeoutSeconds,
             [NodeSettingKeys.PacsSender.MaxRetries]                = ConfigPaths.PacsSenderMaxRetries,

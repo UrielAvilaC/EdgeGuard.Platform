@@ -22,6 +22,14 @@
               Habilitar
             </ui-button>
           }
+          <!--
+            Eliminar vive aquí y no en la lista de nodos: desde una fila es demasiado fácil
+            equivocarse de sitio, y aquí el operador ya está viendo de qué nodo se trata,
+            su estado y sus estudios.
+          -->
+          <ui-button variant="secondary" size="sm" [icon]="faTrash" (clicked)="confirmDelete()">
+            Eliminar
+          </ui-button>
         }
       </ui-page-header>
 
@@ -282,7 +290,7 @@
                 </button>
               </div>
 
-              @if (pacsEchoLoading()) {
+              @if (pacsEchoLoading() || echoCatalogPending()) {
                 <p class="text-xs text-gray-400 animate-pulse">Cargando…</p>
               } @else if (echoSummary(); as s) {
                 <!-- Reachability gauge -->
@@ -298,7 +306,7 @@
 
                 <!-- Per-destination mini rows -->
                 <ul class="space-y-2">
-                  @for (d of pacsEchoStatus()!.destinations; track d.aeTitle) {
+                  @for (d of echoDestinations(); track d.aeTitle) {
                     <li class="text-xs">
                       <div class="flex items-center gap-1.5">
                         <fa-icon
@@ -337,7 +345,17 @@
               } @else {
                 <div class="flex items-center gap-2 text-gray-400 text-xs">
                   <fa-icon [icon]="faInfoCircle" />
-                  <span>El nodo aún no ha reportado estado C-ECHO al Hub.</span>
+                  @switch (echoEmptyReason()) {
+                    @case ('sin-asignaciones') {
+                      <span>El nodo no tiene servidores PACS asignados.</span>
+                    }
+                    @case ('sin-sondear') {
+                      <span>El nodo aún no ha sondeado los PACS que tiene asignados.</span>
+                    }
+                    @default {
+                      <span>El nodo aún no ha reportado estado C-ECHO al Hub.</span>
+                    }
+                  }
                 </div>
               }
             </mat-card>
