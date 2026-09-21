@@ -49,12 +49,12 @@ en el firewall y verifica que el Hub arranque y responda `/health/live`.
 | Crear el rol y la base de datos | DBA | T-7 |
 | Emitir o instalar certificados TLS | PKI / Seguridad | T-7 |
 | Configurar el binding HTTPS en IIS | Operaciones | T+1 (manual, post-instalación) |
-| Instalar los Edge Nodes | Ver `deployment-node.md` | Posterior |
+| Instalar los Edge Nodes | Procedimiento aparte, no incluido en este paquete | Posterior |
 | Respaldos de la base de datos | DBA | Continuo |
 
 > **El instalador solo verifica la base, nunca la crea.** Comprueba que el rol y la
 > base existan, que las credenciales sirvan y que el rol tenga `CREATE` en el
-> esquema `public`, porque el Hub aplica las migraciones de EF Core al arrancar.
+> esquema `public`, porque el Hub crea y actualiza sus propias tablas al arrancar.
 
 > **El instalador deja el sitio en HTTP.** El binding HTTPS y el certificado se
 > añaden a mano en IIS Manager después de instalar. El instalador no los toca ni
@@ -153,6 +153,12 @@ Debe devolver `t`. Si devuelve `f`, el paso 04 abortará la instalación.
 
 > **El paso 09 no abre el puerto HTTP.** IIS registra sus propias reglas al crear
 > el sitio; duplicarlas solo confunde la auditoría del firewall.
+
+> **El puerto HTTP tiene que estar libre antes de instalar.** El paso 01 aborta
+> si otro sitio de IIS ya tiene un binding en él —incluso detenido, porque lo
+> recupera al siguiente arranque— o si lo escucha otro proceso. En un servidor
+> con el **Default Web Site** en `*:80`, decida antes de T-0: eliminar ese sitio,
+> o dar al Hub un puerto propio en `Port`.
 
 > **MLLP es TCP crudo, sin TLS ni autenticación, y transporta PHI.** El valor por
 > defecto `Hl7RemoteAddress = 'Any'` expone el puerto a toda la red que alcance al
@@ -289,7 +295,7 @@ Antes de ejecutar nada, confirme con los responsables:
 
 - [ ] **DBA:** rol y base creados, `GRANT CREATE ON SCHEMA public` aplicado, `pg_hba.conf` admite la IP del Hub
 - [ ] **Red:** 5432 saliente abierto; subred del HIS/RIS documentada
-- [ ] **Red:** el servidor tiene IP fija (no DHCP) y está anotada en el insumo 3
+- [ ] **Direccionamiento:** el servidor tiene IP fija (no DHCP) y está anotada en el insumo 3
 - [ ] **PKI:** certificado `.pfx` disponible para la fase T+1
 - [ ] **Servidor:** ≥5 GB libres en el volumen de instalación
 - [ ] **Cuenta:** privilegios de administrador local confirmados
@@ -364,7 +370,7 @@ Para instalación desatendida (automatización, ITSM):
 | 03 | Características de IIS | Install, Update, Repair | WebSockets es crítico: si falla, aborta |
 | 04 | Conectividad y permisos de PostgreSQL | Install, Update | Nivel alcanzado: `protocolo` o `completa` |
 | 05 | Despliegue del paquete | Install, Update | Ruta del respaldo — **anótela** |
-| 06 | App pool y sitio IIS | Install, Update, Repair | Aviso de HTTP; recordatorio de HTTPS manual |
+| 06 | App pool y sitio IIS (binding `*:Puerto`, sin host header) | Install, Update, Repair | Aviso de HTTP; recordatorio de HTTPS manual |
 | 07 | Variables de entorno del app pool | Install, Update, Repair | Conservación o generación del `Jwt__SecretKey` |
 | 08 | Directorios de datos | Install, Update, Repair | Validación de la ruta del key ring |
 | 09 | Regla de firewall MLLP | Install, Update, Repair | Puerto y origen efectivos |
@@ -397,6 +403,7 @@ Salida esperada:
 
    Usuario   admin
    Acceso    http://10.20.30.40/
+             http://192.168.10.5/
 ```
 
 **Por qué se verifica con un inicio de sesión y no leyendo el log:** el sembrado
@@ -420,8 +427,8 @@ corrección es rellenarla y ejecutar `-Mode Repair`.
 > **El bootstrap token es otra cosa.** El token que sí existe en el sistema sirve
 > para **registrar Edge Nodes**, no para crear administradores: lo genera un admin
 > ya autenticado con `POST /api/nodes/bootstrap-tokens`, o el propio nodo con
-> `POST /api/edge/token`. Se emite bajo demanda, nunca al arrancar. Ver
-> `deployment-node.md`.
+> `POST /api/edge/token`. Se emite bajo demanda, nunca al arrancar. El registro
+> de nodos tiene su propio procedimiento, que no forma parte de este paquete.
 
 ### 6.6 Registro de la ejecución
 
@@ -456,14 +463,21 @@ Verifique presencia (no el valor, que es secreto) de:
 - [ ] `ASPNETCORE_ENVIRONMENT` = `Production`
 - [ ] `EDGEGUARD_HUB_CONNECTIONSTRING` presente y no vacío
 - [ ] `Jwt__SecretKey` presente, 64 caracteres
-- [ ] `Jwt__Issuer` = `http://<HostHeader>`
+- [ ] `Jwt__Issuer` = `http://<HostHeader>` — se queda así aunque después se active HTTPS (§8.1)
 - [ ] `DataProtection__KeyPath` presente y **fuera** de `InstallPath`
 - [ ] `Diagnostics__Redaction__Mode` = `Strict`
 - [ ] `Hl7Listener__Enabled` / `__Port` según lo configurado
 
 ```powershell
-Import-Module WebAdministration; Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -Name startMode, processModel.idleTimeout, managedRuntimeVersion
+Import-Module WebAdministration
+Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -Name startMode
+Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -Name processModel.idleTimeout
+Get-ItemProperty "IIS:\AppPools\EdgeGuardHub" -Name managedRuntimeVersion
 ```
+
+> **Una propiedad por llamada, a propósito.** El proveedor de IIS acepta varias
+> en `-Name` pero devuelve **solo la última**, sin avisar. Consultadas de golpe,
+> las dos primeras casillas se darían por buenas sin haberlas visto.
 
 - [ ] `startMode` = `AlwaysRunning`
 - [ ] `idleTimeout` = `00:00:00`
@@ -646,10 +660,10 @@ Procedimiento de activación: modificar `hub-install.psd1` → `.\install.ps1 -M
 
 | Tarea | Referencia |
 |---|---|
-| Respaldos de PostgreSQL y del key ring | `docs/07-operations/backup-recovery.md` |
-| Monitoreo y alertas | `docs/07-operations/monitoring.md` |
-| Migraciones controladas | `docs/07-operations/database-migrations.md` |
-| Instalación de nodos | `docs/07-operations/deployment-node.md` |
+| Respaldos de PostgreSQL y del key ring | *Operación, diagnóstico y soporte*, parte II |
+| Monitoreo y revisión diaria | *Operación, diagnóstico y soporte*, parte I |
+| Diagnóstico, triage y escalamiento | *Operación, diagnóstico y soporte*, parte III |
+| Migraciones en ventana controlada e instalación de nodos | Procedimientos aparte; solicítelos al proveedor si su política los exige |
 
 > **El key ring entra en el plan de respaldo.** Perderlo obliga a que cada nodo
 > registrado vuelva a autenticarse contra el Hub para que se le recomponga el
@@ -669,8 +683,8 @@ El instalador lee `installed.json` del directorio de instalación:
 | Existe y el `PackageHash` coincide con el paquete de `data\` | `Repair` |
 | Existe con otro hash | `Update` |
 
-> No se usa la versión del ensamblado: el `.csproj` no declara `<Version>` y
-> `Dicom.Edge.Hub.Api.dll` siempre reporta `1.0.0.0`.
+> La versión no se deduce de los archivos instalados: se lee del registro que el
+> propio instalador dejó en la instalación anterior.
 
 ### 9.2 Qué preserva cada modo
 
@@ -748,11 +762,10 @@ Copy-Item -Path "C:\inetpub\EdgeGuard\Hub.backup-20260828-143000\*" -Destination
 Start-WebAppPool -Name EdgeGuardHub
 ```
 
-> **Advertencia sobre migraciones.** El Hub aplica migraciones de EF Core al
-> arrancar y no las revierte. Volver a una versión anterior de binarios sobre una
-> base ya migrada puede no ser compatible. Consulte
-> `docs/07-operations/database-migrations.md` y coordine con el DBA antes de
-> revertir una actualización que incluyó migraciones.
+> **Advertencia sobre la base de datos.** El Hub actualiza el formato de sus tablas al
+> arrancar y no deshace esos cambios. Volver a una versión anterior de la aplicación sobre una
+> base ya actualizada puede no ser compatible. Coordine con el DBA antes de
+> revertir una actualización que incluyó cambios en la base.
 
 ### 10.3 Desinstalación
 
@@ -784,6 +797,8 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 | **01** — «no contiene wwwroot/index.html» | El paquete llegó sin la interfaz web | Defecto del paquete. **Solicite uno nuevo al proveedor**; no es reparable en el servidor |
 | **01** — «Checksum incorrecto» | Zip corrupto o distinto del declarado | Vuelva a copiarlo y regenere `checksums.sha256` |
 | **01** — «Espacio insuficiente» | <5 GB libres | Libere espacio o cambie `InstallPath` |
+| **01** — «El puerto 80 ya está reservado en IIS» | Otro sitio de IIS —casi siempre el Default Web Site— tiene un binding en ese puerto | Elimine el binding en IIS Manager o asigne al Hub un puerto propio en `Port`. **Detener el sitio no basta**: vuelve a tomar el puerto al iniciarse o al reiniciar el servidor, y el instalador lo reporta por eso |
+| **01** — «está ocupado por un proceso ajeno a IIS» | Un servicio que no es un sitio web escucha en ese puerto | `Get-NetTCPConnection -State Listen -LocalPort 80` identifica al proceso. Libérelo o cambie `Port` |
 | **01** — «checksums.sha256 no verificó ningún archivo» | Los nombres no coinciden con los de `data\` | Corrija los nombres en el archivo de checksums |
 | **02** — «Falta el Hosting Bundle» | No está instalado ni depositado en `data\` | Deposite el instalador en `data\`. La descarga automática exige fijar URL y hash en `bin\02-Install-HostingBundle.ps1` |
 | **02** — código 3010 | Instalado correctamente, requiere reinicio | Programe el reinicio antes de poner el Hub en servicio |
@@ -967,7 +982,7 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 - [ ] Firma C-3
 
 **T+1 · Endurecimiento**
-- [ ] HTTPS configurado y `Jwt__Issuer` actualizado a `https://`
+- [ ] HTTPS configurado (§8.1). `Jwt__Issuer` **no** se toca: es la etiqueta del emisor, no una URL de acceso
 - [ ] Identidad del app pool revisada (§8.2)
 - [ ] MLLP acotado a la subred del HIS/RIS
 - [ ] **`hub-install.psd1` borrado del servidor**
@@ -982,8 +997,8 @@ $env:EDGEGUARD_SETUP_DBPASSWORD = (Get-SecretFromVault); .\install.ps1 -NonInter
 | Campo | Valor |
 |---|---|
 | Aplica a | Instalador del Hub EdgeGuard, versión del paquete de entrega |
-| Documentos relacionados | `deployment-node.md`, `backup-recovery.md`, `database-migrations.md`, `monitoring.md`, `troubleshooting.md` |
-| Revisión | 1.1 — 2026-08-29 |
+| Documento complementario | *Operación, diagnóstico y soporte* — mismo paquete de entrega |
+| Revisión | 1.2 — 2026-09-07 |
 
 > **Mantenimiento.** Este runbook describe el comportamiento del instalador tal
 > como está implementado. Una versión nueva del paquete que añada un paso, cambie

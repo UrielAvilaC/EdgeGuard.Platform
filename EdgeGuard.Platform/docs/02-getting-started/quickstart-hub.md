@@ -33,6 +33,12 @@ Ensure PostgreSQL 16+ is running and you have a database ready:
 -- Run as a PostgreSQL superuser
 CREATE ROLE edgeguard LOGIN PASSWORD '<strong-password>';
 CREATE DATABASE edgeguard_hub OWNER edgeguard ENCODING 'UTF8';
+
+-- Switch to the new database BEFORE granting. Schema grants apply to the
+-- database the session is connected to, and PostgreSQL reports success
+-- either way, so a grant issued from `postgres` fails silently.
+\c edgeguard_hub
+GRANT CREATE ON SCHEMA public TO edgeguard;
 ```
 
 ---

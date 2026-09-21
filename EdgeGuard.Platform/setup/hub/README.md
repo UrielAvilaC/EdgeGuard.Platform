@@ -48,8 +48,14 @@ Consola **elevada**. El paso 01 aborta si no lo está.
 
 `Auto` decide leyendo `installed.json` del directorio de instalación: sin
 manifiesto → `Install`; con el mismo hash de paquete → `Repair`; con otro →
-`Update`. No se usa la versión del ensamblado porque el `.csproj` no declara
-`<Version>` y siempre reporta `1.0.0.0`.
+`Update`.
+
+La decisión sigue siendo por hash y no por versión, pero ya no por falta de
+alternativa: desde 1.4.1 la solución sella `<Version>` en
+`Directory.Build.props`, los ensamblados la reportan y `/api/info` la publica.
+El hash se conserva porque distingue dos paquetes de la misma versión —un
+republicado tras corregir algo, por ejemplo—, y eso es justo lo que `Repair`
+necesita saber.
 
 `Repair` es para cuando alguien tocó IIS a mano y algo dejó de funcionar:
 variables borradas al recrear el app pool, sitio apuntando a otra ruta,
@@ -133,7 +139,7 @@ llegan a la aplicación.
 
 | # | Hace |
 |---|---|
-| 01 | Elevación, sistema operativo, IIS, disco, checksums, contenido del paquete, resolución del modo |
+| 01 | Elevación, sistema operativo, IIS, puerto HTTP libre, disco, checksums, contenido del paquete, resolución del modo |
 | 02 | ASP.NET Core Hosting Bundle |
 | 03 | Características de IIS, incluido WebSockets |
 | 04 | Puerto, protocolo y permisos de PostgreSQL |
@@ -155,6 +161,17 @@ ese build. Ver `data\README.md`.
 
 **01 — «Checksum incorrecto».** El zip está corrupto o no es el declarado.
 Vuelve a copiarlo y regenera `checksums.sha256`.
+
+**01 — «El puerto 80 ya está reservado en IIS».** Otro sitio —casi siempre el
+Default Web Site— tiene un binding en ese puerto. Elimínalo en IIS Manager, o
+dale al Hub un puerto propio en `Port` dentro de `hub-install.psd1`. Detener el
+sitio en conflicto no sirve: el instalador lo sigue reportando a propósito,
+porque vuelve a tomar el puerto en cuanto alguien lo inicia o se reinicia el
+servidor.
+
+**01 — «está ocupado por un proceso ajeno a IIS».** Algo que no es un sitio web
+escucha en ese puerto. `Get-NetTCPConnection -State Listen -LocalPort 80` dice
+quién.
 
 **02 — «Falta el Hosting Bundle».** Deposita el instalador en `data\`. La
 descarga automática requiere fijar URL y hash en
@@ -218,6 +235,12 @@ operador puede entrar al SPA.
 A cambio, el sitio se queda con todo el puerto 80 del servidor: si más adelante
 tienen que convivir otros sitios en la misma máquina, hay que darle un puerto
 propio o volver a introducir host headers a mano en IIS Manager.
+
+Por eso el paso 01 aborta si el puerto ya está tomado, antes de copiar un solo
+archivo: se revisan los bindings de TODOS los sitios de IIS —iniciados o no— y
+los listeners TCP del servidor. Un sitio detenido no estorba hoy pero reclama su
+puerto al siguiente arranque, así que el conflicto se reporta igual; un binding
+del propio sitio del Hub no cuenta, es la instalación previa.
 
 **Solo HTTP.** Para HTTPS, añade el binding y el certificado en IIS Manager
 después de instalar; el instalador no los toca ni los elimina.

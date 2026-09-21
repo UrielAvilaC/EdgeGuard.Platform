@@ -523,7 +523,12 @@ or:
 
 **Missing privilege:**
 ```sql
--- Connect as superuser and grant privileges
+-- Connect as a superuser, THEN switch to the Hub database.
+-- Without the \c, the grants apply to whatever database the session is
+-- connected to (usually `postgres`). PostgreSQL reports success either way,
+-- and the missing privilege only resurfaces on the next migration.
+\c edgeguard_hub
+
 GRANT CREATE, USAGE ON SCHEMA public TO edgeguard;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO edgeguard;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO edgeguard;

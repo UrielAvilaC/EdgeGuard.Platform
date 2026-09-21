@@ -200,6 +200,150 @@ function Resolve-HubMode {
     return 'Update'
 }
 
+<#
+.SYNOPSIS
+    Lista los sitios de IIS que ya tienen un binding en el puerto indicado.
+.DESCRIPTION
+    Se miran TODOS los sitios, estén iniciados o detenidos. Un sitio detenido no
+    ocupa el puerto hoy, pero lo reclama en cuanto alguien lo inicia o la máquina
+    se reinicia: es exactamente el caso del Default Web Site en *:80, que deja al
+    Hub funcionando hasta el siguiente arranque y luego lo tumba sin aviso.
+
+    Si WebAdministration todavía no existe (IIS sin instalar, lo habilita el paso
+    03) no hay bindings que consultar: se avisa y se sigue con la sonda TCP.
+#>
+function Get-IisPortBinding {
+    [CmdletBinding()]
+    param([int]$Port)
+
+    Import-Module WebAdministration -ErrorAction SilentlyContinue
+
+    # Sin IIS instalado el módulo puede figurar como disponible y aun así no
+    # traer cmdlets: lo que decide es que Get-Website exista de verdad.
+    if (-not (Get-Command -Name Get-Website -ErrorAction SilentlyContinue)) {
+        Write-SetupLog "WebAdministration aún no está disponible; no se pueden revisar los bindings de IIS." -Level Warn
+        return $null
+    }
+
+    $sites = @()
+    try { $sites = @(Get-Website) }
+    catch {
+        Write-SetupLog "No se pudieron enumerar los sitios de IIS: $($_.Exception.Message)" -Level Warn
+        return $null
+    }
+
+    $found = @()
+    foreach ($site in $sites) {
+        $collection = @()
+        try { $collection = @($site.bindings.Collection) } catch { continue }
+
+        foreach ($binding in $collection) {
+            if ($binding.protocol -notin @('http', 'https')) { continue }
+
+            # bindingInformation: "IP:puerto:hostHeader"
+            $parts = "$($binding.bindingInformation)" -split ':'
+            if ($parts.Count -lt 2) { continue }
+
+            $bound = 0
+            if (-not [int]::TryParse($parts[1], [ref]$bound)) { continue }
+            if ($bound -ne $Port) { continue }
+
+            $state = try { $site.state } catch { 'desconocido' }
+
+            $found += [pscustomobject]@{
+                Site     = $site.name
+                State    = $state
+                Protocol = $binding.protocol
+                Info     = $binding.bindingInformation
+            }
+        }
+    }
+
+    return , $found
+}
+
+<#
+.SYNOPSIS
+    Describe quién está escuchando en un puerto TCP local.
+.DESCRIPTION
+    Complementa a la revisión de bindings: atrapa al ocupante que no es un sitio
+    de IIS (otro servicio, un contenedor, una app en consola). Devuelve una
+    descripción por cada listener; vacío significa puerto libre.
+#>
+function Get-TcpPortListener {
+    [CmdletBinding()]
+    param([int]$Port)
+
+    $owners = @()
+
+    if (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) {
+        foreach ($conn in @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue)) {
+            $name = try { (Get-Process -Id $conn.OwningProcess -ErrorAction Stop).ProcessName } catch { 'desconocido' }
+            $owners += "$name (PID $($conn.OwningProcess), escuchando en $($conn.LocalAddress))"
+        }
+        return , $owners
+    }
+
+    # Respaldo para instalaciones sin el módulo NetTCPIP.
+    foreach ($line in @(netstat -ano -p TCP)) {
+        if ($line -match '^\s+TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)\s*$' -and [int]$Matches[1] -eq $Port) {
+            $procId = $Matches[2]
+            $name   = try { (Get-Process -Id $procId -ErrorAction Stop).ProcessName } catch { 'desconocido' }
+            $owners += "$name (PID $procId)"
+        }
+    }
+
+    return , $owners
+}
+
+<#
+.SYNOPSIS
+    Aborta si el puerto HTTP del Hub ya está tomado por alguien más.
+.DESCRIPTION
+    Se comprueba aquí, en el paso 01, y no al crear el sitio: igual que con
+    PostgreSQL, un puerto ocupado es una condición del servidor que el
+    instalador no puede resolver por su cuenta, y descubrirla después de haber
+    copiado binarios y tocado IIS solo encarece la marcha atrás. Corre también
+    en -DryRun, que es donde debería aparecer.
+
+    Un binding del propio sitio no es conflicto: es la instalación previa que se
+    está reparando o actualizando.
+#>
+function Assert-HubHttpPortFree {
+    [CmdletBinding()]
+    param([int]$Port, [string]$SiteName)
+
+    $bindings = Get-IisPortBinding -Port $Port
+
+    if ($null -ne $bindings) {
+        $foreign = @($bindings | Where-Object { $_.Site -ne $SiteName })
+        if ($foreign.Count -gt 0) {
+            $detail = ($foreign | ForEach-Object { "'$($_.Site)' ($($_.Protocol) $($_.Info), $($_.State))" }) -join ', '
+            throw ("El puerto $Port ya está reservado en IIS por: $detail. " +
+                   "Dos sitios no pueden compartir el mismo binding, y basta con que ese sitio se inicie " +
+                   "—o con que se reinicie el servidor— para que el Hub deje de arrancar. " +
+                   "Resuélvelo antes de instalar: cambia 'Port' en hub-install.psd1 a un puerto libre, " +
+                   "o quita el binding del sitio en conflicto en IIS Manager (si es el Default Web Site, " +
+                   "lo habitual es eliminarlo; detenerlo NO basta, vuelve a tomar el puerto al iniciarse).")
+        }
+
+        $own = @($bindings | Where-Object { $_.Site -eq $SiteName })
+        if ($own.Count -gt 0) {
+            Write-SetupLog "El puerto $Port ya lo tiene el propio sitio $SiteName (instalación previa)" -Level Detail
+            return
+        }
+    }
+
+    # Sin @(): la función ya devuelve un arreglo (return , ...) y volver a envolverlo lo anidaría.
+    $listeners = Get-TcpPortListener -Port $Port
+    if ($listeners.Count -gt 0) {
+        throw ("El puerto $Port está ocupado por un proceso ajeno a IIS: $($listeners -join '; '). " +
+               "Libera el puerto o cambia 'Port' en hub-install.psd1 antes de instalar.")
+    }
+
+    Write-SetupLog "Puerto HTTP $Port libre" -Level Detail
+}
+
 function Step-TestPrerequisites {
     [CmdletBinding()]
     param(
@@ -232,6 +376,26 @@ function Step-TestPrerequisites {
     }
     else {
         Write-SetupLog "IIS no está instalado; el paso 03 intentará habilitarlo." -Level Warn
+    }
+
+    # ── Puertos ──────────────────────────────────────────────────────────────
+    # Antes de tocar nada: un puerto ocupado se resuelve en el servidor, no en
+    # el instalador, y descubrirlo en el paso 10 ya sale caro.
+    Assert-HubHttpPortFree -Port $Config.Port -SiteName $Config.SiteName
+
+    if ($Config.Hl7Enabled) {
+        $hl7Listeners = Get-TcpPortListener -Port $Config.Hl7Port
+        if ($hl7Listeners.Count -gt 0) {
+            # No se aborta: en una reinstalación el ocupante es el propio Hub, y
+            # el listener MLLP vive dentro de w3wp, no se distingue por PID de
+            # otro sitio del mismo servidor.
+            Write-SetupLog ("El puerto MLLP $($Config.Hl7Port) ya está en uso: $($hl7Listeners -join '; '). " +
+                            "Si no es el propio Hub de una instalación previa, el listener HL7 no podrá abrirlo " +
+                            "y los mensajes del HIS se perderán en silencio.") -Level Warn
+        }
+        else {
+            Write-SetupLog "Puerto MLLP $($Config.Hl7Port) libre" -Level Detail
+        }
     }
 
     # ── Disco ────────────────────────────────────────────────────────────────
