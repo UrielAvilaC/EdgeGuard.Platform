@@ -1,6 +1,7 @@
 using Dicom.Edge.Node.Persistence.Configuration;
 using Dicom.Edge.Node.Persistence.Constants;
 using Dicom.Edge.Node.Persistence.Diagnostics;
+using Dicom.Edge.Node.Persistence.Storage;
 using Microsoft.Extensions.Configuration;
 
 namespace Dicom.Edge.Node.Persistence.Services;
@@ -15,6 +16,7 @@ public sealed class NodeSettingsService(
     IDbContextFactory<EdgeNodeDbContext> factory,
     INodeConfigurationReloader configReloader,
     IConfiguration configuration,
+    IHostEnvironment environment,
     ILogger<NodeSettingsService> logger) : INodeSettingsService, IDisposable
 {
     private ConcurrentDictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
@@ -230,6 +232,53 @@ public sealed class NodeSettingsService(
             configReloader.Reload();
     }
 
+    public async Task RecordConfigSyncAsync(
+        string configVersion, string source, CancellationToken ct = default)
+    {
+        // Sin versión no hay nada que confirmar, y escribir vacío borraría la última
+        // confirmación válida: el Hub volvería a ver el nodo como nunca aplicado.
+        if (string.IsNullOrWhiteSpace(configVersion))
+        {
+            logger.LogWarning("Config sync metadata skipped — the payload carried no version");
+            return;
+        }
+
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [NodeSettingKeys.System.ConfigVersion]        = configVersion,
+            [NodeSettingKeys.System.LastConfigAppliedUtc] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
+            [NodeSettingKeys.System.LastConfigSource]     = source,
+        };
+
+        await using var ctx = await factory.CreateDbContextAsync(ct);
+        var keys = values.Keys.ToList();
+
+        // Deliberadamente sin el filtro de IsReadOnly que aplican SetAsync y
+        // ApplyBatchAsync: estas filas son solo-lectura para el Hub y el operador,
+        // no para el nodo, que es quien las escribe.
+        var entities = await ctx.NodeSettings
+            .Where(s => keys.Contains(s.Key))
+            .ToListAsync(ct);
+
+        foreach (var entity in entities)
+        {
+            entity.Value = values[entity.Key];
+            entity.UpdatedAt = DateTime.UtcNow;
+            _cache[entity.Key] = entity.Value;
+        }
+
+        if (entities.Count > 0)
+            await ctx.SaveChangesAsync(ct);
+
+        if (entities.Count < keys.Count)
+            logger.LogWarning(
+                "Config sync metadata: only {Found}/{Expected} system rows exist — the node will under-report what it applied",
+                entities.Count, keys.Count);
+
+        logger.LogInformation(
+            "Config sync recorded: version={Version}, source={Source}", configVersion, source);
+    }
+
     public async Task ReloadAsync(CancellationToken ct = default)
     {
         using var activity = PersistenceActivitySource.StartSettingsReload();
@@ -314,8 +363,15 @@ public sealed class NodeSettingsService(
     public async Task<StorageConfig> GetStorageConfigAsync(CancellationToken ct = default)
     {
         var d = await GetCategoryAsync(NodeSettingCategories.Storage, ct);
+
+        // La raíz se entrega siempre absoluta. El valor sembrado es relativo ("./data") y
+        // sus consumidores (proveedor de almacenamiento, limpieza, medición del workspace)
+        // lo pasaban crudo a Directory/DriveInfo, donde resuelve contra el directorio de
+        // trabajo del proceso — C:\Windows\System32 bajo el SCM. Se ancla al content root.
+        var configuredRoot = S(d, NodeSettingKeys.Storage.RootPath, NodeStorageRoot.DefaultRootPath);
+
         return new StorageConfig(
-            RootPath: S(d, NodeSettingKeys.Storage.RootPath, "./data"),
+            RootPath: NodeStorageRoot.Resolve(configuredRoot, environment.ContentRootPath),
             LimitMb:  I(d, NodeSettingKeys.Storage.LimitMb,  102_400));
     }
 

@@ -34,6 +34,42 @@ internal static class NodeSettingsSeed
     }
 
     /// <summary>
+    /// Claves que dejaron de existir. Se enumeran a mano en vez de borrar todo lo que no
+    /// esté en <see cref="BuildDefaults"/>: hay filas legítimas que el sembrado no crea
+    /// —<c>hub.node_id</c>, <c>node.api_endpoint</c>, <c>node.ip_address</c>— y un barrido
+    /// por diferencia se las llevaría por delante.
+    /// </summary>
+    private static readonly string[] RetiredKeys =
+    [
+        // Sustituida por la cuota en MB (storage.limit_mb), que administra el Hub.
+        "cleanup.max_storage_gb",
+        // El nodo ya no mantiene una carpeta de archivo aparte de la raíz DICOM.
+        "storage.archive_path",
+    ];
+
+    /// <summary>
+    /// Borra las filas de ajustes retirados. Corre en cada arranque junto al sembrado:
+    /// una clave que ya nadie lee sigue apareciendo —y editándose— en la pantalla de
+    /// configuración del Hub mientras la fila exista, porque el perfil se muestra tal cual.
+    /// </summary>
+    public static async Task PruneRetiredAsync(
+        EdgeNodeDbContext ctx, ILogger logger, CancellationToken ct = default)
+    {
+        var obsoletas = await ctx.NodeSettings
+            .Where(s => RetiredKeys.Contains(s.Key))
+            .ToListAsync(ct);
+
+        if (obsoletas.Count == 0) return;
+
+        ctx.NodeSettings.RemoveRange(obsoletas);
+        await ctx.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "Removed {Count} retired setting(s): [{Keys}]",
+            obsoletas.Count, string.Join(", ", obsoletas.Select(s => s.Key)));
+    }
+
+    /// <summary>
     /// Inserts all defaults only if the table is completely empty.
     /// Useful for first-run initialization.
     /// </summary>

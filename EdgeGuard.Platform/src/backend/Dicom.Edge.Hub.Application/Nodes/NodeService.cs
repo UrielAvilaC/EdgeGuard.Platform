@@ -36,7 +36,10 @@ public sealed class NodeService(
             request.Location,
             request.FacilityName,
             request.HealthCheckIntervalSeconds,
-            request.StorageLimitMb);
+            // Un alta sin cuota es "no lo decidí", no "sin límite": el formulario de alta
+            // no obliga a llenarlo. Vaciarlo más tarde, desde la pantalla del nodo, sí
+            // significa sin límite — ese camino es SetStorageLimit.
+            request.StorageLimitMb ?? SharedNodeSettingDefaults.DefaultStorageLimitMb);
 
         await nodeRepository.AddAsync(node, ct);
         await unitOfWork.SaveChangesAsync(ct);

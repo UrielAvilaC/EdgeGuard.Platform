@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Dicom.Edge.Contracts.Edge;
 using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.Routing;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
@@ -54,7 +55,8 @@ public sealed class NodeDicomRoutingRulePushService(
             }).ToList().AsReadOnly(),
         };
 
-        var url = node.ApiEndpoint.TrimEnd('/') + "/api/dicom-routing-rules/sync";
+        // ApiEndpoint ya termina en /api; el prefijo repetido daba /api/api/… → 404.
+        var url = node.ApiEndpoint.TrimEnd('/') + NodeApiRoutes.DicomRoutingRulesSync;
 
         try
         {

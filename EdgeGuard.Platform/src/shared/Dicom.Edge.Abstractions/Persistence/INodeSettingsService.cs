@@ -31,6 +31,22 @@ public interface INodeSettingsService
     Task ApplyBatchAsync(
         IReadOnlyDictionary<string, string> values, CancellationToken ct = default);
 
+    /// <summary>
+    /// Registra la metadata de sincronización del nodo: qué versión de configuración
+    /// quedó aplicada, cuándo y por qué vía.
+    ///
+    /// <para>Es una escritura aparte y no un <see cref="SetAsync{T}"/> porque esas filas
+    /// (<c>system.*</c>) están marcadas como solo lectura. Ese marcado significa "ni el
+    /// operador ni el Hub las editan", no "el nodo no puede escribirlas": el nodo es
+    /// justamente su único autor. Pasarlas por el camino normal las rechazaba en
+    /// silencio, y sin versión confirmada el Hub nunca puede dar la configuración por
+    /// aplicada.</para>
+    /// </summary>
+    /// <param name="configVersion">Hash calculado por el Hub. Un valor vacío no se registra.</param>
+    /// <param name="source">Vía por la que llegó: push del Hub o pull del nodo.</param>
+    Task RecordConfigSyncAsync(
+        string configVersion, string source, CancellationToken ct = default);
+
     /// <summary>Reloads the in-memory cache from the database.</summary>
     Task ReloadAsync(CancellationToken ct = default);
 

@@ -25,6 +25,9 @@ public sealed class HubConfigSyncHostedService(
     IOptionsMonitor<HubConnectionOptions> optionsMonitor,
     ILogger<HubConfigSyncHostedService> logger) : BackgroundService
 {
+    /// <summary>Vía registrada en <c>system.last_config_source</c> cuando la config llegó por pull.</summary>
+    private const string ConfigSourcePull = "HubPull";
+
     private HubConnectionOptions Opts => optionsMonitor.CurrentValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -107,6 +110,14 @@ public sealed class HubConfigSyncHostedService(
                 using var scope = scopeFactory.CreateScope();
                 var settingsService = scope.ServiceProvider.GetRequiredService<INodeSettingsService>();
                 await settingsService.ApplyBatchAsync(config, ct);
+
+                // El pull es el camino de respaldo cuando el push no alcanza al nodo, y
+                // hasta ahora aplicaba los cambios sin dejar constancia de qué versión.
+                // El Hub compara versiones para decidir si el nodo está al día, así que
+                // sin este registro el respaldo funcionaba pero nunca se notaba.
+                if (config.TryGetValue(SharedNodeSettingKeys.System.ConfigVersion, out var version))
+                    await settingsService.RecordConfigSyncAsync(version, ConfigSourcePull, ct);
+
                 logger.LogInformation("Applied {Count} config entries from Hub pull", config.Count);
             }
         }

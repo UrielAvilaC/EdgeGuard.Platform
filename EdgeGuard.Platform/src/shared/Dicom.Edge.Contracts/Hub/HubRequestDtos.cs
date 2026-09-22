@@ -568,8 +568,21 @@ public sealed record NodeSettingUpdateItem(
 /// <summary>Result of a batch update operation.</summary>
 public sealed class BatchUpdateNodeSettingsResponse
 {
+    /// <summary>Ajustes escritos.</summary>
     public int Updated { get; init; }
+
+    /// <summary>Cuántas claves no existen en el perfil del nodo. Equivale a <see cref="NotFoundKeys"/>.Count.</summary>
     public int NotFound { get; init; }
+
+    /// <summary>
+    /// Claves que el nodo no tiene en su perfil. Se separan de <see cref="FailedKeys"/>
+    /// porque no son lo mismo: aquí no se perdió nada de lo que el operador escribió,
+    /// simplemente ese ajuste no existe para este nodo. Mezclarlas hacía que la pantalla
+    /// tratara el guardado como fallido y se negara a aplicar lo que sí se había guardado.
+    /// </summary>
+    public List<string> NotFoundKeys { get; init; } = [];
+
+    /// <summary>Claves que existían y aun así no pudieron escribirse. Éstas sí son un fallo.</summary>
     public List<string> FailedKeys { get; init; } = [];
 }
 

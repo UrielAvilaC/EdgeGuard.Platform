@@ -15,6 +15,7 @@ using Dicom.Edge.Models.Enums;
 using Dicom.Edge.Security.Authentication;
 using Dicom.Edge.Security.Cryptography;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Text.Json;
 using NodeRegistrationResponse = Dicom.Edge.Contracts.Hub.NodeRegistrationResponse;
 using HubNodeRegistrationRequest = Dicom.Edge.Contracts.Hub.NodeRegistrationRequest;
@@ -124,7 +125,12 @@ public sealed class EdgeNodeService(
             request.Port,
             request.ApiEndpoint,
             request.Location,
-            request.FacilityName);
+            request.FacilityName,
+            // El alta por registro no pregunta por la cuota, así que sin esto el nodo
+            // nacía con null y el sync se la bajaba como 0 — sin límite — mientras la
+            // pantalla mostraba el default. Nace con el default y el operador lo cambia
+            // o lo vacía después; vaciarlo sí significa "sin límite".
+            storageLimitMb: SharedNodeSettingDefaults.DefaultStorageLimitMb);
 
         node.UpdateConfiguration(version: request.Version);
 
@@ -543,6 +549,21 @@ public sealed class EdgeNodeService(
             dict[SharedNodeSettingKeys.PacsCEcho.Destinations] =
                 JsonSerializer.Serialize(destinations);
         }
+
+        // El límite de almacenamiento se administra en el agregado Node, igual que en el
+        // push (ver NodeConfigurationService.BuildSyncPayloadAsync). Si el pull entregara
+        // la fila de perfil, el mismo nodo acabaría con una cuota distinta según por cuál
+        // de las dos vías le llegó la configuración.
+        dict[SharedNodeSettingKeys.Storage.LimitMb] =
+            (node.StorageLimitMb ?? 0).ToString(CultureInfo.InvariantCulture);
+
+        // La versión viaja con la configuración para que el nodo pueda confirmar qué
+        // aplicó. El nodo no puede calcularla: el hash lo produce el Hub. Sin esto el
+        // pull —que es el camino de respaldo cuando el push no alcanza al nodo— aplicaba
+        // los cambios sin dejar rastro, y el Hub lo daba por desactualizado para siempre.
+        // La fila es solo-lectura en el nodo, así que no entra como un ajuste más.
+        dict[SharedNodeSettingKeys.System.ConfigVersion] =
+            await configService.ComputeConfigVersionAsync(nodeId, ct);
 
         logger.LogInformation(
             "Config pull by node {NodeId}: {Count} entries, {PacsCount} PACS destination(s)",

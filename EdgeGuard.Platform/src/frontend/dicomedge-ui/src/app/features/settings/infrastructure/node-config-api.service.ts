@@ -20,6 +20,7 @@ export interface NodeConfigVersionState {
 
 import { environment } from '../../../../environments/environment';
 import { API_ROUTES } from '../../../core/api/api-routes';
+import { skipErrorToast } from '../../../core/api/http-context.tokens';
 import {
   NodeConfigurationProfileDto,
   ConfigPushResultDto,
@@ -57,8 +58,18 @@ export class NodeConfigApiService {
     return this.http.post<{ resetCount: number }>(`${this.base}${API_ROUTES.NODE_CONFIGURATION.RESET_CATEGORY(nodeId, category)}`, {});
   }
 
+  /**
+   * El Hub responde 400 cuando el nodo no contesta en ese instante, pero la
+   * configuración ya quedó guardada y llegará por el reintento del outbox o por el pull
+   * del nodo. Se silencia el toast genérico del interceptor: quien llama informa del
+   * estado real, y el mensaje de error encima sólo hacía creer que el cambio se perdió.
+   */
   pushConfig(nodeId: string): Observable<ConfigPushResultDto> {
-    return this.http.post<ConfigPushResultDto>(`${this.base}${API_ROUTES.NODE_CONFIGURATION.PUSH(nodeId)}`, {});
+    return this.http.post<ConfigPushResultDto>(
+      `${this.base}${API_ROUTES.NODE_CONFIGURATION.PUSH(nodeId)}`,
+      {},
+      { context: skipErrorToast() },
+    );
   }
 
   getVersion(nodeId: string): Observable<NodeConfigVersionState> {

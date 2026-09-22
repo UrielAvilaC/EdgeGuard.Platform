@@ -24,9 +24,19 @@ export interface NodeConfigurationProfileDto {
   updatedAt: string;
 }
 
+/**
+ * Respuesta de `POST /node-configuration/{nodeId}/push`.
+ *
+ * No trae bandera de éxito: el Hub responde 400 cuando el push no llega al nodo, así que
+ * todo lo que aparece aquí ya es un push aceptado. La interfaz declaraba antes
+ * `{ success, message }`, campos que el backend nunca envió — `success` llegaba siempre
+ * `undefined` y la pantalla daba por fallido hasta el push que sí funcionó.
+ */
 export interface ConfigPushResultDto {
-  success: boolean;
-  message: string;
+  /** Versión que el nodo confirmó haber aplicado. */
+  appliedVersion: string | null;
+  /** Ajustes que el nodo escribió. */
+  updatedCount: number;
 }
 
 export interface BatchUpdateNodeSettingsRequest {
@@ -36,6 +46,9 @@ export interface BatchUpdateNodeSettingsRequest {
 export interface BatchUpdateNodeSettingsResponse {
   updated: number;
   notFound: number;
+  /** Claves que este nodo no tiene en su perfil. No se perdió nada escrito. */
+  notFoundKeys: string[];
+  /** Claves que existían y aun así no pudieron guardarse. Esto sí es un fallo. */
   failedKeys: string[];
 }
 

@@ -105,11 +105,13 @@ export default class NodeConfigPage {
     this.nodeConfigApi.pushConfig(nodeId).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: result => {
-        if (result.success) this.toast.success('Configuración enviada al nodo');
-        else this.toast.error(result.message);
-      },
-      error: () => this.toast.error('Error al enviar la configuración'),
+      // Llegar a `next` ya es el éxito: el Hub responde 400 si el push no alcanzó al
+      // nodo. Y ese 400 tampoco es una pérdida — la configuración sigue guardada en el
+      // Hub y el nodo la recoge en su siguiente pull.
+      next: () => this.toast.success('Configuración enviada al nodo'),
+      error: () => this.toast.info(
+        'El nodo no respondió. Se aplicará en el próximo ciclo de sincronización.',
+      ),
     });
   }
 }
