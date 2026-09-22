@@ -38,8 +38,13 @@ $ErrorActionPreference = 'Stop'
 
 $BuildPath   = $PSScriptRoot
 $ManualesPath = Split-Path -Parent $BuildPath
-$RepoPath    = Split-Path -Parent (Split-Path -Parent $ManualesPath)
+$SetupPath   = Split-Path -Parent $ManualesPath
+$RepoPath    = Split-Path -Parent $SetupPath
 $DocsPath    = Join-Path $RepoPath 'docs\07-operations'
+
+# Los manuales del nodo se entregan junto a SU instalador, no junto al del Hub:
+# son dos paquetes distintos que van a manos distintas.
+$ManualesNodoPath = Join-Path $SetupPath 'node\manuales'
 
 . (Join-Path $BuildPath 'Convert-Markdown.ps1')
 
@@ -105,6 +110,49 @@ $Manuales = @(
         Template = 'plantilla-tarjeta.html'
         Margen   = '0.55'
     }
+
+    # ── Nodo ─────────────────────────────────────────────────────────────────
+    # Van a setup\node\manuales\ porque acompañan al instalador del nodo, que es
+    # otro paquete y otro destinatario: en el Hub opera un administrador de
+    # sistemas; en la sede, quien esté a cargo del equipo de imagen.
+    #
+    # Falta 'instalacion-nodo': su fuente es el runbook de instalación, que se
+    # escribe cuando exista el instalador del nodo (setup\node\install.ps1).
+    # Documentar un procedimiento que todavía no existe sería peor que no tenerlo.
+
+    @{
+        Id     = 'operacion-nodo'
+        Source = @(
+            Join-Path $DocsPath 'manual-nodo\01-operacion-y-revision-diaria.md'
+            Join-Path $DocsPath 'manual-nodo\02-diagnostico-y-soporte.md'
+            Join-Path $DocsPath 'manual-nodo\03-diccionario-y-apendices.md'
+        )
+        Output    = 'Nodo-Operacion-diagnostico-y-soporte.pdf'
+        OutputDir = $ManualesNodoPath
+        Title     = 'Nodo EdgeGuard: operación, diagnóstico y soporte'
+        Subtitle  = 'Revisión diaria, guía de diagnóstico por síntoma y escalamiento del nodo EdgeGuard instalado en la sede. El manual de consulta permanente.'
+        Footer    = 'EdgeGuard Platform &middot; Nodo: operación, diagnóstico y soporte'
+        Version   = '1.0'
+        IssueDate = '22 de septiembre de 2026'
+        SkipSections = @()
+        CoverNote = 'Este manual es para quien está a cargo del equipo de imagen en la sede. No hace falta saber de sistemas: cada apartado empieza por lo que se ve y termina en qué hacer o a quién llamar. Está ordenado por síntoma — busque lo que le reportaron, no lo que cree que falló.'
+    }
+
+    @{
+        Id       = 'tarjeta-nodo'
+        Source   = @( Join-Path $DocsPath 'manual-nodo\tarjeta.md' )
+        Output   = 'Nodo-Tarjeta-de-diagnostico-y-escalamiento.pdf'
+        OutputDir = $ManualesNodoPath
+        Title    = 'Nodo: diagnóstico y escalamiento'
+        Subtitle = ''
+        Footer   = 'EdgeGuard Platform &middot; extracto de <em>Nodo: operación, diagnóstico y soporte</em>'
+        Version  = '1.0'
+        IssueDate = '22 de septiembre de 2026'
+        SkipSections = @()
+        CoverNote = ''
+        Template = 'plantilla-tarjeta.html'
+        Margen   = '0.55'
+    }
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -136,7 +184,13 @@ function New-Manual {
     param([hashtable]$Manual)
 
     $htmlPath = Join-Path $BuildPath ("{0}.html" -f $Manual.Id)
-    $pdfPath  = Join-Path $ManualesPath $Manual.Output
+
+    # OutputDir es opcional: sin él, el manual va junto a los del Hub.
+    $destino = if ($Manual.ContainsKey('OutputDir')) { $Manual.OutputDir } else { $ManualesPath }
+    if (-not (Test-Path -LiteralPath $destino)) {
+        New-Item -ItemType Directory -Path $destino -Force | Out-Null
+    }
+    $pdfPath = Join-Path $destino $Manual.Output
 
     $plantilla = if ($Manual.ContainsKey('Template')) { $Manual.Template } else { 'plantilla.html' }
 
@@ -194,4 +248,12 @@ foreach ($manual in $seleccion) {
 }
 
 Write-Host ""
-Write-Host "Manuales en $ManualesPath" -ForegroundColor Green
+# Los destinos reales, no uno supuesto: desde que hay manuales del nodo son dos
+# carpetas, y anunciar solo la del Hub mandaba a buscar donde no estaban.
+$destinos = @($seleccion | ForEach-Object {
+    if ($_.ContainsKey('OutputDir')) { $_.OutputDir } else { $ManualesPath }
+} | Sort-Object -Unique)
+
+foreach ($destino in $destinos) {
+    Write-Host "Manuales en $destino" -ForegroundColor Green
+}

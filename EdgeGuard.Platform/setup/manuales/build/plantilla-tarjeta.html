@@ -123,7 +123,10 @@ blockquote p:last-child { margin-bottom: 0; }
 
 <div class="cabecera">
   <span class="nombre">{{TITULO}}</span>
-  <span class="datos">EdgeGuard Hub &middot; v{{VERSION}} &middot; {{FECHA}}</span>
+  <!-- "Platform", no "Hub": la misma plantilla imprime la tarjeta del Hub y la
+       del nodo, y la marca del producto no puede nombrar solo a uno. Cuál de
+       los dos es lo dice el título, que viene del manifiesto. -->
+  <span class="datos">EdgeGuard Platform &middot; v{{VERSION}} &middot; {{FECHA}}</span>
 </div>
 
 {{CUERPO}}

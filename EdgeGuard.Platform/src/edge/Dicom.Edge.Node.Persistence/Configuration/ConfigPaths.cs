@@ -13,6 +13,11 @@ internal static class ConfigPaths
 
     public const string NodeApiPort = $"{ConfigSectionNames.NodeApi}:Port";
 
+    // ── NodeStorage ──────────────────────────────────────────────────────────
+
+    /// <summary>Raíz DICOM que fija el despliegue; la hidrata el arranque a <c>storage.root_path</c>.</summary>
+    public const string StorageRootPath = $"{ConfigSectionNames.NodeStorage}:RootPath";
+
     // ── HubConnection ────────────────────────────────────────────────────────
 
     public const string HubEnabled                  = $"{ConfigSectionNames.HubConnection}:Enabled";

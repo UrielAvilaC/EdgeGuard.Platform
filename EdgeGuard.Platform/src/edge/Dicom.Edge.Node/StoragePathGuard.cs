@@ -13,6 +13,10 @@ namespace Dicom.Edge.Node;
 /// <para>La separación es una convención de despliegue, y las convenciones se erosionan:
 /// basta un appsettings de cliente que apunte ambas rutas al mismo sitio. Esta
 /// verificación la vuelve una invariante comprobada al arrancar.</para>
+///
+/// <para>El <c>dicomRootPath</c> recibido debe ser la raíz <i>efectiva</i> — la fila
+/// <c>storage.root_path</c> ya resuelta a absoluta, ver <c>NodeStorageRoot</c> —, no una
+/// clave de appsettings. Comprobar una ruta que nadie usa deja pasar el caso real.</para>
 /// </summary>
 internal static class StoragePathGuard
 {
@@ -22,24 +26,11 @@ internal static class StoragePathGuard
     /// </summary>
     internal static string? Validate(string sqliteConnectionString, string dicomRootPath)
     {
-        string dbPath;
-        try
-        {
-            dbPath = new SqliteConnectionStringBuilder(sqliteConnectionString).DataSource;
-        }
-        catch (ArgumentException)
-        {
-            // Una cadena de conexión inválida es problema de otra capa, no de esta.
-            return null;
-        }
-
-        // Las bases en memoria no tocan el disco.
-        if (string.IsNullOrWhiteSpace(dbPath) || dbPath.Contains(":memory:", StringComparison.OrdinalIgnoreCase))
+        if (DatabaseFile(sqliteConnectionString) is not { } dbFull)
             return null;
         if (string.IsNullOrWhiteSpace(dicomRootPath))
             return null;
 
-        var dbFull = Path.GetFullPath(dbPath);
         var rootFull = Path.GetFullPath(dicomRootPath);
 
         // El separador final evita que "/data-backup" cuente como dentro de "/data".
@@ -59,5 +50,32 @@ internal static class StoragePathGuard
                "del workspace cuenta la base como carga DICOM y la limpieza de emergencia borra " +
                "estudios para aliviar una presión que no puede aliviar. Mueva la base fuera de " +
                "la raíz — la convención de despliegue es una carpeta 'persistence' hermana de 'data'.";
+    }
+
+    /// <summary>
+    /// Ruta absoluta del archivo SQLite, o <c>null</c> si la cadena de conexión es inválida
+    /// o la base es en memoria (no toca el disco, así que no puede solaparse con nada).
+    /// </summary>
+    /// <remarks>
+    /// Se resuelve contra el directorio de trabajo porque es así como lo hace SQLite con un
+    /// <c>Data Source</c> relativo. Por eso en producción la cadena debe ser absoluta.
+    /// </remarks>
+    internal static string? DatabaseFile(string sqliteConnectionString)
+    {
+        string dbPath;
+        try
+        {
+            dbPath = new SqliteConnectionStringBuilder(sqliteConnectionString).DataSource;
+        }
+        catch (ArgumentException)
+        {
+            // Una cadena de conexión inválida es problema de otra capa, no de esta.
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(dbPath) || dbPath.Contains(":memory:", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return Path.GetFullPath(dbPath);
     }
 }

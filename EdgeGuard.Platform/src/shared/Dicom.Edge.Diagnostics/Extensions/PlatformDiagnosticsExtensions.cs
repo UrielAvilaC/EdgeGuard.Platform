@@ -65,7 +65,10 @@ public static class PlatformDiagnosticsExtensions
         var options = diagnosticsSection.Get<DiagnosticsOptions>() ?? new DiagnosticsOptions();
         services.AddSingleton(new PlatformActivitySource(options.ActivitySourceName));
 
-        // Storage health check (generic)
+        // Storage health check (generic). La carpeta vigilada sale de
+        // IStorageHealthLocation: por defecto la ruta configurada, pero un servicio cuya
+        // ruta efectiva no vive en appsettings — el nodo — sustituye esta implementación.
+        services.AddSingleton<IStorageHealthLocation, ConfiguredStorageHealthLocation>();
         services.AddHealthChecks()
             .AddCheck<StorageHealthCheck>(
                 HealthCheckConstants.StorageCheckName,

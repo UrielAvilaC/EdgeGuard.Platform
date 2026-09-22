@@ -1,0 +1,15 @@
+{
+    "version":  "1.4.1",
+    "commit":  "c243573ad4accdf37a960e505b2da18a32ecad25",
+    "arbolLimpio":  false,
+    "sellado":  "2026-09-22T11:43:42.1742638-06:00",
+    "maquina":  "DESKTOP-KE049CN",
+    "paquetes":  {
+                     "Node":  {
+                                  "zip":  "edgeguard-node-1.4.1.zip",
+                                  "hashes":  {
+                                                 "edgeguard-node-1.4.1.zip":  "61C10964833B248FA816623FD96759012440C73908B473BA36A6A2EBD09F33E9"
+                                             }
+                              }
+                 }
+}

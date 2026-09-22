@@ -41,7 +41,7 @@ El script acepta estos parámetros (todos con valor por defecto):
 5. **Configura la recuperación ante fallos**: reinicia el servicio tras el 1.º (5 s), 2.º (10 s) y siguientes fallos (30 s); el contador se resetea cada 24 h.
 6. Muestra confirmación e indica cómo arrancarlo.
 
-> **Nota:** el argumento `--environment Production` hace que el nodo cargue `appsettings.Production.json`, que apunta a `C:\ProgramData\EdgeGuard\Node` para base de datos (`data\edge-node.db`), logs y almacenamiento.
+> **Nota:** el argumento `--environment Production` hace que el nodo cargue `appsettings.Production.json`, que apunta a `C:\ProgramData\EdgeGuard\Node` para la base de datos (`persistence\edge-node.db`) y los logs (`logs\`). El almacenamiento DICOM **no** se configura ahí: es un ajuste del nodo (ver [Rutas de datos](#rutas-de-datos--base-de-datos-y-almacenamiento-dicom)).
 
 ---
 
@@ -183,27 +183,33 @@ Es la sección que casi siempre necesitas ajustar en cada instalación. Define *
 
 > **Token de arranque (bootstrap):** si no defines `BootstrapToken`, el nodo lo solicita automáticamente al Hub mediante `POST /edge/token` (válido 5 minutos, de un solo uso). Solo configúralo manualmente si necesitas un token admin pre-emitido vía `POST /api/nodes/bootstrap-tokens`.
 
-### Rutas de datos — `ConnectionStrings` y `NodeStorage`
+### Rutas de datos — base de datos y almacenamiento DICOM
 
-Definen dónde guarda el nodo su base de datos y los estudios. Por defecto todo cuelga de `C:\ProgramData\EdgeGuard\Node` (carpeta que crea el instalador).
+Las dos rutas se configuran **en sitios distintos** y deben apuntar a **directorios separados**.
+
+#### Base de datos — `appsettings.Production.json`
 
 ```json
 "ConnectionStrings": {
-  "NodeDatabase": "Data Source=C:/ProgramData/EdgeGuard/Node/data/edge-node.db"
-},
-"NodeStorage": {
-  "RootPath": "C:/ProgramData/EdgeGuard/Node/data",
-  "ArchivePath": "C:/ProgramData/EdgeGuard/Node/workspace"
+  "NodeDatabase": "Data Source=C:/ProgramData/EdgeGuard/Node/persistence/edge-node.db"
 }
 ```
 
 | Campo | Descripción |
 |-------|-------------|
-| `ConnectionStrings:NodeDatabase` | Ruta del archivo SQLite del nodo. |
-| `NodeStorage:RootPath` | Carpeta donde se almacenan los estudios recibidos. |
-| `NodeStorage:ArchivePath` | Carpeta de trabajo/archivo temporal. |
+| `ConnectionStrings:NodeDatabase` | Ruta del archivo SQLite del nodo. **Usa siempre una ruta absoluta**: una ruta relativa se resuelve contra el directorio de trabajo del proceso, que para un servicio de Windows es `C:\Windows\System32`. |
 
-> Si cambias estas rutas a otra unidad o carpeta, asegúrate de que **la cuenta del servicio tenga permisos de escritura** sobre ellas.
+También puede fijarse con la variable de entorno `EDGEGUARD_NODE_DB_PATH`, que tiene prioridad sobre el `appsettings`.
+
+#### Almacenamiento DICOM — ajuste del nodo
+
+La carpeta donde se guardan los estudios recibidos **no** es una clave de `appsettings`: es el ajuste `storage.root_path`, que vive en la configuración del nodo (categoría `Storage`) y se administra desde el Hub como cualquier otro ajuste. Su valor de fábrica es `./data`, que se resuelve **junto al ejecutable del servicio** — por ejemplo `C:\EdgeGuard\Node\data` si extrajiste el `.zip` ahí.
+
+Para dejar los estudios en otra unidad o carpeta, cambia ese ajuste a una ruta absoluta (por ejemplo `D:\EdgeGuard\dicom`).
+
+> **La base de datos no puede vivir dentro de la carpeta de estudios.** El nodo lo verifica al arrancar y en Producción **se niega a iniciar** si se solapan: la medición del espacio recorre la carpeta de estudios y contaría el archivo SQLite como carga DICOM purgable, de modo que la limpieza de emergencia borraría estudios para aliviar una presión que no puede aliviar. La convención es una carpeta `persistence\` **hermana** de la de estudios, nunca dentro.
+
+> Si cambias cualquiera de las dos rutas, asegúrate de que **la cuenta del servicio tenga permisos de escritura** sobre ellas.
 
 ### Logs y diagnóstico — sección `Diagnostics`
 

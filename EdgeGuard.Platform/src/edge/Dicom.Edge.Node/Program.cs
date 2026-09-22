@@ -2,11 +2,13 @@ using Dicom.Edge.Node;
 using Dicom.Edge.Common.Resilience;
 using Dicom.Edge.Diagnostics.Bootstrap;
 using Dicom.Edge.Diagnostics.Extensions;
+using Dicom.Edge.Diagnostics.HealthChecks;
 using Dicom.Edge.Node.Api;
 using Dicom.Edge.Node.Configuration;
 using Dicom.Edge.Node.DicomServer;
 using Dicom.Edge.Node.Persistence.Configuration;
 using Dicom.Edge.Node.Persistence.Extensions;
+using Dicom.Edge.Node.Persistence.Storage;
 using Dicom.Edge.Node.Processing;
 using Dicom.Edge.Node.Queue;
 using Dicom.Edge.Node.Router;
@@ -15,6 +17,7 @@ using Dicom.Edge.Node.Storage.Extensions;
 using Dicom.Edge.Node.Worklist;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 BootstrapLogger.Initialize(NodeConstants.BootstrapLogPath);
@@ -42,8 +45,29 @@ try
           ?? NodeConstants.DefaultConnectionString;
 
     // ── Las rutas de base y de DICOM no pueden solaparse ──────────────────
-    var dicomRootPath = builder.Configuration.GetValue<string>("NodeStorage:RootPath");
-    if (StoragePathGuard.Validate(sqliteConnectionString, dicomRootPath ?? string.Empty) is { } pathError)
+    // Hay dos candidatas a raíz efectiva y se comprueban las dos, porque cuál gana
+    // depende de algo que aquí todavía no se sabe: la fila storage.root_path manda en un
+    // nodo ya registrado, y el valor desplegado (NodeStorage:RootPath) manda mientras no
+    // lo esté, porque NodeSettingsDeploymentHydrator lo reescribe en cada arranque. Como
+    // esto corre antes de construir el host —y antes de que exista la base en una
+    // instalación nueva—, validar solo una dejaría pasar el caso real la mitad de las
+    // veces. Rechazar si CUALQUIERA de las dos se solapa es lo conservador y lo correcto.
+    var storageRootCandidates = new[]
+        {
+            NodeStorageRoot.ReadConfigured(sqliteConnectionString),
+            builder.Configuration.GetValue<string>(NodeStorageRoot.DeployedConfigPath),
+        }
+        .Where(v => !string.IsNullOrWhiteSpace(v))
+        .Select(v => NodeStorageRoot.Resolve(v, builder.Environment.ContentRootPath))
+        .DefaultIfEmpty(NodeStorageRoot.Resolve(null, builder.Environment.ContentRootPath))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    var dicomRootPath = storageRootCandidates[0];
+
+    if (storageRootCandidates
+            .Select(root => StoragePathGuard.Validate(sqliteConnectionString, root))
+            .FirstOrDefault(error => error is not null) is { } pathError)
     {
         // En desarrollo se avisa y se sigue; en producción es motivo de no arrancar,
         // porque el daño (purga de estudios) es silencioso y acumulativo.
@@ -78,6 +102,11 @@ try
 
     // ── Storage (local file system, DICOM file writer) ───────────────────
     builder.Services.AddEdgeStorage();
+
+    // El chequeo de almacenamiento vigila la raíz DICOM efectiva, no una ruta fija de
+    // appsettings: en el nodo la decide storage.root_path y el Hub puede moverla.
+    builder.Services.Replace(
+        ServiceDescriptor.Singleton<IStorageHealthLocation, NodeStorageHealthLocation>());
 
     // ── Hub Configuration Sync (HTTP client, config pull, heartbeat) ─────
     builder.Services.AddNodeConfiguration(builder.Configuration);
@@ -115,6 +144,14 @@ try
     builder.Services.AddHostedService<Worker>();
 
     var app = builder.Build();
+
+    // Las dos rutas de datos, resueltas, en el log de arranque. Son la parte del
+    // despliegue más fácil de dar por supuesta y más difícil de verificar sin entrar al
+    // servidor — y la raíz DICOM se configura por base, no por appsettings.
+    app.Logger.LogInformation(
+        "Rutas del nodo — base de datos: {DbPath} | almacenamiento DICOM: {DicomRoot}",
+        StoragePathGuard.DatabaseFile(sqliteConnectionString) ?? "(en memoria)",
+        dicomRootPath);
 
     // ── Diagnostics middleware pipeline (order matters) ───────────────────
     app.UseCorrelationId();

@@ -14,4 +14,11 @@ public static class ConfigSectionNames
     public const string PacsSender       = "PacsSender";
     public const string PacsCEcho        = "PacsCEcho";
     public const string PacsDestination  = "PacsDestination";
+
+    /// <summary>
+    /// Sección de la configuración desplegada que fija la raíz de almacenamiento DICOM.
+    /// No la lee nadie en runtime —la raíz efectiva es la fila <c>storage.root_path</c>—;
+    /// es el valor que <c>NodeSettingsDeploymentHydrator</c> copia a esa fila al arrancar.
+    /// </summary>
+    public const string NodeStorage   = "NodeStorage";
 }

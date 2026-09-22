@@ -31,9 +31,14 @@ public static class ConfigurationExtensions
 
         services.AddHttpClient<IHubSyncClient, HubSyncClient>((sp, client) =>
         {
-            var opts = configuration
-                .GetSection(HubConnectionOptions.SectionName)
-                .Get<HubConnectionOptions>() ?? new HubConnectionOptions();
+            // Desde IOptions, no reenlazando la sección a mano. Reenlazarla se salta
+            // el PostConfigure de arriba y, sobre todo, al validador: con HubBaseUrl
+            // vacío este delegado lanzaba un UriFormatException ("The URI is empty")
+            // con traza de DI, en lugar del mensaje del validador que nombra la clave
+            // y dice dónde ponerla. La dirección vacía es justo el caso de un nodo
+            // desplegado sin que el instalador escribiera su configuración, así que
+            // es el mensaje que más veces se va a leer.
+            var opts = sp.GetRequiredService<IOptions<HubConnectionOptions>>().Value;
 
             client.BaseAddress = new Uri(opts.HubBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
