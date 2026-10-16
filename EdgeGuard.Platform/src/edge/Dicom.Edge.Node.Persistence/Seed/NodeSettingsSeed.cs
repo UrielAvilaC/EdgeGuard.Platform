@@ -125,7 +125,7 @@ internal static class NodeSettingsSeed
         Row(NodeSettingKeys.Security.AuditRetentionDays, "365",   Cat.Security, "Audit Log Retention (days)",      VT.Int),
 
         // ── Storage ──────────────────────────────────────────────────────────
-        Row(NodeSettingKeys.Storage.RootPath, "./data", Cat.Storage, "DICOM Storage Root Path", VT.String),
+        Row(NodeSettingKeys.Storage.RootPath, "C:/ProgramData/EdgeGuard/Node/data", Cat.Storage, "DICOM Storage Root Path", VT.String),
         Row(NodeSettingKeys.Storage.LimitMb,  "102400", Cat.Storage, "Storage Limit (MB, 0 = sin límite)", VT.Int),
 
         // ── PACS Sender ──────────────────────────────────────────────────────

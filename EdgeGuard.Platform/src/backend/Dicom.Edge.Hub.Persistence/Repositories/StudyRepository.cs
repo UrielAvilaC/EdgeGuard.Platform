@@ -145,7 +145,8 @@ public class StudyRepository : IStudyRepository
             "o GetByPatientForUpdateAsync (GetByPatientAsync, GetByPatientIdAsync, GetByNodeAsync, " +
             "GetByStatusAsync, GetByPacsStatusAsync, GetByDateRangeAsync y las paginadas son de sólo lectura)");
 
-        _context.Studies.Update(study);
+        // Al estar la entidad ya rastreada por el DbContext, EF Core detecta sus mutaciones
+        // y colecciones agregadas naturalmente sin interferir con el token de concurrencia.
         return Task.CompletedTask;
     }
 

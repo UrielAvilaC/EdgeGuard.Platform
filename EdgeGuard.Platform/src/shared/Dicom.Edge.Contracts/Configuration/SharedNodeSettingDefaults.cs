@@ -92,7 +92,7 @@ public static class SharedNodeSettingDefaults
             E(K.Security.AuditRetentionDays, "365",   C.Security, "Audit Log Retention (days)",      V.Int),
 
             // ── Storage ─────────────────────────────────────────────────────
-            E(K.Storage.RootPath, "./data",  C.Storage, "DICOM Storage Root Path",     V.String),
+            E(K.Storage.RootPath, "C:/ProgramData/EdgeGuard/Node/data",  C.Storage, "DICOM Storage Root Path",     V.String),
             E(K.Storage.LimitMb,  "102400",  C.Storage, "Storage Limit (MB, 0 = sin límite)", V.Int),
 
             // ── PACS Sender ─────────────────────────────────────────────────

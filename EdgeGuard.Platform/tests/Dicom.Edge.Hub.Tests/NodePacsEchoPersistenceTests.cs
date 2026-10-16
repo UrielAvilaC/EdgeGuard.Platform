@@ -244,4 +244,41 @@ public class NodePacsEchoPersistenceTests : IClassFixture<HubSqliteFixture>
         await contexto.SaveChangesAsync();
         return nodo.Id;
     }
+
+    [Fact]
+    public async Task AsignarPacsANodoExistente_GuardaLaAsignacion()
+    {
+        var pacs = await SembrarPacs("PACS_TEST");
+        string nodeId;
+        await using (var contexto = _db.NewContext())
+        {
+            var nodo = Node.Create(
+                name: "NODO-EXISTENTE",
+                aeTitle: AeTitle.Create("NDEXIST1"),
+                ipAddress: "127.0.0.1",
+                port: 104);
+            contexto.Nodes.Add(nodo);
+            await contexto.SaveChangesAsync();
+            nodeId = nodo.Id;
+        }
+
+        await using (var contexto = _db.NewContext())
+        {
+            var nodeRepo = new NodeRepository(contexto);
+            var node = await nodeRepo.GetWithPacsAssignmentsAsync(nodeId);
+            Assert.NotNull(node);
+            node.AssignPacs(pacs.Id);
+            await nodeRepo.UpdateAsync(node);
+            await contexto.SaveChangesAsync();
+        }
+
+        await using (var verificacion = _db.NewContext())
+        {
+            var asignacion = await verificacion.NodePacsAssignments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.NodeId == nodeId && a.PacsId == pacs.Id);
+            Assert.NotNull(asignacion);
+        }
+    }
 }
+

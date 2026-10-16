@@ -41,6 +41,7 @@ public sealed class NodeConfigurationService(
     public async Task<bool> UpdateSettingAsync(
         string nodeId, string settingKey, string newValue, CancellationToken ct = default)
     {
+        await EnsureInitializedAsync(nodeId, ct);
         var profile = await repository.GetByNodeAndKeyAsync(nodeId, settingKey, ct);
         if (profile is null)
         {
@@ -146,6 +147,8 @@ public sealed class NodeConfigurationService(
     public async Task<BatchUpdateNodeSettingsResponse> UpdateBatchAsync(
         string nodeId, BatchUpdateNodeSettingsRequest request, CancellationToken ct = default)
     {
+        await EnsureInitializedAsync(nodeId, ct);
+
         var updated = 0;
         var notFound = 0;
         var failedKeys = new List<string>();

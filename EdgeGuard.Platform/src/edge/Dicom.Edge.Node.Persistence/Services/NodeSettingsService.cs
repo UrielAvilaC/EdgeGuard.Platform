@@ -315,7 +315,7 @@ public sealed class NodeSettingsService(
     {
         var d = await GetCategoryAsync(NodeSettingCategories.Storage, ct);
         return new StorageConfig(
-            RootPath: S(d, NodeSettingKeys.Storage.RootPath, "./data"),
+            RootPath: S(d, NodeSettingKeys.Storage.RootPath, "C:/ProgramData/EdgeGuard/Node/data"),
             LimitMb:  I(d, NodeSettingKeys.Storage.LimitMb,  102_400));
     }
 

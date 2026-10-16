@@ -26,7 +26,7 @@
       Al sacar una versión, este número y el del nombre del .zip
       (`edgeguard-hub-<versión>.zip`) se cambian juntos.
     -->
-    <Version>1.4.1</Version>
+    <Version>1.4.2</Version>
 
     <!-- .NET analyzers (on by default for the .NET 10 SDK) at the latest rule set. -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
