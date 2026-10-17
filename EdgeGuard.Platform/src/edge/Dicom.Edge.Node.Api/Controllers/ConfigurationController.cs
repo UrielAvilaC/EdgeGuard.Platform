@@ -42,13 +42,13 @@ public sealed class ConfigurationController(
 
             await settingsService.ApplyBatchAsync(payload.Settings, ct);
 
-            // Update system metadata keys
-            await settingsService.SetAsync(
-                NodeSettingKeys.System.ConfigVersion, payload.ConfigVersion, ct);
-            await settingsService.SetAsync(
-                NodeSettingKeys.System.LastConfigAppliedUtc, DateTime.UtcNow.ToString("O"), ct);
-            await settingsService.SetAsync(
-                NodeSettingKeys.System.LastConfigSource, ConfigSourceHub, ct);
+            // La versión aplicada es lo único que le permite al Hub distinguir "el nodo
+            // ya tiene esto" de "sigue pendiente". Va por RecordConfigSyncAsync y no por
+            // SetAsync porque las filas system.* son solo-lectura para el Hub y SetAsync
+            // las rechazaba en silencio: la configuración se aplicaba y la pantalla
+            // seguía diciendo «Pendiente de aplicar» para siempre.
+            await settingsService.RecordConfigSyncAsync(
+                payload.ConfigVersion, ConfigSourceHub, ct);
 
             await settingsService.ReloadAsync(ct);
 

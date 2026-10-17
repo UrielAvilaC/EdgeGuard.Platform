@@ -11,39 +11,56 @@ namespace Dicom.Edge.Diagnostics.HealthChecks;
 public sealed class StorageHealthCheck : IHealthCheck
 {
     private readonly long _minAvailableBytes;
-    private readonly string _storagePath;
+    private readonly string _configuredPath;
+    private readonly IStorageHealthLocation _location;
 
-    public StorageHealthCheck(IOptions<HealthCheckThresholdOptions> healthOptions)
+    public StorageHealthCheck(
+        IOptions<HealthCheckThresholdOptions> healthOptions,
+        IStorageHealthLocation location)
     {
         var opts = healthOptions.Value;
         _minAvailableBytes = opts.StorageMinAvailableMb * 1024 * 1024;
-        _storagePath = string.IsNullOrWhiteSpace(opts.StoragePath)
+        _configuredPath = string.IsNullOrWhiteSpace(opts.StoragePath)
             ? global::System.Environment.CurrentDirectory
             : opts.StoragePath;
+        _location = location;
     }
 
-    public Task<HealthCheckResult> CheckHealthAsync(
+    public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
+        // La ruta se resuelve en cada chequeo: puede cambiar en caliente y el valor
+        // configurado es solo el respaldo para cuando no hay forma de averiguarla.
+        string storagePath;
         try
         {
-            var fullPath = Path.GetFullPath(_storagePath);
+            storagePath = await _location.GetPathAsync(cancellationToken) is { Length: > 0 } path
+                ? path
+                : _configuredPath;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            storagePath = _configuredPath;
+        }
+
+        try
+        {
+            var fullPath = Path.GetFullPath(storagePath);
             var root = Path.GetPathRoot(fullPath);
 
             if (string.IsNullOrEmpty(root))
             {
-                return Task.FromResult(HealthCheckResult.Unhealthy(
+                return HealthCheckResult.Unhealthy(
                     "Cannot determine storage root path.",
-                    data: new Dictionary<string, object> { ["ConfiguredPath"] = _storagePath }));
+                    data: new Dictionary<string, object> { ["ConfiguredPath"] = storagePath });
             }
 
             var driveInfo = new DriveInfo(root);
 
             if (!driveInfo.IsReady)
             {
-                return Task.FromResult(HealthCheckResult.Unhealthy(
-                    $"Drive {root} is not ready."));
+                return HealthCheckResult.Unhealthy($"Drive {root} is not ready.");
             }
 
             var availableBytes = driveInfo.AvailableFreeSpace;
@@ -61,20 +78,19 @@ public sealed class StorageHealthCheck : IHealthCheck
 
             if (availableBytes < _minAvailableBytes)
             {
-                return Task.FromResult(HealthCheckResult.Degraded(
+                return HealthCheckResult.Degraded(
                     $"Storage is low: {availableBytes / (1024 * 1024)} MB available " +
                     $"(threshold: {_minAvailableBytes / (1024 * 1024)} MB).",
-                    data: data));
+                    data: data);
             }
 
-            return Task.FromResult(HealthCheckResult.Healthy(
+            return HealthCheckResult.Healthy(
                 $"Storage OK: {availableBytes / (1024 * 1024)} MB available.",
-                data));
+                data);
         }
         catch (Exception ex)
         {
-            return Task.FromResult(HealthCheckResult.Unhealthy(
-                "Storage health check failed.", ex));
+            return HealthCheckResult.Unhealthy("Storage health check failed.", ex);
         }
     }
 }

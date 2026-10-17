@@ -401,14 +401,23 @@ FodyWeavers.xsd
 *.sln.iml
 .idea/
 
-# ── Instalador del Hub ───────────────────────────────────────────────────────
-# setup/hub/bin y setup/hub/log chocan con las reglas [Bb]in/ y [Ll]og/ de arriba,
+# ── Instaladores ─────────────────────────────────────────────────────────────
+# setup/*/bin y setup/*/log chocan con las reglas [Bb]in/ y [Ll]og/ de arriba,
 # que excluyen cualquier carpeta con esos nombres. Hay que re-incluir el
 # directorio ANTES que su contenido: git no desciende a un directorio excluido,
 # de modo que negar solo los archivos no bastaria.
 !setup/hub/bin/
 !setup/hub/bin/**
 !setup/hub/log/
+!setup/node/bin/
+!setup/node/bin/**
+!setup/node/log/
+
+# EdgeGuard.Setup.psm1 vive en setup/common/ y Seal-Version.ps1 lo copia al bin/
+# de cada instalador al empaquetar. La copia es artefacto, no fuente: versionarla
+# seria garantizar que los dos instaladores acaben con modulos distintos.
+setup/hub/bin/EdgeGuard.Setup.psm1
+setup/node/bin/EdgeGuard.Setup.psm1
 
 # Artefactos binarios, logs de ejecucion y configuracion con secretos.
 setup/hub/data/*
@@ -418,8 +427,16 @@ setup/hub/log/*
 !setup/hub/log/.gitkeep
 setup/hub/hub-install.psd1
 
-# Paquete del instalador del Hub: >100 MB, excede el limite de GitHub.
+setup/node/data/*
+!setup/node/data/.gitkeep
+!setup/node/data/README.md
+setup/node/log/*
+!setup/node/log/.gitkeep
+setup/node/node-install.psd1
+
+# Paquetes de los instaladores: >100 MB, exceden el limite de GitHub.
 setup/hub/install.zip
+setup/node/install.zip
 
 # ── Manuales del cliente ─────────────────────────────────────────────────────
 # Los PDF si se versionan: son el entregable. El HTML intermedio que deja

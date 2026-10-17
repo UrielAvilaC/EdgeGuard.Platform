@@ -1,0 +1,17 @@
+{
+    "version":  "1.4.2",
+    "commit":  "5d6e245f336c5acb53d17b74b92d1086a5ba27eb",
+    "arbolLimpio":  false,
+    "sellado":  "2026-09-26T17:23:29.2698516-06:00",
+    "maquina":  "DESKTOP-KE049CN",
+    "paquetes":  {
+                     "Hub":  {
+                                 "zip":  "edgeguard-hub-1.4.2.zip",
+                                 "hashes":  {
+                                                "dotnet-hosting-10.0.11-win.exe":  "BE37354242659A50ED036ACE7049095B2B1DA91A3437EE64A17F1EF83695D171",
+                                                "edgeguard-hub-1.4.1.zip":  "CEC0A47954188EF0A8C96CDD022283ABCEE0754CF67283FAB4C2A748B163C67F",
+                                                "edgeguard-hub-1.4.2.zip":  "7FF5889C03102C96670DF972990F6D21C8C4778A4561B655847A6533E338066C"
+                                            }
+                             }
+                 }
+}

@@ -53,6 +53,12 @@ public static class HubApiRoutes
 /// <summary>
 /// HTTP route constants for Hub → Edge Node push communication.
 /// The Edge Node exposes these endpoints and the Hub dispatches data to them.
+///
+/// <para><b>Son relativos a <c>Node.ApiEndpoint</c>, que ya termina en <c>/api</c></b>
+/// (lo compone el propio nodo al registrarse: <c>http://{ip}:{puerto}/api</c>). Por eso
+/// ninguno lleva ese prefijo: repetirlo produce <c>/api/api/…</c> y un 404 que sólo se ve
+/// en el log del nodo, porque el Hub reporta el push como "el nodo rechazó la
+/// configuración".</para>
 /// </summary>
 public static class NodeApiRoutes
 {
@@ -68,7 +74,7 @@ public static class NodeApiRoutes
     /// of truth for probe paths on both the Hub and the node.
     /// </para>
     /// </summary>
-    public const string HealthCheck = "/api/health";
+    public const string HealthCheck = "/health";
 
     /// <summary>GET — Active worklist items on the node.</summary>
     public const string WorklistItems = "/dicom/worklist";
@@ -84,6 +90,9 @@ public static class NodeApiRoutes
 
     /// <summary>GET — Returns the node's current config version hash.</summary>
     public const string ConfigurationVersion = "/configuration/version";
+
+    /// <summary>POST — Hub pushes the node's DICOM routing rules.</summary>
+    public const string DicomRoutingRulesSync = "/dicom-routing-rules/sync";
 
     /// <summary>
     /// POST — Hub pushes active PACS destinations to the node.

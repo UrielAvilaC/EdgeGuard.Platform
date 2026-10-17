@@ -30,4 +30,10 @@
     <Folder Include="wwwroot\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Lleva la cadena de conexión y el secreto JWT de desarrollo: no debe viajar en
+         ningún publicado, lo produzca Seal-Version.ps1 o un dotnet publish a mano. -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
 </Project>

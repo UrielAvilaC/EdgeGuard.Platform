@@ -2,6 +2,7 @@ using Dicom.Edge.Abstractions.Persistence;
 using Dicom.Edge.Common.Filters;
 using Dicom.Edge.Common.Pagination;
 using Dicom.Edge.Contracts.Configuration;
+using Dicom.Edge.Contracts.Hub;
 using Dicom.Edge.Hub.Application.NodeConfiguration;
 using Dicom.Edge.Hub.Domain.Aggregates.NodeConfig;
 using Dicom.Edge.Hub.Domain.Aggregates.Nodes;
@@ -102,6 +103,69 @@ public class NodeConfigurationSeedTests
 
         Assert.Equal("CLINICA_01", repo.Valor("nodo-1", ClaveAe));
         Assert.Equal(SharedNodeSettingDefaults.All.Count, repo.Perfiles.Count);
+    }
+
+    /// <summary>
+    /// Un nodo dado de alta con un catálogo viejo tiene filas, pero no todas. El sembrado
+    /// se saltaba entero a esos nodos, así que un ajuste añadido después no llegaba nunca:
+    /// no salía en la pantalla de configuración y cualquier intento de guardarlo volvía
+    /// como clave desconocida.
+    /// </summary>
+    [Fact]
+    public async Task Un_nodo_con_perfil_incompleto_recibe_las_claves_que_le_faltan()
+    {
+        var (servicio, repo) = Construir();
+        var vieja = SharedNodeSettingDefaults.All[0];
+
+        await repo.AddRangeAsync([NodeConfigurationProfile.CreateDefault(
+            "nodo-1", vieja.Key, "valor-del-operador",
+            vieja.Category, vieja.DisplayName, vieja.ValueType)]);
+
+        await servicio.InitializeNodeDefaultsAsync("nodo-1");
+
+        Assert.Equal(SharedNodeSettingDefaults.All.Count, repo.Perfiles.Count);
+        foreach (var entrada in SharedNodeSettingDefaults.All.Skip(1))
+            Assert.Equal(entrada.DefaultValue, repo.Valor("nodo-1", entrada.Key));
+    }
+
+    [Fact]
+    public async Task El_relleno_no_pisa_lo_que_el_operador_ya_configuro()
+    {
+        var (servicio, repo) = Construir();
+        var vieja = SharedNodeSettingDefaults.All[0];
+
+        await repo.AddRangeAsync([NodeConfigurationProfile.CreateDefault(
+            "nodo-1", vieja.Key, "valor-del-operador",
+            vieja.Category, vieja.DisplayName, vieja.ValueType)]);
+
+        await servicio.InitializeNodeDefaultsAsync("nodo-1");
+
+        Assert.Equal("valor-del-operador", repo.Valor("nodo-1", vieja.Key));
+    }
+
+    /// <summary>
+    /// Guardar y aplicar se cortaba entero si una sola clave del lote no existía para ese
+    /// nodo: el batch la devolvía como fallo y la pantalla se negaba a aplicar lo que sí
+    /// se había guardado. Una clave inexistente no pierde nada de lo escrito.
+    /// </summary>
+    [Fact]
+    public async Task Una_clave_inexistente_no_se_reporta_como_fallo_de_escritura()
+    {
+        var (servicio, _) = Construir();
+        await servicio.InitializeNodeDefaultsAsync("nodo-1");
+
+        var resultado = await servicio.UpdateBatchAsync("nodo-1", new BatchUpdateNodeSettingsRequest
+        {
+            Settings =
+            [
+                new NodeSettingUpdateItem(ClaveAe, "CLINICA_01"),
+                new NodeSettingUpdateItem("clave.que.no.existe", "x"),
+            ],
+        });
+
+        Assert.Equal(1, resultado.Updated);
+        Assert.Empty(resultado.FailedKeys);
+        Assert.Equal(["clave.que.no.existe"], resultado.NotFoundKeys);
     }
 
     [Fact]

@@ -23,6 +23,26 @@ namespace Dicom.Edge.Node.Persistence.Seed;
 internal static class NodeSettingsHubHydrator
 {
     /// <summary>
+    /// La dirección con la que el nodo alcanza al Hub. Estas filas siguen a appsettings
+    /// siempre, también en un nodo ya registrado, al contrario que el resto de hub.*.
+    ///
+    /// <para>La excepción de "una vez registrado manda la base" existe para que sobrevivan
+    /// las ediciones del operador, y a estas tres nadie puede editarlas: el Hub las tiene
+    /// vetadas (<c>NodeSettingsService.NodeOwnedKeys</c> — dejarle reescribir la dirección
+    /// significaría que un valor equivocado corta el único canal por el que podría
+    /// corregirse) y el nodo no expone dónde cambiarlas. Su único autor es el appsettings
+    /// desplegado, así que la copia en base sólo puede quedarse vieja: mover el Hub de
+    /// puerto dejaba al nodo marcando el anterior para siempre, con el log lleno de
+    /// conexión rechazada y ninguna pantalla donde se viera de dónde salía ese puerto.</para>
+    /// </summary>
+    private static readonly HashSet<string> TransportAddressKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        NodeSettingKeys.Hub.Protocol,
+        NodeSettingKeys.Hub.Hostname,
+        NodeSettingKeys.Hub.Port,
+    };
+
+    /// <summary>
     /// Writes the deployed <c>HubConnection</c> values into the <c>hub.*</c> rows.
     /// <list type="bullet">
     ///   <item><b>Unregistered node</b> (no <c>hub.api_key</c>): every row backed by the deployed
@@ -69,7 +89,8 @@ internal static class NodeSettingsHubHydrator
 
         foreach (var row in rows)
         {
-            if (registered && !string.IsNullOrWhiteSpace(row.Value)) continue;
+            if (registered && !string.IsNullOrWhiteSpace(row.Value) && !TransportAddressKeys.Contains(row.Key))
+                continue;
             if (!values.TryGetValue(row.Key, out var value)) continue;
             if (string.Equals(row.Value, value, StringComparison.Ordinal)) continue;
 
@@ -89,7 +110,7 @@ internal static class NodeSettingsHubHydrator
 
         logger.LogInformation(
             registered
-                ? "Hub settings hydrated from appsettings — {Count} empty row(s) filled: [{Settings}]"
+                ? "Hub settings hydrated from appsettings — {Count} row(s) written (empty rows + the Hub address): [{Settings}]"
                 : "Node is not registered — {Count} hub.* row(s) reset from appsettings: [{Settings}]",
             written.Count, string.Join(", ", written));
 

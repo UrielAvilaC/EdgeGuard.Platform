@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Dicom.Edge.Contracts.Configuration;
 
 /// <summary>
@@ -12,6 +14,17 @@ public static class SharedNodeSettingDefaults
 
     /// <summary>All default entries (~66 settings).</summary>
     public static IReadOnlyList<NodeSettingDefaultEntry> All => _defaults.Value;
+
+    /// <summary>
+    /// Cuota de workspace con la que nace un nodo, en MB (100 GB).
+    ///
+    /// <para>El valor efectivo no vive en los perfiles sino en <c>nodes.storage_limit_mb</c>,
+    /// y ahí <c>null</c> significa "sin límite" — el operador vació el campo a propósito.
+    /// Un nodo recién dado de alta no ha elegido nada, así que nace con este número en vez
+    /// de con <c>null</c>: si no, el sync le bajaba un <c>0</c> y lo dejaba sin cuota sin
+    /// que nadie lo hubiera pedido, mientras la pantalla seguía mostrando este valor.</para>
+    /// </summary>
+    public const long DefaultStorageLimitMb = 102_400;
 
     private static IReadOnlyList<NodeSettingDefaultEntry> BuildAll()
     {
@@ -93,7 +106,11 @@ public static class SharedNodeSettingDefaults
 
             // ── Storage ─────────────────────────────────────────────────────
             E(K.Storage.RootPath, "C:/ProgramData/EdgeGuard/Node/data",  C.Storage, "DICOM Storage Root Path",     V.String),
-            E(K.Storage.LimitMb,  "102400",  C.Storage, "Storage Limit (MB, 0 = sin límite)", V.Int),
+            // Aquí había un "Storage Limit (MB)". Se quitó: la cuota vive en
+            // nodes.storage_limit_mb —lo dice BuildSyncPayloadAsync, que sobrescribe con
+            // ese valor lo que traiga el perfil— así que la fila era un campo editable sin
+            // ningún efecto, y además metía la clave dos veces en el hash de versión.
+            // Se edita en la pantalla del nodo, que es donde de verdad se guarda.
 
             // ── PACS Sender ─────────────────────────────────────────────────
             E(K.PacsSender.Enabled,                   "true",     C.PacsSender, "PACS Sender Enabled",       V.Bool),

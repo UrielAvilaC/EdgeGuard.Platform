@@ -161,8 +161,10 @@ export default class NodeConfigPage {
           this.pendingChanges.set(new Map());
           if ((result.failedKeys?.length ?? 0) > 0) {
             this.toast.error(`Guardado parcial. Claves con error: ${result.failedKeys.join(', ')}`);
-          } else if (result.notFound > 0) {
-            this.toast.success(`Guardado: ${result.updated}. Claves no encontradas: ${result.notFound}.`);
+          } else if ((result.notFoundKeys?.length ?? 0) > 0) {
+            this.toast.warning(
+              `Guardadas ${result.updated}. Este nodo no tiene: ${result.notFoundKeys.join(', ')}.`,
+            );
           } else {
             this.toast.success(`${result.updated} configuración(es) guardadas`);
           }
@@ -193,10 +195,18 @@ export default class NodeConfigPage {
           this.saving.set(false);
           this.pendingChanges.set(new Map());
 
+          // Sólo un fallo real de escritura corta el aplicar: si se siguiera adelante, el
+          // nodo recibiría una configuración distinta de la que el operador acaba de ver
+          // en pantalla. Una clave que este nodo no tiene no cambia nada de lo guardado,
+          // así que se avisa y se aplica igual — antes abortaba el flujo entero.
           if ((result.failedKeys?.length ?? 0) > 0) {
             this.toast.error(`Guardado parcial. Claves con error: ${result.failedKeys.join(', ')}. No se aplicará la configuración.`);
             this.loadConfig();
             return;
+          }
+
+          if ((result.notFoundKeys?.length ?? 0) > 0) {
+            this.toast.warning(`Este nodo no tiene: ${result.notFoundKeys.join(', ')}.`);
           }
 
           this.pushConfig();
@@ -267,17 +277,14 @@ export default class NodeConfigPage {
       .pushConfig(this.nodeId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (result) => {
+        next: () => {
           this.pushing.set(false);
 
-          // Un push fallido no es un error: la configuración quedó guardada y el
-          // nodo la recibirá por el reintento del outbox o por su propio pull.
-          // Antes esto pintaba un toast rojo mientras el cambio sí se aplicaba.
-          if (!result || result.success) {
-            this.toast.success('Configuración aplicada al nodo');
-          } else {
-            this.toast.info('Configuración guardada. Se aplicará en el próximo ciclo de sincronización.');
-          }
+          // Llegar aquí ya es el éxito: el Hub responde 400 si el nodo no aceptó el
+          // push, y eso cae en `error`. Antes se comprobaba `result.success`, un campo
+          // que la respuesta nunca trae, así que un push correcto también se anunciaba
+          // como pendiente de sincronizar.
+          this.toast.success('Configuración aplicada al nodo');
           this.loadConfig();
         },
         error: () => {

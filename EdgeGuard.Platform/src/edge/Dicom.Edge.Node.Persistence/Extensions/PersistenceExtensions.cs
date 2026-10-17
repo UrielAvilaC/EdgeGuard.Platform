@@ -214,6 +214,7 @@ internal sealed class PersistenceInitializerService(
 
         // ── Phase 2: Seed missing settings ───────────────────────────────────
         await NodeSettingsSeed.SeedMissingAsync(ctx,logger, cancellationToken);
+        await NodeSettingsSeed.PruneRetiredAsync(ctx, logger, cancellationToken);
         await Seed.ModalityCatalogSeed.SeedAsync(ctx, cancellationToken);
         logger.LogDebug("Seed check complete");
 
@@ -226,6 +227,14 @@ internal sealed class PersistenceInitializerService(
         // on every start; once registered, only empty rows are filled. Throws when the
         // Hub is enabled and appsettings carries no Hub address — there is no default.
         var hydrated = await NodeSettingsHubHydrator.HydrateFromConfigurationAsync(
+            ctx, configuration, logger, cancellationToken);
+
+        // ── Phase 2c: Hydrate deployment-owned rows from appsettings ─────────
+        // AE title, puertos y raíz de almacenamiento. A diferencia de las hub.*, estas
+        // filas se siembran con un valor de fábrica, así que sin este paso la siembra
+        // ganaría sobre la configuración desplegada y un nodo recién instalado arrancaría
+        // con el AE y los puertos genéricos. Misma regla de precedencia que arriba.
+        hydrated += await NodeSettingsDeploymentHydrator.HydrateFromConfigurationAsync(
             ctx, configuration, logger, cancellationToken);
 
         // ── Phase 3: Warm settings cache ─────────────────────────────────────

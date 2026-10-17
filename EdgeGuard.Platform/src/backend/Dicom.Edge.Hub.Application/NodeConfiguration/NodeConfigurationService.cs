@@ -150,7 +150,7 @@ public sealed class NodeConfigurationService(
         await EnsureInitializedAsync(nodeId, ct);
 
         var updated = 0;
-        var notFound = 0;
+        var notFoundKeys = new List<string>();
         var failedKeys = new List<string>();
 
         foreach (var item in request.Settings)
@@ -160,8 +160,10 @@ public sealed class NodeConfigurationService(
                 var profile = await repository.GetByNodeAndKeyAsync(nodeId, item.Key, ct);
                 if (profile is null)
                 {
-                    notFound++;
-                    failedKeys.Add(item.Key);
+                    // Clave inexistente ≠ escritura fallida. Contarla como fallo hacía que
+                    // la pantalla abortara el «Guardar y aplicar» completo por un ajuste
+                    // que este nodo simplemente no tiene.
+                    notFoundKeys.Add(item.Key);
                     logger.LogWarning("Batch update: setting {Key} not found for node {NodeId}", item.Key, nodeId);
                     continue;
                 }
@@ -183,13 +185,14 @@ public sealed class NodeConfigurationService(
             await SyncCatalogAeTitleAsync(nodeId, ct);
 
         logger.LogInformation(
-            "Batch update for node {NodeId}: Updated={Updated}, NotFound={NotFound}",
-            nodeId, updated, notFound);
+            "Batch update for node {NodeId}: Updated={Updated}, NotFound={NotFound}, Failed={Failed}",
+            nodeId, updated, notFoundKeys.Count, failedKeys.Count);
 
         return new BatchUpdateNodeSettingsResponse
         {
             Updated = updated,
-            NotFound = notFound,
+            NotFound = notFoundKeys.Count,
+            NotFoundKeys = notFoundKeys,
             FailedKeys = failedKeys
         };
     }
@@ -260,28 +263,47 @@ public sealed class NodeConfigurationService(
         return true;
     }
 
+    /// <summary>
+    /// Deja el perfil del nodo alineado con el catálogo: siembra las claves que le faltan
+    /// y no toca las que ya tiene.
+    ///
+    /// <para>Antes era todo-o-nada — si el nodo tenía aunque fuera una fila, no se hacía
+    /// nada. Eso dejaba fuera para siempre a los nodos dados de alta antes de que una
+    /// clave existiera: el ajuste no aparecía en la pantalla de configuración y, si algo
+    /// intentaba guardarlo, el batch lo devolvía como clave fallida y el guardado se
+    /// cortaba sin aplicar nada. Un ajuste nuevo sólo llegaba a nodos nuevos.</para>
+    ///
+    /// <para>Los overrides sólo gobiernan las claves que nacen en esta llamada. Reescribir
+    /// con ellos una fila existente pisaría lo que el operador ya configuró.</para>
+    /// </summary>
     public async Task InitializeNodeDefaultsAsync(
         string nodeId,
         IReadOnlyDictionary<string, string>? seedOverrides = null,
         CancellationToken ct = default)
     {
-        if (await repository.ExistsForNodeAsync(nodeId, ct))
-        {
-            logger.LogDebug("Node {NodeId} already has configuration profiles", nodeId);
-            return;
-        }
+        var existing = await repository.GetByNodeIdAsync(nodeId, ct);
+        var existingKeys = existing
+            .Select(p => p.SettingKey)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var profiles = SharedNodeSettingDefaults.All
+            .Where(d => !existingKeys.Contains(d.Key))
             .Select(d => NodeConfigurationProfile.CreateDefault(
                 nodeId, d.Key, SeedValueFor(d, seedOverrides), d.Category, d.DisplayName, d.ValueType))
             .ToList();
+
+        if (profiles.Count == 0)
+        {
+            logger.LogDebug("Node {NodeId} already has every catalogue setting", nodeId);
+            return;
+        }
 
         await repository.AddRangeAsync(profiles, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Initialized {Count} default config profiles for node {NodeId}",
-            profiles.Count, nodeId);
+            "Seeded {Count} config profile(s) for node {NodeId} ({Existing} already present)",
+            profiles.Count, nodeId, existingKeys.Count);
     }
 
     public async Task<string> ComputeConfigVersionAsync(
@@ -334,11 +356,10 @@ public sealed class NodeConfigurationService(
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    private async Task EnsureInitializedAsync(string nodeId, CancellationToken ct)
-    {
-        if (!await repository.ExistsForNodeAsync(nodeId, ct))
-            await InitializeNodeDefaultsAsync(nodeId, seedOverrides: null, ct);
-    }
+    // Sin el atajo de "¿tiene alguna fila?": ese atajo es justamente lo que impedía que
+    // un nodo antiguo recibiera las claves añadidas al catálogo después de su alta.
+    private Task EnsureInitializedAsync(string nodeId, CancellationToken ct)
+        => InitializeNodeDefaultsAsync(nodeId, seedOverrides: null, ct);
 
     /// <summary>
     /// Valor con el que nace un perfil: el override si la clave trae uno no vacío, si no

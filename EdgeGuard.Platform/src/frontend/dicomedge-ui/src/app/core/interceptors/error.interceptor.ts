@@ -6,13 +6,23 @@ import { catchError, throwError } from 'rxjs';
 import { ToastService } from '../services/toast.service';
 import { isApiError } from '../api/api-error.model';
 import { API_ROUTES } from '../api/api-routes';
+import { SKIP_ERROR_TOAST } from '../api/http-context.tokens';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
   const router = inject(Router);
 
+  // Peticiones cuyo fallo es parte del flujo normal: quien las lanza explica el
+  // resultado con sus propias palabras y el toast genérico sólo lo contradice.
+  // La redirección por 401 se mantiene: eso no es un mensaje, es sesión caducada.
+  const silenciar = req.context.get(SKIP_ERROR_TOAST);
+
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      if (silenciar && error.status !== 401) {
+        return throwError(() => error);
+      }
+
       if (error.status === 0) {
         toast.error('No se puede conectar con el servidor. Verifique su conexión.');
         return throwError(() => error);
