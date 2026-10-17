@@ -33,9 +33,11 @@
     Qué empaquetar: Hub, Node o All (por defecto).
 
 .PARAMETER Tag
-    Crea además la etiqueta de git 'v<versión>'. Exige un árbol limpio: una
-    etiqueta sobre cambios sin confirmar apunta a un commit que no contiene lo
-    que se empaquetó.
+    Crea además la etiqueta de git 'v<versión>'. Exige, desde el inicio, un
+    árbol limpio y el número ya estampado y confirmado: una etiqueta sobre
+    cambios sin confirmar apunta a un commit que no contiene lo que se empaquetó.
+    Por eso se sella primero sin -Tag, se confirma el número por PR, y se etiqueta
+    después desde el commit integrado.
 
 .PARAMETER DryRun
     Recorre todo sin escribir: dice qué número estamparía, qué compilaría y con
@@ -348,10 +350,13 @@ function New-Checksums {
     El manifiesto del sellado: qué versión, de qué commit, cuándo y con qué hashes.
 #>
 function New-VersionManifest {
-    param([string]$Version, [hashtable]$PorPaquete)
+    param([string]$Version, [hashtable]$PorPaquete, [hashtable]$Origen)
 
-    $commit = try { (& git -C $RepoPath rev-parse HEAD).Trim() } catch { $null }
-    $sucio  = try { [bool](& git -C $RepoPath status --porcelain) } catch { $false }
+    # El estado es el de ANTES de estampar: el propio sellado reescribe
+    # Directory.Build.props y version.json, así que medirlo aquí dejaba
+    # arbolLimpio en false en cualquier sellado que cambiara el número.
+    $commit = $Origen.Commit
+    $sucio  = $Origen.Sucio
 
     $manifiesto = [ordered]@{
         version    = $Version
@@ -382,23 +387,49 @@ function New-VersionManifest {
 
 <#
 .SYNOPSIS
-    Crea la etiqueta de git del sellado.
-#>
-function New-EtiquetaGit {
-    param([string]$Version)
+    Comprueba, ANTES de compilar nada, que se pueda etiquetar este sellado.
+.DESCRIPTION
+    Una etiqueta garantiza que el commit al que apunta contiene lo que se empaquetó.
+    Eso se cumple solo si (1) el árbol estaba limpio al empezar, y (2) el número ya
+    estaba estampado y confirmado: si el sellado lo estampa, el commit etiquetado
+    tiene el número anterior.
 
-    $sucio = [bool](& git -C $RepoPath status --porcelain)
-    if ($sucio) {
+    Se comprueba al inicio y no al final porque el sellado reescribe version.json
+    (versionado) antes de terminar: medir el árbol al final lo da siempre por sucio,
+    y -Tag fallaba después de haber compilado y empaquetado todo.
+#>
+function Assert-EtiquetaPosible {
+    param([string]$Version, [string]$VersionActual, [hashtable]$Origen)
+
+    if ($Origen.Sucio) {
         throw ("El árbol tiene cambios sin confirmar. Una etiqueta sobre un árbol sucio apunta a " +
                "un commit que NO contiene lo que se empaquetó, que es justo lo que la etiqueta " +
                "debería garantizar. Confirma los cambios y vuelve a ejecutar con -Tag.")
     }
 
+    if ($Version -ne $VersionActual) {
+        throw ("-Tag exige que el número ya esté estampado y confirmado ($VersionActual en " +
+               "Directory.Build.props, se pidió $Version). Estampa y confirma primero (sellado " +
+               "sin -Tag), y etiqueta después desde el commit ya integrado.")
+    }
+
     $etiqueta = "v$Version"
-    $existe = & git -C $RepoPath tag --list $etiqueta
-    if ($existe) {
+    if (& git -C $RepoPath tag --list $etiqueta) {
         throw "La etiqueta '$etiqueta' ya existe. Sellar dos veces la misma versión deja dos paquetes distintos con el mismo número."
     }
+}
+
+<#
+.SYNOPSIS
+    Crea la etiqueta de git del sellado.
+.DESCRIPTION
+    Las precondiciones ya se comprobaron al inicio (Assert-EtiquetaPosible). HEAD no
+    se movió durante el sellado, así que la etiqueta apunta al commit que se empaquetó.
+#>
+function New-EtiquetaGit {
+    param([string]$Version)
+
+    $etiqueta = "v$Version"
 
     Invoke-Accion "git tag $etiqueta" {
         & git -C $RepoPath tag -a $etiqueta -m "EdgeGuard $Version"
@@ -407,6 +438,7 @@ function New-EtiquetaGit {
 
     Write-Host ""
     Write-Host "  Etiqueta $etiqueta creada en local. Publícala con: git push origin $etiqueta" -ForegroundColor Yellow
+    Write-Host "  version.json quedó modificado: es el registro de este sellado; confírmalo en un cambio aparte." -ForegroundColor DarkGray
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -436,6 +468,16 @@ if ($DryRun) {
 }
 
 $seleccion = if ($Target -eq 'All') { $Paquetes.Keys } else { @($Target) }
+
+# Estado de git ANTES de tocar nada. Lo que el sellado escribe después (el número,
+# version.json) no cuenta como "cambios sin confirmar" del árbol que se empaqueta.
+$origenCommit = try { (& git -C $RepoPath rev-parse HEAD).Trim() } catch { $null }
+$origenSucio  = try { [bool](& git -C $RepoPath status --porcelain) } catch { $false }
+$origen = @{ Commit = $origenCommit; Sucio = $origenSucio }
+
+if ($Tag) {
+    Assert-EtiquetaPosible -Version $Version -VersionActual $versionActual -Origen $origen
+}
 
 # ── 1. Estampar ──────────────────────────────────────────────────────────────
 if ($Version -ne $versionActual) {
@@ -472,7 +514,7 @@ foreach ($clave in $seleccion) {
 
 # ── 5. Manifiesto ────────────────────────────────────────────────────────────
 Write-Paso '5 · Manifiesto del sellado'
-New-VersionManifest -Version $Version -PorPaquete $resumen
+New-VersionManifest -Version $Version -PorPaquete $resumen -Origen $origen
 
 # ── Etiqueta ─────────────────────────────────────────────────────────────────
 if ($Tag) {
