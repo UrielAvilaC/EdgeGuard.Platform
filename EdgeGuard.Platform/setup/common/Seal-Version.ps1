@@ -155,7 +155,11 @@ function Get-VersionActual {
 function Set-VersionEnFuentes {
     param([string]$Nueva)
 
-    $props = Get-Content -LiteralPath $BuildProps -Raw
+    # Lectura en UTF-8 explícito: Get-Content de PS 5.1 toma un archivo sin BOM como
+    # ANSI, y al reescribirlo en UTF-8 cada tilde de los comentarios queda corrompida.
+    $utf8 = New-Object System.Text.UTF8Encoding $false
+
+    $props = [System.IO.File]::ReadAllText($BuildProps, $utf8)
     $actualizado = $props -replace '<Version>\d+\.\d+\.\d+</Version>', "<Version>$Nueva</Version>"
 
     Invoke-Accion "Directory.Build.props → <Version>$Nueva</Version>" {
@@ -165,7 +169,7 @@ function Set-VersionEnFuentes {
     } | Out-Null
 
     if (Test-Path -LiteralPath $SpaPackage) {
-        $pkg = Get-Content -LiteralPath $SpaPackage -Raw
+        $pkg = [System.IO.File]::ReadAllText($SpaPackage, $utf8)
         # Solo la primera aparición: es la del propio paquete. Las de 'dependencies'
         # son versiones de terceros y pisarlas rompería el npm ci.
         $pkgActualizado = [regex]::Replace(
@@ -315,10 +319,13 @@ function New-Checksums {
     # Fuera el propio checksums, la documentación y los marcadores de git: declarar un
     # .gitkeep vacío no verifica nada y ensucia el archivo que el operador lee cuando una
     # instalación aborta por integridad.
+    # Solo se firma lo que el instalador despliega. Un .psd1 es configuración de
+    # sede, no artefacto: declararlo haría fallar la verificación de integridad en
+    # cuanto alguien lo editara — que es precisamente para lo que está ahí.
     $artefactos = @(Get-ChildItem -LiteralPath $Paquete.Destino -File |
         Where-Object {
             $_.Name -ne 'checksums.sha256' -and
-            $_.Extension -ne '.md' -and
+            $_.Extension -notin @('.md', '.psd1') -and
             -not $_.Name.StartsWith('.')
         } |
         Sort-Object Name)
