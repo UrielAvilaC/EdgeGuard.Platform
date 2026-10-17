@@ -20,7 +20,12 @@ el Hub aplica las migraciones de EF al arrancar.
 
 ```powershell
 # 1. Copiar la carpeta al servidor y depositar el paquete
-#    setup\hub\data\edgeguard-hub-1.2.0.zip  (ver data\README.md)
+#    setup\hub\data\edgeguard-hub-1.4.2.zip  (ver data\README.md)
+#    Desbloquear archivos descargados (evita bloqueos de Zone.Identifier):
+Get-ChildItem -Recurse | Unblock-File
+
+# Si la ejecución de scripts está deshabilitada en el servidor:
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 
 # 2. Configurar
 Copy-Item hub-install.example.psd1 hub-install.psd1

@@ -94,6 +94,17 @@ try
     builder.Host.UseEdgeLogging(builder.Configuration);
     builder.Services.AddEdgeDiagnostics(builder.Configuration);
 
+    // El health check de almacenamiento debe monitorear la ruta real de DICOM configurada,
+    // no el directorio de ejecución del servicio de Windows ni un fallback relativo.
+    builder.Services.PostConfigure<Dicom.Edge.Diagnostics.Configuration.HealthCheckThresholdOptions>(options =>
+    {
+        var configuredStorage = builder.Configuration.GetValue<string>("NodeStorage:RootPath");
+        if (!string.IsNullOrWhiteSpace(configuredStorage))
+        {
+            options.StoragePath = configuredStorage;
+        }
+    });
+
     // ── Platform resilience pipelines (retry + circuit breaker via Polly v8) ─
     builder.Services.AddPlatformResilience(builder.Configuration);
 

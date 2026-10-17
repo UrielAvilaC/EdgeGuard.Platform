@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, output, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgOptimizedImage } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import { catchError, of } from 'rxjs';
 
 import { AuthStore } from '../../core/auth/store/auth.store';
+import { ApiClient } from '../../core/api/api-client';
 
 interface NavGroup {
   label: string;
@@ -63,10 +65,23 @@ const NAV_GROUPS: NavGroup[] = [
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.scss'
 })
-export class Sidebar {
+export class Sidebar implements OnInit {
   readonly navigated = output();
 
   private readonly authStore = inject(AuthStore);
+  private readonly api = inject(ApiClient);
+
+  protected readonly version = signal<string>('1.4.2');
+
+  ngOnInit(): void {
+    this.api.get<{ version?: string }>('/info').pipe(
+      catchError(() => of(null)),
+    ).subscribe((info) => {
+      if (info?.version) {
+        this.version.set(info.version);
+      }
+    });
+  }
 
   protected visibleGroups(): NavGroup[] {
     return NAV_GROUPS

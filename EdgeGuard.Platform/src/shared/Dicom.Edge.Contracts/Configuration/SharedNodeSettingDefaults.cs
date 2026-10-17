@@ -105,7 +105,7 @@ public static class SharedNodeSettingDefaults
             E(K.Security.AuditRetentionDays, "365",   C.Security, "Audit Log Retention (days)",      V.Int),
 
             // ── Storage ─────────────────────────────────────────────────────
-            E(K.Storage.RootPath, "./data",  C.Storage, "DICOM Storage Root Path",     V.String),
+            E(K.Storage.RootPath, "C:/ProgramData/EdgeGuard/Node/data",  C.Storage, "DICOM Storage Root Path",     V.String),
             // Aquí había un "Storage Limit (MB)". Se quitó: la cuota vive en
             // nodes.storage_limit_mb —lo dice BuildSyncPayloadAsync, que sobrescribe con
             // ese valor lo que traiga el perfil— así que la fila era un campo editable sin

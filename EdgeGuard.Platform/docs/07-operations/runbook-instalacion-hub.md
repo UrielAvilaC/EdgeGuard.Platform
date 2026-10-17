@@ -262,6 +262,14 @@ Nada más que colocar. Los artefactos ya vienen dentro de `data\`.
 > **Servidores sin salida a internet:** no hace falta ninguna descarga. El runtime
 > de Microsoft viaja en el paquete y el paso 02 lo instala desde `data\`.
 
+> **Desbloqueo de archivos descargados (Zone.Identifier):** si el paquete se descargó
+> por navegador o se copió a través de la red, Windows marca los archivos como
+> no confiables y bloquea la ejecución de scripts (`install.ps1 cannot be loaded. The file is not digitally signed`).
+> Desbloquee la carpeta completa antes de continuar:
+> ```powershell
+> Get-ChildItem -Path C:\Deploy\EdgeGuard\hub -Recurse | Unblock-File
+> ```
+
 ### 5.2 Completar el archivo de configuración
 
 Abra `hub-install.psd1`, que ya viene en la raíz del paquete:
@@ -307,12 +315,24 @@ Antes de ejecutar nada, confirme con los responsables:
 
 ## 6. Fase T-0 — Ejecución de la instalación
 
-### 6.1 Abrir una consola elevada
+### 6.1 Abrir una consola elevada y autorizar PowerShell
 
 El paso 01 **aborta** si la sesión no está elevada.
 
 ```powershell
 Start-Process powershell -Verb RunAs
+```
+
+Si las directivas del servidor restringen la ejecución de scripts (`cannot be loaded because running scripts is disabled on this system` o política `Restricted`/`AllSigned`), autorice la ejecución para la sesión actual con alcance `Process` (no modifica las GPO corporativas ni la política global del servidor):
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+```
+
+Alternativamente, puede iniciar directamente la consola autorizada:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass
 ```
 
 ### 6.2 Ensayo obligatorio — `-DryRun`
@@ -793,6 +813,8 @@ descifrables y cada nodo tiene que volver a autenticarse para que se le recompon
 
 | Síntoma | Causa | Acción |
 |---|---|---|
+| **00** — «la ejecución de scripts está deshabilitada» | Directiva de ejecución de PowerShell restrictiva (`Restricted`/`AllSigned`) | Ejecute `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force` en la sesión actual (§6.1) |
+| **00** — «no está firmado digitalmente» / bloqueo de procedencia | Windows bloqueó los archivos descargados de la red (`Zone.Identifier`) | Desbloquee el paquete con `Get-ChildItem -Path C:\Deploy\EdgeGuard\hub -Recurse \| Unblock-File` (§5.1) |
 | **01** — «requiere una consola elevada» | Sesión sin privilegios | Abra PowerShell como administrador |
 | **01** — «no contiene wwwroot/index.html» | El paquete llegó sin la interfaz web | Defecto del paquete. **Solicite uno nuevo al proveedor**; no es reparable en el servidor |
 | **01** — «Checksum incorrecto» | Zip corrupto o distinto del declarado | Vuelva a copiarlo y regenere `checksums.sha256` |

@@ -89,7 +89,10 @@ public class NodeRepository : INodeRepository
             "GetByIdAsync, GetByNameAndIpAsync, GetWithPacsAssignmentsAsync o GetAllForUpdateAsync " +
             "(GetAllAsync, GetActiveNodesAsync, GetNodesWithApiKeyAsync y las paginadas son de sólo lectura)");
 
-        _context.Nodes.Update(node);
+        // Al estar la entidad ya rastreada por el DbContext, EF Core detecta sus mutaciones
+        // y colecciones agregadas naturalmente. Invocar DbSet.Update() sobre una entidad
+        // rastreada reasigna el grafo marcando entidades dependientes como Modified en vez de
+        // Added y resetea los valores originales del token de concurrencia.
         return Task.CompletedTask;
     }
 

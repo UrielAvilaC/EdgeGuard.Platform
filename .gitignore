@@ -100,3 +100,5 @@
 # Las reglas del instalador del Hub viven en EdgeGuard.Platform/.gitignore:
 # ese archivo declara [Bb]in/ y [Ll]og/ y tiene precedencia sobre este para las
 # rutas bajo EdgeGuard.Platform/, así que las negaciones deben estar allí.
+/EdgeGuard.Platform/dist
+/EdgeGuard.Platform/scripts
