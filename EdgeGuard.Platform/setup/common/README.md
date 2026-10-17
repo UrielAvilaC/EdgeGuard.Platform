@@ -1,11 +1,12 @@
 # `setup/common/` — lo que comparten los instaladores
 
-Dos piezas que usan tanto el instalador del Hub como el del nodo.
+Piezas que usan tanto el instalador del Hub como el del nodo.
 
 | Archivo | Qué es |
 |---|---|
 | `EdgeGuard.Setup.psm1` | La biblioteca común de los instaladores |
 | `Seal-Version.ps1` | El sellado de versión: estampa, compila, empaqueta y firma |
+| `New-DeliveryPackage.ps1` | La entrega al cliente: instalador + paquete sellado + checksums + manuales, con lista blanca |
 | `version.json` | Manifiesto del último sellado. Producto generado |
 
 ---
@@ -94,14 +95,95 @@ el binario contra el repositorio deja de ser posible.
 
 ### Sobre la etiqueta
 
-`-Tag` exige un árbol limpio. Una etiqueta creada sobre cambios sin confirmar
-apunta a un commit que **no contiene lo que se empaquetó**, que es exactamente lo
-que la etiqueta debería garantizar. También rechaza una etiqueta que ya exista:
-sellar dos veces la misma versión deja dos paquetes distintos con el mismo número.
+`-Tag` comprueba **al inicio**, antes de compilar nada, tres cosas:
+
+1. **Árbol limpio.** Una etiqueta creada sobre cambios sin confirmar apunta a un
+   commit que **no contiene lo que se empaquetó**, que es exactamente lo que la
+   etiqueta debería garantizar.
+2. **El número ya estampado y confirmado.** Si el sellado lo estampara, el commit
+   etiquetado llevaría el número anterior.
+3. **La etiqueta no existe.** Sellar dos veces la misma versión deja dos paquetes
+   distintos con el mismo número.
+
+Se comprueba al inicio y no al final porque el sellado reescribe `version.json`,
+que está versionado: medir el árbol al terminar lo daba siempre por sucio y `-Tag`
+fallaba después de haber compilado y empaquetado todo. Por la misma razón
+`arbolLimpio` y `commit` de `version.json` describen el árbol **de antes de
+estampar**, no el que dejó el propio sellado.
+
+El flujo de una versión nueva es, por tanto, en dos tiempos:
+
+```powershell
+# 1. En una rama: estampa el número y ensaya el sellado completo (sin -Tag)
+.\Seal-Version.ps1 -Version 1.5.0
+#    Confirma Directory.Build.props y el package.json del SPA, y llévalos a Production por PR.
+
+# 2. Ya en Production, con el árbol limpio: sella de verdad y etiqueta
+.\Seal-Version.ps1 -Tag
+git push origin v1.5.0
+#    version.json queda modificado: es el registro de este sellado. Confírmalo en un cambio aparte.
+```
+
+`version.json` nombra el commit que se empaquetó; nunca podrá nombrar el commit que
+lo contiene a él. Es inherente, no un defecto: la etiqueta es la referencia exacta.
 
 Sin `-Tag`, un sellado desde un árbol sucio se permite pero queda anotado en
 `version.json` (`arbolLimpio: false`) y avisa por pantalla. Anotarlo es preferible
 a prohibirlo: hace falta para probar, y silenciarlo sería peor que registrarlo.
+`New-DeliveryPackage.ps1` se niega a entregar un sellado así.
+
+---
+
+## `New-DeliveryPackage.ps1`
+
+Arma lo que se **entrega al cliente**: el instalador, el paquete sellado, sus
+checksums y los manuales, en un solo `.zip`.
+
+```powershell
+.\New-DeliveryPackage.ps1 -Target Node
+.\New-DeliveryPackage.ps1 -Target Hub -Version 1.5.0 -OutputPath D:\entregas
+.\New-DeliveryPackage.ps1 -Target Node -DryRun     # valida sin escribir el zip
+```
+
+Sale en `artifacts\delivery\edgeguard-<hub|node>-<versión>-instalador.zip`, junto a
+un `.sha256` con el hash del zip.
+
+**Lista blanca, no copia de carpeta.** Solo viaja lo que el script nombra:
+`install.ps1`, el README, el `*.example.psd1`, los `.ps1`/`.psm1` de `bin\`, el
+paquete **de esta versión** (y el Hosting Bundle en el Hub) y los PDF. Un
+`node-install.psd1` o `hub-install.psd1` de sede, una versión anterior que siga en
+`data\` o un archivo suelto en `bin\` no pueden entrar. El motivo: un `install.zip`
+armado a mano ya arrastró un `hub-install.psd1` real.
+
+**Se niega a empaquetar si lo sellado no es de fiar:**
+
+- `version.json` no es del número pedido, salió de un árbol sucio o no declara el
+  hash del paquete que hay en `data\`.
+- El paquete no coincide con `data\checksums.sha256`.
+- La copia del módulo común en `bin\` no es idéntica a la de `setup\common\`.
+- Un script que viaja no lleva BOM o no parsea.
+- La auditoría final encuentra configuración de sede, certificados (`*.pfx`,
+  `*.key`, `*.pem`), bases de datos o registros, también **dentro** del paquete
+  sellado (y `appsettings.Development.json` en el Hub).
+
+`-AllowUnsealed` permite ensayar con un sellado sucio; el paquete sale sin
+`version.json` y marcado en rojo como no apto para un cliente.
+
+El `checksums.sha256` que viaja se **reescribe** con lo que de verdad va en `data\`:
+el de origen declara también versiones anteriores y un archivo declarado pero
+ausente produce un aviso que siempre sale, hasta que nadie lo lee.
+
+**Qué prueba el hash lateral.** Los checksums de dentro detectan un zip corrupto,
+no uno alterado: viajan en el mismo paquete y quien lo modifique puede
+regenerarlos. El `.sha256` del zip de entrega es para comunicarlo al cliente **por
+otro canal** (correo, portal). Probar procedencia de verdad exige firma; ver
+`docs/03-architecture/adr/ADR-001-autenticidad-de-paquetes-de-entrega.md`.
+
+Las pruebas viven en `tests/Setup.Tests/` (Pester 3.4, el que trae Windows):
+
+```powershell
+Invoke-Pester .\tests\Setup.Tests
+```
 
 ---
 
