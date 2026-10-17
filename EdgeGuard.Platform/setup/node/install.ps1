@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Instalador del Nodo EdgeGuard como servicio de Windows.
@@ -31,11 +31,6 @@
     o antes de que el enlace esté tendido. Por defecto, no responder aborta: el
     caso común no es una instalación adelantada, es una URL mal escrita.
 
-.PARAMETER ResetHubAddress
-    Limpia las filas hub.* de la base para que la dirección del .psd1 vuelva a
-    aplicarse. Necesario para mover de Hub un nodo YA REGISTRADO: en ese estado
-    la base manda sobre appsettings y editar el archivo no surte efecto.
-
 .EXAMPLE
     .\install.ps1 -DryRun
     Pase de validación recomendado antes de tocar producción.
@@ -54,7 +49,6 @@ param(
     [switch]$NonInteractive,
     [switch]$DryRun,
     [switch]$SkipHubCheck,
-    [switch]$ResetHubAddress,
 
     # ── Sobreescrituras puntuales (ganan sobre el archivo) ───────────────────
     [string]$PackagePath,
@@ -493,7 +487,6 @@ try {
         Package         = $null
         Backup          = $null
         SkipHubCheck    = [bool]$SkipHubCheck
-        ResetHubAddress = [bool]$ResetHubAddress
         HubInfo         = $null
     }
 

@@ -116,9 +116,21 @@ $Manuales = @(
     # otro paquete y otro destinatario: en el Hub opera un administrador de
     # sistemas; en la sede, quien esté a cargo del equipo de imagen.
     #
-    # Falta 'instalacion-nodo': su fuente es el runbook de instalación, que se
-    # escribe cuando exista el instalador del nodo (setup\node\install.ps1).
-    # Documentar un procedimiento que todavía no existe sería peor que no tenerlo.
+    @{
+        Id        = 'instalacion-nodo'
+        Source    = Join-Path $DocsPath 'runbook-instalacion-nodo.md'
+        Output    = 'Nodo-Instalacion-y-puesta-en-marcha.pdf'
+        OutputDir = $ManualesNodoPath
+        Title     = 'Nodo EdgeGuard: instalación y puesta en marcha'
+        Subtitle  = 'Procedimiento completo de instalación de un nodo EdgeGuard como servicio de Windows en el servidor de una sede, desde la preparación hasta la verificación funcional.'
+        Footer    = 'EdgeGuard Platform &middot; Nodo: instalación y puesta en marcha'
+        Version   = '1.0'
+        IssueDate = '22 de septiembre de 2026'
+        # El índice escrito a mano en el Markdown se retira: el PDF arma el suyo
+        # con los encabezados reales, y así no puede quedarse desfasado.
+        SkipSections = @('Índice')
+        CoverNote = 'Este manual se usa una sola vez, durante la instalación, y lo ejecuta personal técnico con consola elevada en el servidor de la sede. Para la revisión diaria, el diagnóstico de fallas y los respaldos, consulte <strong>Nodo: operación, diagnóstico y soporte</strong>, que se entrega en este mismo paquete.'
+    }
 
     @{
         Id     = 'operacion-nodo'

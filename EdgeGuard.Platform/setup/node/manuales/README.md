@@ -11,13 +11,15 @@ saber de sistemas.
 
 | Archivo | Qué es | Fuente |
 |---|---|---|
+| `Nodo-Instalacion-y-puesta-en-marcha.pdf` | Procedimiento de instalación, de la preparación del servidor a la verificación funcional. Se usa una sola vez y lo ejecuta personal técnico. | `docs/07-operations/runbook-instalacion-nodo.md` |
 | `Nodo-Operacion-diagnostico-y-soporte.pdf` | Revisión diaria, diagnóstico por síntoma, respaldos, diccionario y apéndices. El manual de consulta permanente. | `docs/07-operations/manual-nodo/0*.md` |
 | `Nodo-Tarjeta-de-diagnostico-y-escalamiento.pdf` | Dos hojas para imprimir y pegar junto al servidor de la sede. Extracto del manual, sin contenido propio. | `docs/07-operations/manual-nodo/tarjeta.md` |
 
-**Falta el manual de instalación.** Su fuente sería un runbook que describe un
-procedimiento que todavía no existe: el instalador del nodo (`setup/node/`) está
-en diseño. Documentar hoy el `install-service.ps1` actual sería escribir un
-manual que hay que tirar en cuanto el instalador esté.
+**Dos destinatarios, dos registros.** El de instalación va dirigido a quien
+despliega: asume consola elevada, habla de puertos y de rutas, y cierra con la
+evidencia que recibe el aprobador del cambio. Los otros dos van dirigidos a quien
+se queda a cargo del equipo en la sede, que no tiene por qué saber de sistemas.
+Mezclarlos haría el primero inútil y el segundo ilegible.
 
 > **Sin datos de contacto, por decisión.** Los dos documentos clasifican la falla
 > y dicen a qué especialidad corresponde, pero no llevan teléfonos, horarios ni

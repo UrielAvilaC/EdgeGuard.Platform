@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Paso 04 — Conectividad con el Hub
@@ -174,12 +174,17 @@ function Step-TestHubConnectivity {
             # Aviso, no error: nodo y Hub se despliegan por separado y una
             # diferencia de patch es normal. Una de major merece una mirada
             # antes de instalar, no después de que algo no cuadre.
-            $paqueteVersion = if ($State.Package -match '(\d+\.\d+\.\d+)') { $Matches[1] } else { $null }
+            # Del nombre del archivo, no de la ruta: un directorio con números
+            # (C:\Instaladores\v2.1.0\…) daría una versión que no es la del paquete.
+            $nombrePaquete  = Split-Path -Leaf $State.Package
+            $paqueteVersion = if ($nombrePaquete -match '(\d+\.\d+\.\d+)') { $Matches[1] } else { $null }
             if ($paqueteVersion -and $version -match '^\d+\.') {
                 $majorHub    = ([version]$version).Major
                 $majorNodo   = ([version]$paqueteVersion).Major
                 if ($majorHub -ne $majorNodo) {
-                    Write-SetupLog ("AVISO  El Hub es $version y el paquete del nodo $paqueteVersion: " +
+                    # ${} obligatorio: sin las llaves, PowerShell lee '$paqueteVersion:'
+                    # como un ámbito de variable y el script no parsea.
+                    Write-SetupLog ("AVISO  El Hub es $version y el paquete del nodo ${paqueteVersion}: " +
                                     "difieren en versión mayor. Revisa que sean compatibles antes de continuar.") -Level Warn
                 }
             }
